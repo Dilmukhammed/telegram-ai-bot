@@ -6,6 +6,7 @@ from typing import Any
 
 from agent.context_collapse import collapse_search_tools_exchange
 from bot.history_format import strip_rich_appendices
+from skills.collapse import collapse_all_expanded_skills, collapse_persist_reason
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,9 @@ def extract_worker_history_for_persist(
     worker = copy.deepcopy(messages[worker_start_index:])
     worker = strip_supervisor_injections(worker)
     worker = strip_all_search_tools(worker)
+    collapsed = collapse_all_expanded_skills(worker, reason=collapse_persist_reason())
+    if collapsed:
+        logger.info("chat_history_persist collapsed_skills=%s", collapsed)
     worker.append(
         {
             "role": "assistant",

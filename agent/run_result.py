@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from skills.session import SkillRunSnapshot
 from tools.outbound_files import OutboundDelivery
 
 
@@ -10,6 +11,7 @@ from tools.outbound_files import OutboundDelivery
 class AgentRunResult:
     reply: str
     worker_history: list[dict[str, Any]]
+    skill_snapshot: SkillRunSnapshot
     maps_buttons: tuple[tuple[str, str], ...] = ()
     gmail_buttons: tuple[tuple[str, str], ...] = ()
     drive_buttons: tuple[tuple[str, str], ...] = ()

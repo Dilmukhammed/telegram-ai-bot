@@ -9,6 +9,8 @@ from bot.chat_response import ChatResponse
 from bot.history_persist import trim_history_to_turns
 from bot.message_gap import prefix_message_if_gap
 from bot.vision import history_text_for_image_turn
+from skills.collapse import compact_expanded_skills_inplace
+from skills.session import SkillSessionStore, apply_skill_run_snapshot
 from config import get_settings
 from tools.runtime import ToolRuntime
 
@@ -78,6 +80,7 @@ class ChatService:
         previous_count = len(self._histories.get(user_id, []))
         self._histories.pop(user_id, None)
         self._last_message_at.pop(user_id, None)
+        SkillSessionStore.reset(user_id)
         if had_history:
             logger.info(
                 "chat_history_reset user_id=%s cleared_messages=%s",
@@ -170,6 +173,13 @@ class ChatService:
 
         prepared_text = self.prepare_user_message(user_id, user_text, message_at)
         history = self.get_history(user_id)
+        compacted = compact_expanded_skills_inplace(history)
+        if compacted:
+            logger.info(
+                "chat_history_skill_compact user_id=%s collapsed_messages=%s",
+                user_id,
+                compacted,
+            )
         self._log_history_snapshot(user_id=user_id, stage="before_agent", history=history)
         logger.info(
             "chat_history_current_message user_id=%s %s",
@@ -192,6 +202,7 @@ class ChatService:
             user_id,
             [{"role": "user", "content": history_text}, *result.worker_history],
         )
+        apply_skill_run_snapshot(user_id, result.skill_snapshot)
         self._log_history_snapshot(user_id=user_id, stage="after_agent", history=self.get_history(user_id))
         return ChatResponse(
             text=result.reply,

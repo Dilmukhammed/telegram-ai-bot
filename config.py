@@ -26,6 +26,8 @@ DEFAULT_AGENT_SUPERVISOR_SOFT_TRIGGERS = True
 DEFAULT_AGENT_SUPERVISOR_PERIODIC_EVERY = 0
 DEFAULT_AGENT_SUPERVISOR_MAX_RETRIES = 1
 DEFAULT_AGENT_SUPERVISOR_DEBUG_TRACE = False
+DEFAULT_SKILLS_AUTO_LOAD_DISTINCT_TOOLS = 3
+DEFAULT_SKILLS_COLLAPSE_IDLE_TURNS = 7
 DEFAULT_BOT_TIMEZONE = "Asia/Tashkent"
 DEFAULT_MESSAGE_GAP_MINUTES = 20
 DEFAULT_CHAT_MAX_HISTORY = 20
@@ -281,6 +283,8 @@ class Settings:
     agent_supervisor_periodic_every: int
     agent_supervisor_max_retries: int
     agent_supervisor_debug_trace: bool
+    skills_auto_load_distinct_tools: int
+    skills_collapse_idle_turns: int
 
     # Runtime context
     bot_timezone: str
@@ -471,6 +475,14 @@ def get_settings(*, require_telegram_token: bool = False) -> Settings:
         agent_supervisor_debug_trace=_bool_env(
             "AGENT_SUPERVISOR_DEBUG_TRACE",
             DEFAULT_AGENT_SUPERVISOR_DEBUG_TRACE,
+        ),
+        skills_auto_load_distinct_tools=_int_env(
+            "SKILLS_AUTO_LOAD_DISTINCT_TOOLS",
+            DEFAULT_SKILLS_AUTO_LOAD_DISTINCT_TOOLS,
+        ),
+        skills_collapse_idle_turns=_int_env(
+            "SKILLS_COLLAPSE_IDLE_TURNS",
+            DEFAULT_SKILLS_COLLAPSE_IDLE_TURNS,
         ),
         bot_timezone=_str_env("BOT_TIMEZONE", DEFAULT_BOT_TIMEZONE) or "UTC",
         chat_max_history=_int_env("CHAT_MAX_HISTORY", DEFAULT_CHAT_MAX_HISTORY),

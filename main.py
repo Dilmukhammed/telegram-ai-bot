@@ -43,12 +43,12 @@ async def main() -> None:
     if google_oauth_configured() and not google_oauth_manual_mode():
         oauth_runner = await start_oauth_server()
 
+    transcriber: GroqTranscriber | None
     try:
         transcriber = get_transcriber()
     except TranscriptionError as exc:
-        if oauth_runner is not None:
-            await oauth_runner.cleanup()
-        raise RuntimeError(f"Voice support disabled: {exc}") from exc
+        transcriber = None
+        logger.warning("Voice disabled: %s", exc)
 
     bot = Bot(token=settings.telegram_bot_token)
     dp = Dispatcher()
@@ -255,6 +255,9 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
 
     @dp.message(F.voice | F.audio)
     async def on_audio(message: Message) -> None:
+        if transcriber is None:
+            await message.answer("Голосовые отключены: задай GROQ_API_KEY в .env")
+            return
         source = "voice" if message.voice else "audio"
         audio = message.voice or message.audio
         if audio is None:
@@ -385,8 +388,10 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
             user_text=user_text,
         )
 
+    voice_note = "voice" if transcriber is not None else "no voice (GROQ_API_KEY)"
     logger.info(
-        "Bot started with agent + rich streaming + voice + vision. Model: %s",
+        "Bot started with agent + rich streaming + %s + vision. Model: %s",
+        voice_note,
         settings.openai_model,
     )
     await dp.start_polling(bot)

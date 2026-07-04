@@ -28,13 +28,23 @@ from agent.gmail_links import GmailLinkCollector, finalize_gmail_text
 from agent.maps_links import MapsLinkCollector, finalize_maps_text
 from agent.tasks_links import TasksLinkCollector, finalize_tasks_text
 from agent.tool_links_appendix import append_tool_links_appendix
-from agent.tool_search_hints import maybe_append_tool_search_hint
+from agent.tool_search_hints import maybe_append_tool_hints
 from bot.vision import build_user_message_content
+from skills.auto_load import (
+    append_pending_skills_to_messages,
+    apply_pending_skill_unloads,
+    auto_load_skills_for_run,
+    maybe_auto_load_after_tool,
+    reset_auto_load_run_state,
+)
+from skills.collapse import SkillContextCollapser, sanitize_expanded_skills_for_context
+from skills.pending import reset_skill_run_state
+from skills.session import build_skill_run_snapshot, inject_session_skill_for_run
+from skills.usage_tracker import record_tool_use
 from tools.workspace.vision_pending import take_pending_vision
 from agent.sources import SourceCollector, append_sources
 from agent.transit_guard import skipped_web_search_result, transit_route_satisfied
 from agent.history_persist import extract_worker_history_for_persist
-from bot.vision import build_user_message_content
 from config import Settings
 from llm import LLMClient
 from tools.coerce import normalize_use_tool_call
@@ -103,6 +113,7 @@ def _complete_run(
     drive_links: DriveLinkCollector,
     calendar_links: CalendarLinkCollector,
     tasks_links: TasksLinkCollector,
+    skill_collapser: SkillContextCollapser,
 ) -> AgentRunResult:
     reply, gmail_buttons, drive_buttons, calendar_buttons, tasks_buttons = _finalize_reply(
         content, sources, maps_links, gmail_links, drive_links, calendar_links, tasks_links
@@ -117,6 +128,7 @@ def _complete_run(
     return AgentRunResult(
         reply=reply,
         worker_history=worker_history,
+        skill_snapshot=build_skill_run_snapshot(skill_collapser),
         maps_buttons=maps_links.buttons(),
         gmail_buttons=gmail_buttons,
         drive_buttons=drive_buttons,
@@ -171,6 +183,18 @@ def _status_for_tool(tool_name: str, arguments: dict[str, Any]) -> str:
         return "Работаю с Google Maps…"
     if target.startswith("google.auth."):
         return "Проверяю Google OAuth…"
+    if target == "skills.load":
+        skill_id = str(tool_args.get("skill_id", "")).strip()
+        if skill_id:
+            return f"Загружаю skill: {skill_id}…"
+        return "Загружаю skill…"
+    if target == "skills.unload":
+        skill_id = str(tool_args.get("skill_id", "")).strip()
+        if skill_id:
+            return f"Сворачиваю skill: {skill_id}…"
+        return "Сворачиваю skill…"
+    if target == "skills.list":
+        return "Список skills…"
     return f"Запускаю {target}…"
 
 
@@ -213,7 +237,7 @@ class Agent:
 
         messages: list[dict] = [{"role": "system", "content": system}]
         if history:
-            messages.extend(copy.deepcopy(history))
+            messages.extend(sanitize_expanded_skills_for_context(history))
         messages.append(
             {
                 "role": "user",
@@ -287,6 +311,7 @@ class Agent:
         on_status: StatusCallback | None,
         trace: RunTraceCollector,
         collapser: SearchContextCollapser,
+        skill_collapser: SkillContextCollapser,
         sources: SourceCollector,
         maps_links: MapsLinkCollector,
         gmail_links: GmailLinkCollector,
@@ -294,6 +319,8 @@ class Agent:
         calendar_links: CalendarLinkCollector,
         tasks_links: TasksLinkCollector,
         hinted_tool_groups: set[str],
+        hinted_skill_groups: set[str],
+        chat_history: list[dict[str, Any]] | None = None,
     ) -> None:
         parallel_safe = all(
             self._runtime.is_meta_tool_parallel_safe(
@@ -323,7 +350,20 @@ class Agent:
 
         tool_results: list[str] = []
         for tool_call_id, result in pairs:
-            result = maybe_append_tool_search_hint(result, hinted_groups=hinted_tool_groups)
+            try:
+                payload = json.loads(result)
+            except json.JSONDecodeError:
+                payload = {}
+            if payload.get("ok"):
+                tool_name = str(payload.get("tool_name") or "")
+                if tool_name:
+                    record_tool_use(tool_name)
+                    maybe_auto_load_after_tool(tool_name, history=chat_history)
+            result = maybe_append_tool_hints(
+                result,
+                hinted_search_groups=hinted_tool_groups,
+                hinted_skill_groups=hinted_skill_groups,
+            )
             sources.ingest_tool_result_json(result)
             maps_links.ingest_tool_result_json(result)
             gmail_links.ingest_tool_result_json(result)
@@ -349,6 +389,15 @@ class Agent:
                     }
                 )
 
+        apply_pending_skill_unloads(messages, skill_collapser)
+        append_pending_skills_to_messages(
+            messages,
+            skill_collapser,
+            turn_index=turn,
+        )
+        skill_collapser.record_tool_uses_from_results(tool_results, turn)
+        skill_collapser.collapse_idle_if_needed(messages, turn)
+
         collapser.on_tool_turn(messages, tool_calls, tool_results)
 
     async def _finalize_with_instruction(self, messages: list[dict], instruction: str) -> str:
@@ -371,6 +420,7 @@ class Agent:
         supervisor_cycles_left: int,
         retries_left: int,
         history_len: int,
+        skill_collapser: SkillContextCollapser,
     ) -> tuple[AgentRunResult | None, int, int, int]:
         """Returns run result (if done), cycles_left, retries_left, bonus_turns to add."""
         if self._supervisor is None or supervisor_cycles_left <= 0:
@@ -394,6 +444,7 @@ class Agent:
                     drive_links=drive_links,
                     calendar_links=calendar_links,
                     tasks_links=tasks_links,
+                    skill_collapser=skill_collapser,
                 ),
                 supervisor_cycles_left,
                 retries_left,
@@ -467,6 +518,7 @@ class Agent:
                 drive_links=drive_links,
                 calendar_links=calendar_links,
                 tasks_links=tasks_links,
+                skill_collapser=skill_collapser,
             ),
             supervisor_cycles_left,
             retries_left,
@@ -496,6 +548,18 @@ class Agent:
         calendar_links = CalendarLinkCollector()
         tasks_links = TasksLinkCollector()
         hinted_tool_groups: set[str] = set()
+        hinted_skill_groups: set[str] = set()
+        reset_skill_run_state()
+        reset_auto_load_run_state()
+        skill_collapser = SkillContextCollapser()
+        skill_collapser.sync_from_messages(messages)
+        session_injected = inject_session_skill_for_run(user_id)
+        if session_injected:
+            logger.info("session_skill_injected skill_id=%s user_id=%s", session_injected, user_id)
+        auto_loaded = auto_load_skills_for_run(user_message, history)
+        if auto_loaded:
+            logger.info("auto_loaded_skills skill_ids=%s", auto_loaded)
+        append_pending_skills_to_messages(messages, skill_collapser, turn_index=0)
         trace = RunTraceCollector(
             user_id=user_id,
             user_message=user_message,
@@ -534,6 +598,7 @@ class Agent:
 
                     if not tool_calls:
                         collapser.collapse_if_pending(messages)
+                        skill_collapser.collapse_idle_if_needed(messages, turn_index)
                         content = (message.content or "").strip()
                         if not content:
                             logger.warning(
@@ -562,6 +627,7 @@ class Agent:
                             drive_links=drive_links,
                             calendar_links=calendar_links,
                             tasks_links=tasks_links,
+                            skill_collapser=skill_collapser,
                         )
 
                     messages.append(message.model_dump(exclude_none=True))
@@ -573,6 +639,7 @@ class Agent:
                         on_status=on_status,
                         trace=trace,
                         collapser=collapser,
+                        skill_collapser=skill_collapser,
                         sources=sources,
                         maps_links=maps_links,
                         gmail_links=gmail_links,
@@ -580,6 +647,8 @@ class Agent:
                         calendar_links=calendar_links,
                         tasks_links=tasks_links,
                         hinted_tool_groups=hinted_tool_groups,
+                        hinted_skill_groups=hinted_skill_groups,
+                        chat_history=history,
                     )
                     turn_index += 1
 
@@ -618,6 +687,7 @@ class Agent:
                                 supervisor_cycles_left=supervisor_cycles_left,
                                 retries_left=retries_left,
                                 history_len=history_len,
+                                skill_collapser=skill_collapser,
                             )
                             if run_result is not None:
                                 return run_result
@@ -646,6 +716,7 @@ class Agent:
                     supervisor_cycles_left=supervisor_cycles_left,
                     retries_left=retries_left,
                     history_len=history_len,
+                    skill_collapser=skill_collapser,
                 )
                 if run_result is not None:
                     return run_result
