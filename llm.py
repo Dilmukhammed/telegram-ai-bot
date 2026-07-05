@@ -114,6 +114,28 @@ class LLMClient:
             on_retry=on_retry,
         )
 
+    async def count_prompt_tokens(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        tools: list[dict[str, Any]] | None = None,
+        on_retry: RetryCallback | None = None,
+    ) -> int:
+        """Count input tokens via the model API (prompt_tokens on a max_tokens=1 call)."""
+        kwargs = self._completion_kwargs(messages=messages, max_tokens=1)
+        if tools is not None:
+            kwargs["tools"] = tools
+
+        response = await self._call_with_timeout_retry(
+            "count_prompt_tokens",
+            lambda: self._client.chat.completions.create(**kwargs),
+            on_retry=on_retry,
+        )
+        usage = response.usage
+        if usage is None or usage.prompt_tokens is None:
+            raise RuntimeError("Model API returned no prompt token usage")
+        return usage.prompt_tokens
+
     async def chat_stream(
         self,
         messages: list[dict[str, str]],
@@ -143,3 +165,29 @@ class LLMClient:
         )
         for token in parts:
             yield token
+
+    async def chat_without_reasoning(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        max_tokens: int = 512,
+        on_retry: RetryCallback | None = None,
+    ) -> str:
+        """Fast utility completion without reasoning_effort (summaries, classifiers)."""
+
+        async def _call() -> str:
+            response = await self._client.chat.completions.create(
+                model=self._settings.openai_model,
+                messages=messages,
+                max_tokens=max_tokens,
+            )
+            content = (response.choices[0].message.content or "").strip()
+            if not content:
+                raise RuntimeError("Empty response from model")
+            return content
+
+        return await self._call_with_timeout_retry(
+            "chat_without_reasoning",
+            _call,
+            on_retry=on_retry,
+        )

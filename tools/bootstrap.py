@@ -1,5 +1,6 @@
 from tools.builtins import BUILTIN_TOOLS
 from tools.builtins.google import GOOGLE_TOOLS
+from tools.builtins.yandex import YANDEX_TOOLS
 from tools.index import HybridToolIndex, create_tool_index
 from tools.registry import ToolRegistry
 from tools.runtime import ToolRuntime
@@ -12,6 +13,8 @@ async def create_tool_runtime() -> ToolRuntime:
     for tool in BUILTIN_TOOLS:
         registry.register(tool)
     for tool in GOOGLE_TOOLS:
+        registry.register(tool)
+    for tool in YANDEX_TOOLS:
         registry.register(tool)
     index = await create_tool_index(registry)
     return ToolRuntime(registry, index)

@@ -2,8 +2,12 @@ import math
 import re
 
 from tools.schema import ToolSpec
+from tools.ranking import keyword_action_bonus
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
+
+# Bare tokens skipped in multi-word queries so "search gmail" does not also score as "search" → exa.
+_GENERIC_MULTIWORD_SKIP = frozenset({"search", "find", "lookup", "query", "list", "get"})
 
 
 def tokenize(text: str) -> set[str]:
@@ -19,10 +23,14 @@ def expand_query_terms(query: str) -> list[str]:
     if not stripped:
         return []
 
+    tokens = ordered_query_tokens(stripped)
     terms = [stripped.lower()]
-    for token in ordered_query_tokens(stripped):
-        if token not in terms:
-            terms.append(token)
+    for token in tokens:
+        if token in terms:
+            continue
+        if token in _GENERIC_MULTIWORD_SKIP and len(tokens) > 1:
+            continue
+        terms.append(token)
     return terms
 
 
@@ -47,7 +55,8 @@ class KeywordToolIndex:
         overlap = len(query_tokens & tool_tokens)
         name_bonus = 2 if any(token in tool.name.lower() for token in query_tokens) else 0
         tag_bonus = sum(1 for tag in tool.tags if tag.lower() in query_tokens)
-        raw = overlap + name_bonus + tag_bonus
+        action_bonus = keyword_action_bonus(query_tokens, tool.name)
+        raw = overlap + name_bonus + tag_bonus + action_bonus
         return raw / (len(query_tokens) + 2)
 
     def search(self, query: str, candidates: list[ToolSpec], top_k: int = 5) -> list[ToolSpec]:

@@ -12,6 +12,7 @@ load_dotenv()
 DEFAULT_OPENAI_BASE_URL = "http://localhost:20128/v1"
 DEFAULT_OPENAI_MODEL = "ag/gemini-3.5-flash-low"
 DEFAULT_REASONING_EFFORT = "high"
+DEFAULT_LLM_CONTEXT_WINDOW_TOKENS = 1_000_000
 DEFAULT_LLM_REQUEST_TIMEOUTS = (30.0, 60.0, 90.0)
 REASONING_EFFORT_LEVELS = frozenset(
     {"minimal", "low", "medium", "high", "xhigh", "auto", "none"}
@@ -79,6 +80,25 @@ DEFAULT_MAPS_RATE_LIMIT_DETAILS = "20/60"
 DEFAULT_MAPS_RATE_LIMIT_ROUTES = "10/60"
 DEFAULT_MAPS_RATE_LIMIT_STATIC = "5/60"
 DEFAULT_MAPS_TRANSIT_LINK_PROVIDER = "yandex"
+
+# Yandex Music (device OAuth via yandex-music library)
+DEFAULT_YANDEX_TOKEN_DB_PATH = "data/yandex_tokens.sqlite"
+DEFAULT_YANDEX_MUSIC_LANGUAGE = "ru"
+DEFAULT_YANDEX_MUSIC_RATE_LIMIT_READ = "60/60"
+DEFAULT_YANDEX_MUSIC_RATE_LIMIT_WRITE = "30/60"
+
+DEFAULT_TOOL_RESULT_DB_PATH = "data/tool_results.sqlite"
+DEFAULT_TOOL_RESULT_ARCHIVE_MIN_CHARS = 150
+DEFAULT_TOOL_RESULT_COLLAPSE_STALE_STEPS = 10
+DEFAULT_TOOL_RESULT_TTL_HOURS = 72
+DEFAULT_TOOL_RESULT_SUMMARIZE_MAX_INPUT_CHARS = 12_000
+DEFAULT_TOOL_RESULT_SUMMARIZE_MAX_RETRIES = 3
+DEFAULT_TOOL_RESULT_SUMMARIZE_MIN_CHARS = 80
+DEFAULT_TOOL_RESULT_SUMMARIZE_MAX_CONCURRENT = 3
+DEFAULT_TOOL_RESULT_ARCHIVE_ENABLED = True
+DEFAULT_TOOL_RESULT_COLLAPSE_WAIT_SECONDS = 30.0
+DEFAULT_TOOL_RESULT_CLEANUP_INTERVAL_SECONDS = 3600
+DEFAULT_TOOL_RESULT_MAX_ROWS_PER_USER = 0
 
 DEFAULT_GOOGLE_OAUTH_CLIENT_TYPE = "installed"
 DEFAULT_GOOGLE_OAUTH_BIND_HOST = "127.0.0.1"
@@ -272,6 +292,7 @@ class Settings:
     openai_api_key: str
     openai_model: str
     reasoning_effort: str | None
+    llm_context_window_tokens: int
     llm_request_timeouts: tuple[float, ...]
     system_prompt: str
     agent_max_tool_turns: int
@@ -358,6 +379,12 @@ class Settings:
     rate_limit_maps_static: tuple[int, int] | None
     maps_transit_link_provider: str
 
+    # Yandex Music
+    yandex_token_db_path: str
+    yandex_music_language: str
+    rate_limit_yandex_music_read: tuple[int, int] | None
+    rate_limit_yandex_music_write: tuple[int, int] | None
+
     # Google Gmail (user OAuth)
     gmail_max_body_chars: int
     gmail_max_attachment_bytes: int
@@ -402,6 +429,20 @@ class Settings:
     rate_limit_workspace_write: tuple[int, int] | None
     rate_limit_workspace_delete: tuple[int, int] | None
 
+    # Tool result archive (per-user SQLite + summarize + collapse)
+    tool_result_archive_enabled: bool
+    tool_result_db_path: str
+    tool_result_archive_min_chars: int
+    tool_result_collapse_stale_steps: int
+    tool_result_ttl_hours: int
+    tool_result_summarize_max_input_chars: int
+    tool_result_summarize_max_retries: int
+    tool_result_summarize_min_chars: int
+    tool_result_summarize_max_concurrent: int
+    tool_result_collapse_wait_seconds: float
+    tool_result_cleanup_interval_seconds: int
+    tool_result_max_rows_per_user: int
+
 
 def _maps_transit_link_provider_env(name: str, default: str) -> str:
     value = _str_env(name, default).lower()
@@ -438,6 +479,10 @@ def get_settings(*, require_telegram_token: bool = False) -> Settings:
         openai_api_key=openai_api_key,
         openai_model=_str_env("OPENAI_MODEL", DEFAULT_OPENAI_MODEL),
         reasoning_effort=_reasoning_effort_env("REASONING_EFFORT", DEFAULT_REASONING_EFFORT),
+        llm_context_window_tokens=_int_env(
+            "LLM_CONTEXT_WINDOW_TOKENS",
+            DEFAULT_LLM_CONTEXT_WINDOW_TOKENS,
+        ),
         llm_request_timeouts=_float_tuple_env(
             "LLM_REQUEST_TIMEOUTS",
             DEFAULT_LLM_REQUEST_TIMEOUTS,
@@ -588,6 +633,14 @@ def get_settings(*, require_telegram_token: bool = False) -> Settings:
             "MAPS_TRANSIT_LINK_PROVIDER",
             DEFAULT_MAPS_TRANSIT_LINK_PROVIDER,
         ),
+        yandex_token_db_path=_str_env("YANDEX_TOKEN_DB_PATH", DEFAULT_YANDEX_TOKEN_DB_PATH),
+        yandex_music_language=_str_env("YANDEX_MUSIC_LANGUAGE", DEFAULT_YANDEX_MUSIC_LANGUAGE),
+        rate_limit_yandex_music_read=_parse_rate_limit(
+            _optional_str_env("YANDEX_MUSIC_RATE_LIMIT_READ") or DEFAULT_YANDEX_MUSIC_RATE_LIMIT_READ
+        ),
+        rate_limit_yandex_music_write=_parse_rate_limit(
+            _optional_str_env("YANDEX_MUSIC_RATE_LIMIT_WRITE") or DEFAULT_YANDEX_MUSIC_RATE_LIMIT_WRITE
+        ),
         gmail_max_body_chars=_int_env("GMAIL_MAX_BODY_CHARS", DEFAULT_GMAIL_MAX_BODY_CHARS),
         gmail_max_attachment_bytes=_int_env(
             "GMAIL_MAX_ATTACHMENT_BYTES",
@@ -699,6 +752,48 @@ def get_settings(*, require_telegram_token: bool = False) -> Settings:
         ),
         rate_limit_workspace_delete=_parse_rate_limit(
             _optional_str_env("WORKSPACE_RATE_LIMIT_DELETE") or DEFAULT_WORKSPACE_RATE_LIMIT_DELETE
+        ),
+        tool_result_archive_enabled=_bool_env(
+            "TOOL_RESULT_ARCHIVE_ENABLED",
+            DEFAULT_TOOL_RESULT_ARCHIVE_ENABLED,
+        ),
+        tool_result_db_path=_str_env("TOOL_RESULT_DB_PATH", DEFAULT_TOOL_RESULT_DB_PATH),
+        tool_result_archive_min_chars=_int_env(
+            "TOOL_RESULT_ARCHIVE_MIN_CHARS",
+            DEFAULT_TOOL_RESULT_ARCHIVE_MIN_CHARS,
+        ),
+        tool_result_collapse_stale_steps=_int_env(
+            "TOOL_RESULT_COLLAPSE_STALE_STEPS",
+            DEFAULT_TOOL_RESULT_COLLAPSE_STALE_STEPS,
+        ),
+        tool_result_ttl_hours=_int_env("TOOL_RESULT_TTL_HOURS", DEFAULT_TOOL_RESULT_TTL_HOURS),
+        tool_result_summarize_max_input_chars=_int_env(
+            "TOOL_RESULT_SUMMARIZE_MAX_INPUT_CHARS",
+            DEFAULT_TOOL_RESULT_SUMMARIZE_MAX_INPUT_CHARS,
+        ),
+        tool_result_summarize_max_retries=_int_env(
+            "TOOL_RESULT_SUMMARIZE_MAX_RETRIES",
+            DEFAULT_TOOL_RESULT_SUMMARIZE_MAX_RETRIES,
+        ),
+        tool_result_summarize_min_chars=_int_env(
+            "TOOL_RESULT_SUMMARIZE_MIN_CHARS",
+            DEFAULT_TOOL_RESULT_SUMMARIZE_MIN_CHARS,
+        ),
+        tool_result_summarize_max_concurrent=_int_env(
+            "TOOL_RESULT_SUMMARIZE_MAX_CONCURRENT",
+            DEFAULT_TOOL_RESULT_SUMMARIZE_MAX_CONCURRENT,
+        ),
+        tool_result_collapse_wait_seconds=_float_env(
+            "TOOL_RESULT_COLLAPSE_WAIT_SECONDS",
+            DEFAULT_TOOL_RESULT_COLLAPSE_WAIT_SECONDS,
+        ),
+        tool_result_cleanup_interval_seconds=_int_env(
+            "TOOL_RESULT_CLEANUP_INTERVAL_SECONDS",
+            DEFAULT_TOOL_RESULT_CLEANUP_INTERVAL_SECONDS,
+        ),
+        tool_result_max_rows_per_user=_int_env(
+            "TOOL_RESULT_MAX_ROWS_PER_USER",
+            DEFAULT_TOOL_RESULT_MAX_ROWS_PER_USER,
         ),
     )
 

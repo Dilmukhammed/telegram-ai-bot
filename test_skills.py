@@ -62,6 +62,15 @@ def test_skill_registry_loads_workspace():
     assert len(spec.content) > 500
 
 
+def test_skill_registry_loads_yandex_music():
+    spec = get_skill("yandex.music")
+    assert spec is not None
+    assert spec.skill_id == "yandex.music"
+    assert "music" in spec.tags
+    assert "yandex.music.search" in spec.content
+    assert len(spec.content) > 500
+
+
 def test_list_skills_includes_google_maps():
     ids = [item.skill_id for item in list_skills()]
     assert "google.maps" in ids
@@ -70,6 +79,7 @@ def test_list_skills_includes_google_maps():
     assert "google.calendar" in ids
     assert "google.tasks" in ids
     assert "google.gmail" in ids
+    assert "yandex.music" in ids
     assert "workspace" in ids
 
 

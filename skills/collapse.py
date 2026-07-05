@@ -90,17 +90,14 @@ def collapse_all_expanded_skills(
 
 
 def compact_expanded_skills_inplace(messages: list[dict[str, Any]]) -> int:
-    """Collapse any legacy full skill playbooks in stored chat history."""
-    collapsed = collapse_all_expanded_skills(messages, reason=collapse_persist_reason())
-    return len(collapsed)
+    """Legacy hook — expanded skills stay in chat history until replace or unload."""
+    return 0
 
 
 def sanitize_expanded_skills_for_context(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     import copy
 
-    out = copy.deepcopy(messages)
-    collapse_all_expanded_skills(out, reason=collapse_persist_reason())
-    return out
+    return copy.deepcopy(messages)
 
 
 def collapse_skill_in_messages(
@@ -186,21 +183,7 @@ class SkillContextCollapser:
         messages: list[dict[str, Any]],
         turn_index: int,
     ) -> list[str]:
-        threshold = skills_collapse_idle_turns()
-        collapsed: list[str] = []
-        for skill_id in list(self._expanded):
-            last_used = self._last_used_turn.get(skill_id, turn_index)
-            if turn_index - last_used < threshold:
-                continue
-            if collapse_skill_in_messages(
-                messages,
-                skill_id,
-                reason=collapse_idle_reason(),
-            ):
-                self._expanded.discard(skill_id)
-                self._last_used_turn.pop(skill_id, None)
-                collapsed.append(skill_id)
-        return collapsed
+        return []
 
     def primary_expanded_skill_id(self) -> str | None:
         if not self._expanded:

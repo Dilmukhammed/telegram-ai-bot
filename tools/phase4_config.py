@@ -68,6 +68,12 @@ def rate_limit_for_tool(tool_name: str, spec_limit: tuple[int, int] | None) -> t
         return settings.rate_limit_gmail_read
     if tool_name.startswith("google.maps.") and tool_name != "google.maps.maps_link":
         return settings.rate_limit_maps_default
+    if tool_name.startswith("yandex.music."):
+        if tool_name.endswith("_download") or ".track_download" in tool_name:
+            return settings.rate_limit_yandex_music_write
+        if any(token in tool_name for token in ("_add", "_remove", "_delete", "_create", "_set", "_insert", "_change", "_join", "_update", "pin_", "unpin_", "feedback", "play_audio", "consume_")):
+            return settings.rate_limit_yandex_music_write
+        return settings.rate_limit_yandex_music_read
     return spec_limit
 
 

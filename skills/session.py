@@ -3,8 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from skills.auto_load import queue_skill_load
-from skills.collapse import SkillContextCollapser, skills_collapse_idle_turns
+from skills.collapse import SkillContextCollapser
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +11,6 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SkillSessionState:
     expanded_skill_id: str | None = None
-    idle_runs: int = 0
 
 
 @dataclass(frozen=True)
@@ -47,54 +45,20 @@ def build_skill_run_snapshot(collapser: SkillContextCollapser) -> SkillRunSnapsh
 
 
 def inject_session_skill_for_run(user_id: int | None) -> str | None:
-    """Re-inject the session's expanded skill at the start of an agent run."""
-    if user_id is None:
-        return None
-    skill_id = SkillSessionStore.get(user_id).expanded_skill_id
-    if not skill_id:
-        return None
-    if queue_skill_load(skill_id):
-        logger.info("skill_session_inject user_id=%s skill_id=%s", user_id, skill_id)
-        return skill_id
+    """Deprecated: expanded skills persist in chat history between runs."""
     return None
 
 
 def apply_skill_run_snapshot(user_id: int | None, snapshot: SkillRunSnapshot) -> None:
-    """Update per-chat session skill state after a completed agent run."""
+    """Track active skill for /reset metadata; playbook stays in chat history."""
     if user_id is None:
         return
 
     state = SkillSessionStore.get(user_id)
-    threshold = skills_collapse_idle_turns()
-
-    if snapshot.expanded_skill_id:
-        if snapshot.expanded_skill_id in snapshot.skills_with_tools:
-            state.expanded_skill_id = snapshot.expanded_skill_id
-            state.idle_runs = 0
-        else:
-            state.expanded_skill_id = snapshot.expanded_skill_id
-            state.idle_runs += 1
-            if state.idle_runs >= threshold:
-                logger.info(
-                    "skill_session_idle_clear user_id=%s skill_id=%s idle_runs=%s",
-                    user_id,
-                    snapshot.expanded_skill_id,
-                    state.idle_runs,
-                )
-                state.expanded_skill_id = None
-                state.idle_runs = 0
-        logger.info(
-            "skill_session_update user_id=%s expanded=%s idle_runs=%s tools=%s",
-            user_id,
-            state.expanded_skill_id,
-            state.idle_runs,
-            sorted(snapshot.skills_with_tools),
-        )
-        return
-
-    state.expanded_skill_id = None
-    state.idle_runs = 0
+    state.expanded_skill_id = snapshot.expanded_skill_id
     logger.info(
-        "skill_session_update user_id=%s expanded=None (collapsed this run)",
+        "skill_session_update user_id=%s expanded=%s tools=%s",
         user_id,
+        state.expanded_skill_id,
+        sorted(snapshot.skills_with_tools),
     )

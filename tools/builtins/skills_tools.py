@@ -117,12 +117,12 @@ SKILLS_LIST = ToolSpec(
 SKILLS_LOAD = ToolSpec(
     name="skills.load",
     description=(
-        "Load a full skill playbook (entire SKILL.md) into the agent context for the current run. "
+        "Load a full skill playbook (entire SKILL.md) into the agent context. "
         "Call before multi-step work in an area (e.g. google.maps for routes). "
         "Loading a new skill collapses any other expanded skill (one full playbook at a time). "
-        "Idle skills collapse after SKILLS_COLLAPSE_IDLE_TURNS without tools from that area. "
-        "The server may auto-load skills when the user message or dialog history clearly targets one domain. "
-        "Idempotent — reloading the same skill_id in one run is a no-op."
+        "Expanded playbooks persist in chat history until replaced or skills.unload. "
+        "The server may auto-load a skill after 3+ distinct tools in the same area in one run. "
+        "Idempotent — reloading the same skill_id while already expanded is a no-op."
     ),
     parameters={
         "type": "object",
@@ -147,8 +147,8 @@ SKILLS_UNLOAD = ToolSpec(
     name="skills.unload",
     description=(
         "Collapse an expanded skill playbook in agent context (free tokens). "
-        "Same effect as idle or replace collapse — full SKILL.md becomes a short stub. "
-        "Use when switching tasks or the playbook is no longer needed this run. "
+        "Full SKILL.md becomes a short stub with skills.load restore instructions. "
+        "Use when switching tasks or the playbook is no longer needed. "
         "Idempotent if the skill is not currently expanded."
     ),
     parameters={

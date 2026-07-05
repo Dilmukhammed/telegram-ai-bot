@@ -17,6 +17,8 @@ _TOOL_GROUP_TAGS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("google.sheets.", ("google", "sheets")),
     ("google.tasks.", ("google", "tasks")),
     ("google.maps.", ("google", "maps")),
+    ("yandex.auth.", ("yandex", "auth")),
+    ("yandex.music.", ("yandex", "music")),
     ("exa.", ("web", "search")),
     ("telegram.", ("telegram", "bot")),
     ("workspace.", ("workspace", "filesystem")),

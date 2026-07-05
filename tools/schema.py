@@ -1,6 +1,8 @@
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
+
+from tools.search_index import enriched_index_text
 
 ToolHandler = Callable[[dict[str, Any]], Awaitable[Any]]
 
@@ -34,5 +36,9 @@ class ToolSpec:
         }
 
     def index_text(self) -> str:
-        parts = [self.name, self.description, *self.tags, *self.examples]
-        return " ".join(parts).lower()
+        return enriched_index_text(
+            name=self.name,
+            description=self.description,
+            tags=self.tags,
+            examples=self.examples,
+        )

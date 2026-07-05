@@ -154,7 +154,7 @@ async def places_text_search(
     *,
     language: str | None = None,
     region: str | None = None,
-    max_results: int = 10,
+    max_results: int = 20,
     included_type: str | None = None,
     min_rating: float | None = None,
     open_now: bool | None = None,
@@ -195,7 +195,7 @@ async def places_nearby_search(
     lng: float | None = None,
     radius_m: float = 1500,
     included_types: list[str] | None = None,
-    max_results: int = 10,
+    max_results: int = 20,
     language: str | None = None,
     open_now: bool | None = None,
 ) -> dict[str, Any]:

@@ -10,7 +10,14 @@ from agent.tool_search_hints import (
     tags_for_tool_name,
 )
 from skills.pending import mark_skill_loaded, reset_skill_run_state
-from skills.usage_tracker import record_tool_use, reset_skill_usage_tracker
+from skills.auto_load import maybe_auto_load_for_skill, should_auto_load_skill
+from skills.skill_map import skill_id_for_search_tags
+from skills.usage_tracker import (
+    distinct_tools_in_run,
+    record_tagged_search,
+    record_tool_use,
+    reset_skill_usage_tracker,
+)
 
 
 def _prime_distinct_tools(*tool_names: str) -> None:
@@ -27,6 +34,24 @@ def _prime_maps_for_hint() -> None:
     )
 
 
+def test_skill_load_hint_after_second_yandex_music_tool():
+    reset_skill_run_state()
+    _prime_distinct_tools(
+        "yandex.music.search",
+        "yandex.music.tracks",
+        "yandex.music.albums",
+    )
+    hinted: set[str] = set()
+    result = maybe_append_skill_load_hint(
+        json.dumps({"ok": True, "tool_name": "yandex.music.search", "result": {}}),
+        hinted_skill_groups=hinted,
+    )
+    payload = json.loads(result)
+    assert "skill_load_hint" in payload
+    assert "yandex.music" in payload["skill_load_hint"]
+    assert "yandex|music" in hinted
+
+
 def test_tags_for_tool_name():
     assert tags_for_tool_name("google.calendar.list_events") == ("google", "calendar")
     assert tags_for_tool_name("google.gmail.send") == ("google", "gmail")
@@ -35,8 +60,17 @@ def test_tags_for_tool_name():
     assert tags_for_tool_name("google.sheets.read_sheet") == ("google", "sheets")
     assert tags_for_tool_name("exa.web_search") == ("web", "search")
     assert tags_for_tool_name("workspace.stat") == ("workspace", "filesystem")
+    assert tags_for_tool_name("yandex.music.search") == ("yandex", "music")
+    assert tags_for_tool_name("yandex.auth.status") == ("yandex", "auth")
     assert tags_for_tool_name("telegram.send_file") == ("telegram", "bot")
     assert tags_for_tool_name("echo.test") is None
+
+
+def test_tags_for_yandex_auth():
+    assert tags_for_tool_name("yandex.auth.status") == ("yandex", "auth")
+    from skills.skill_map import skill_id_for_tool_name
+
+    assert skill_id_for_tool_name("yandex.auth.status") == "yandex.music"
 
 
 def test_group_key_for_tool_name():
@@ -283,3 +317,45 @@ def test_skill_load_hint_after_second_workspace_tool():
     assert "skill_load_hint" in payload
     assert "workspace" in payload["skill_load_hint"]
     assert "workspace|filesystem" in hinted
+
+
+def test_skill_id_for_search_tags():
+    assert skill_id_for_search_tags(["yandex", "music"]) == "yandex.music"
+    assert skill_id_for_search_tags(["music", "yandex"]) == "yandex.music"
+    assert skill_id_for_search_tags(["google", "sheets"]) == "google.sheets"
+    assert skill_id_for_search_tags(["yandex"]) is None
+    assert skill_id_for_search_tags([]) is None
+
+
+def test_tagged_search_counts_toward_auto_load():
+    reset_skill_run_state()
+    reset_skill_usage_tracker()
+    assert record_tagged_search(["yandex", "music"]) == "yandex.music"
+    assert distinct_tools_in_run("yandex.music") == 1
+    assert not should_auto_load_skill("yandex.music")
+
+    assert record_tagged_search(["yandex", "music"]) == "yandex.music"
+    assert distinct_tools_in_run("yandex.music") == 2
+    assert not should_auto_load_skill("yandex.music")
+
+    assert record_tagged_search(["yandex", "music"]) == "yandex.music"
+    assert distinct_tools_in_run("yandex.music") == 3
+    assert should_auto_load_skill("yandex.music")
+    assert maybe_auto_load_for_skill("yandex.music") == "yandex.music"
+
+
+def test_tagged_search_without_tags_does_not_count():
+    reset_skill_usage_tracker()
+    assert record_tagged_search([]) is None
+    assert record_tagged_search(["web", "search"]) is None
+    assert distinct_tools_in_run("yandex.music") == 0
+
+
+def test_tagged_search_mixes_with_tool_uses():
+    reset_skill_run_state()
+    reset_skill_usage_tracker()
+    record_tagged_search(["yandex", "music"])
+    record_tagged_search(["yandex", "music"])
+    record_tool_use("yandex.music.tracks")
+    assert distinct_tools_in_run("yandex.music") == 3
+    assert should_auto_load_skill("yandex.music")

@@ -1,0 +1,4174 @@
+{
+  "echo.test": [
+    {
+      "name": "echo.test",
+      "method": "test",
+      "tags": [
+        "test",
+        "debug",
+        "echo"
+      ],
+      "has_alias": false
+    }
+  ],
+  "exa.web_fetch": [
+    {
+      "name": "exa.web_fetch",
+      "method": "web_fetch",
+      "tags": [
+        "web",
+        "fetch",
+        "url",
+        "read",
+        "internet",
+        "exa"
+      ],
+      "has_alias": false
+    }
+  ],
+  "exa.web_search": [
+    {
+      "name": "exa.web_search",
+      "method": "web_search",
+      "tags": [
+        "web",
+        "search",
+        "news",
+        "internet",
+        "exa"
+      ],
+      "has_alias": false
+    }
+  ],
+  "google.auth": [
+    {
+      "name": "google.auth.connect_url",
+      "method": "connect_url",
+      "tags": [
+        "google",
+        "auth"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.auth.disconnect",
+      "method": "disconnect",
+      "tags": [
+        "google",
+        "auth"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.auth.status",
+      "method": "status",
+      "tags": [
+        "google",
+        "auth"
+      ],
+      "has_alias": true
+    }
+  ],
+  "google.calendar": [
+    {
+      "name": "google.calendar.clear_calendar",
+      "method": "clear_calendar",
+      "tags": [
+        "google",
+        "calendar",
+        "calendars",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.calendar.create_calendar",
+      "method": "create_calendar",
+      "tags": [
+        "google",
+        "calendar",
+        "calendars",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.calendar.create_event",
+      "method": "create_event",
+      "tags": [
+        "google",
+        "calendar",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.calendar.delete_calendar",
+      "method": "delete_calendar",
+      "tags": [
+        "google",
+        "calendar",
+        "calendars",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.calendar.delete_event",
+      "method": "delete_event",
+      "tags": [
+        "google",
+        "calendar",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.calendar.find_free_slots",
+      "method": "find_free_slots",
+      "tags": [
+        "google",
+        "calendar",
+        "scheduling",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.calendar.freebusy",
+      "method": "freebusy",
+      "tags": [
+        "google",
+        "calendar",
+        "scheduling",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.calendar.get_calendar",
+      "method": "get_calendar",
+      "tags": [
+        "google",
+        "calendar",
+        "calendars",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.calendar.get_event",
+      "method": "get_event",
+      "tags": [
+        "google",
+        "calendar",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.calendar.import_event",
+      "method": "import_event",
+      "tags": [
+        "google",
+        "calendar",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.calendar.list_calendars",
+      "method": "list_calendars",
+      "tags": [
+        "google",
+        "calendar",
+        "calendars",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.calendar.list_colors",
+      "method": "list_colors",
+      "tags": [
+        "google",
+        "calendar",
+        "colors",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.calendar.list_events",
+      "method": "list_events",
+      "tags": [
+        "google",
+        "calendar",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.calendar.list_instances",
+      "method": "list_instances",
+      "tags": [
+        "google",
+        "calendar",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.calendar.list_today",
+      "method": "list_today",
+      "tags": [
+        "google",
+        "calendar",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.calendar.list_upcoming",
+      "method": "list_upcoming",
+      "tags": [
+        "google",
+        "calendar",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.calendar.move_event",
+      "method": "move_event",
+      "tags": [
+        "google",
+        "calendar",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.calendar.patch_event",
+      "method": "patch_event",
+      "tags": [
+        "google",
+        "calendar",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.calendar.quick_add_event",
+      "method": "quick_add_event",
+      "tags": [
+        "google",
+        "calendar",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.calendar.search_events",
+      "method": "search_events",
+      "tags": [
+        "google",
+        "calendar",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.calendar.set_calendar_color",
+      "method": "set_calendar_color",
+      "tags": [
+        "google",
+        "calendar",
+        "colors",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.calendar.update_calendar",
+      "method": "update_calendar",
+      "tags": [
+        "google",
+        "calendar",
+        "calendars",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.calendar.update_event",
+      "method": "update_event",
+      "tags": [
+        "google",
+        "calendar",
+        "write"
+      ],
+      "has_alias": false
+    }
+  ],
+  "google.drive": [
+    {
+      "name": "google.drive.approve_file",
+      "method": "approve_file",
+      "tags": [
+        "google",
+        "drive",
+        "workspace",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.cancel_approval",
+      "method": "cancel_approval",
+      "tags": [
+        "google",
+        "drive",
+        "workspace",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.comment_approval",
+      "method": "comment_approval",
+      "tags": [
+        "google",
+        "drive",
+        "workspace",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.copy_file",
+      "method": "copy_file",
+      "tags": [
+        "google",
+        "drive",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.create_comment",
+      "method": "create_comment",
+      "tags": [
+        "google",
+        "drive",
+        "comments",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.create_file",
+      "method": "create_file",
+      "tags": [
+        "google",
+        "drive",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.create_folder",
+      "method": "create_folder",
+      "tags": [
+        "google",
+        "drive",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.create_reply",
+      "method": "create_reply",
+      "tags": [
+        "google",
+        "drive",
+        "comments",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.create_shared_drive",
+      "method": "create_shared_drive",
+      "tags": [
+        "google",
+        "drive",
+        "shared_drives",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.create_shortcut",
+      "method": "create_shortcut",
+      "tags": [
+        "google",
+        "drive",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.decline_approval",
+      "method": "decline_approval",
+      "tags": [
+        "google",
+        "drive",
+        "workspace",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.delete_comment",
+      "method": "delete_comment",
+      "tags": [
+        "google",
+        "drive",
+        "comments",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.delete_file",
+      "method": "delete_file",
+      "tags": [
+        "google",
+        "drive",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.delete_reply",
+      "method": "delete_reply",
+      "tags": [
+        "google",
+        "drive",
+        "comments",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.delete_revision",
+      "method": "delete_revision",
+      "tags": [
+        "google",
+        "drive",
+        "revisions",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.delete_shared_drive",
+      "method": "delete_shared_drive",
+      "tags": [
+        "google",
+        "drive",
+        "shared_drives",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.download_file",
+      "method": "download_file",
+      "tags": [
+        "google",
+        "drive",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.drive.empty_trash",
+      "method": "empty_trash",
+      "tags": [
+        "google",
+        "drive",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.export_file",
+      "method": "export_file",
+      "tags": [
+        "google",
+        "drive",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.drive.generate_file_ids",
+      "method": "generate_file_ids",
+      "tags": [
+        "google",
+        "drive",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.get_about",
+      "method": "get_about",
+      "tags": [
+        "google",
+        "drive",
+        "settings",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.get_access_proposal",
+      "method": "get_access_proposal",
+      "tags": [
+        "google",
+        "drive",
+        "workspace",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.get_app",
+      "method": "get_app",
+      "tags": [
+        "google",
+        "drive",
+        "settings",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.get_approval",
+      "method": "get_approval",
+      "tags": [
+        "google",
+        "drive",
+        "workspace",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.get_changes_start_token",
+      "method": "get_changes_start_token",
+      "tags": [
+        "google",
+        "drive",
+        "changes",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.get_comment",
+      "method": "get_comment",
+      "tags": [
+        "google",
+        "drive",
+        "comments",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.get_file",
+      "method": "get_file",
+      "tags": [
+        "google",
+        "drive",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.get_permission",
+      "method": "get_permission",
+      "tags": [
+        "google",
+        "drive",
+        "permissions",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.get_reply",
+      "method": "get_reply",
+      "tags": [
+        "google",
+        "drive",
+        "comments",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.get_revision",
+      "method": "get_revision",
+      "tags": [
+        "google",
+        "drive",
+        "revisions",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.get_shared_drive",
+      "method": "get_shared_drive",
+      "tags": [
+        "google",
+        "drive",
+        "shared_drives",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.hide_shared_drive",
+      "method": "hide_shared_drive",
+      "tags": [
+        "google",
+        "drive",
+        "shared_drives",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.list_access_proposals",
+      "method": "list_access_proposals",
+      "tags": [
+        "google",
+        "drive",
+        "workspace",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.list_approvals",
+      "method": "list_approvals",
+      "tags": [
+        "google",
+        "drive",
+        "workspace",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.list_apps",
+      "method": "list_apps",
+      "tags": [
+        "google",
+        "drive",
+        "settings",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.list_changes",
+      "method": "list_changes",
+      "tags": [
+        "google",
+        "drive",
+        "changes",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.list_comments",
+      "method": "list_comments",
+      "tags": [
+        "google",
+        "drive",
+        "comments",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.list_file_labels",
+      "method": "list_file_labels",
+      "tags": [
+        "google",
+        "drive",
+        "labels",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.list_files",
+      "method": "list_files",
+      "tags": [
+        "google",
+        "drive",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.drive.list_folder",
+      "method": "list_folder",
+      "tags": [
+        "google",
+        "drive",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.drive.list_permissions",
+      "method": "list_permissions",
+      "tags": [
+        "google",
+        "drive",
+        "permissions",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.list_recent",
+      "method": "list_recent",
+      "tags": [
+        "google",
+        "drive",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.list_replies",
+      "method": "list_replies",
+      "tags": [
+        "google",
+        "drive",
+        "comments",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.list_revisions",
+      "method": "list_revisions",
+      "tags": [
+        "google",
+        "drive",
+        "revisions",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.list_shared_drives",
+      "method": "list_shared_drives",
+      "tags": [
+        "google",
+        "drive",
+        "shared_drives",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.list_shared_with_me",
+      "method": "list_shared_with_me",
+      "tags": [
+        "google",
+        "drive",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.list_starred",
+      "method": "list_starred",
+      "tags": [
+        "google",
+        "drive",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.list_trash",
+      "method": "list_trash",
+      "tags": [
+        "google",
+        "drive",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.modify_file_labels",
+      "method": "modify_file_labels",
+      "tags": [
+        "google",
+        "drive",
+        "labels",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.move_file",
+      "method": "move_file",
+      "tags": [
+        "google",
+        "drive",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.reassign_approval",
+      "method": "reassign_approval",
+      "tags": [
+        "google",
+        "drive",
+        "workspace",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.remove_permission",
+      "method": "remove_permission",
+      "tags": [
+        "google",
+        "drive",
+        "permissions",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.rename_file",
+      "method": "rename_file",
+      "tags": [
+        "google",
+        "drive",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.resolve_access_proposal",
+      "method": "resolve_access_proposal",
+      "tags": [
+        "google",
+        "drive",
+        "workspace",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.search_files",
+      "method": "search_files",
+      "tags": [
+        "google",
+        "drive",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.drive.share_file",
+      "method": "share_file",
+      "tags": [
+        "google",
+        "drive",
+        "permissions",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.star_file",
+      "method": "star_file",
+      "tags": [
+        "google",
+        "drive",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.start_approval",
+      "method": "start_approval",
+      "tags": [
+        "google",
+        "drive",
+        "workspace",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.trash_file",
+      "method": "trash_file",
+      "tags": [
+        "google",
+        "drive",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.unhide_shared_drive",
+      "method": "unhide_shared_drive",
+      "tags": [
+        "google",
+        "drive",
+        "shared_drives",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.unstar_file",
+      "method": "unstar_file",
+      "tags": [
+        "google",
+        "drive",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.untrash_file",
+      "method": "untrash_file",
+      "tags": [
+        "google",
+        "drive",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.update_comment",
+      "method": "update_comment",
+      "tags": [
+        "google",
+        "drive",
+        "comments",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.update_file_content",
+      "method": "update_file_content",
+      "tags": [
+        "google",
+        "drive",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.update_file_metadata",
+      "method": "update_file_metadata",
+      "tags": [
+        "google",
+        "drive",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.update_permission",
+      "method": "update_permission",
+      "tags": [
+        "google",
+        "drive",
+        "permissions",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.update_reply",
+      "method": "update_reply",
+      "tags": [
+        "google",
+        "drive",
+        "comments",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.update_revision",
+      "method": "update_revision",
+      "tags": [
+        "google",
+        "drive",
+        "revisions",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.update_shared_drive",
+      "method": "update_shared_drive",
+      "tags": [
+        "google",
+        "drive",
+        "shared_drives",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.drive.upload_file",
+      "method": "upload_file",
+      "tags": [
+        "google",
+        "drive",
+        "write"
+      ],
+      "has_alias": false
+    }
+  ],
+  "google.gmail": [
+    {
+      "name": "google.gmail.archive_message",
+      "method": "archive_message",
+      "tags": [
+        "google",
+        "gmail",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.batch_delete_messages",
+      "method": "batch_delete_messages",
+      "tags": [
+        "google",
+        "gmail",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.batch_modify_messages",
+      "method": "batch_modify_messages",
+      "tags": [
+        "google",
+        "gmail",
+        "labels",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.create_draft",
+      "method": "create_draft",
+      "tags": [
+        "google",
+        "gmail",
+        "drafts",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.create_filter",
+      "method": "create_filter",
+      "tags": [
+        "google",
+        "gmail",
+        "settings",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.create_label",
+      "method": "create_label",
+      "tags": [
+        "google",
+        "gmail",
+        "labels",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.delete_draft",
+      "method": "delete_draft",
+      "tags": [
+        "google",
+        "gmail",
+        "drafts",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.delete_filter",
+      "method": "delete_filter",
+      "tags": [
+        "google",
+        "gmail",
+        "settings",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.delete_label",
+      "method": "delete_label",
+      "tags": [
+        "google",
+        "gmail",
+        "labels",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.delete_message",
+      "method": "delete_message",
+      "tags": [
+        "google",
+        "gmail",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.forward_message",
+      "method": "forward_message",
+      "tags": [
+        "google",
+        "gmail",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.get_attachment",
+      "method": "get_attachment",
+      "tags": [
+        "google",
+        "gmail",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.gmail.get_draft",
+      "method": "get_draft",
+      "tags": [
+        "google",
+        "gmail",
+        "drafts",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.get_filter",
+      "method": "get_filter",
+      "tags": [
+        "google",
+        "gmail",
+        "settings",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.get_label",
+      "method": "get_label",
+      "tags": [
+        "google",
+        "gmail",
+        "labels",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.get_message",
+      "method": "get_message",
+      "tags": [
+        "google",
+        "gmail",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.get_profile",
+      "method": "get_profile",
+      "tags": [
+        "google",
+        "gmail",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.get_send_as",
+      "method": "get_send_as",
+      "tags": [
+        "google",
+        "gmail",
+        "settings",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.get_thread",
+      "method": "get_thread",
+      "tags": [
+        "google",
+        "gmail",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.get_vacation_settings",
+      "method": "get_vacation_settings",
+      "tags": [
+        "google",
+        "gmail",
+        "settings",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.import_message",
+      "method": "import_message",
+      "tags": [
+        "google",
+        "gmail",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.list_drafts",
+      "method": "list_drafts",
+      "tags": [
+        "google",
+        "gmail",
+        "drafts",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.list_filters",
+      "method": "list_filters",
+      "tags": [
+        "google",
+        "gmail",
+        "settings",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.list_inbox",
+      "method": "list_inbox",
+      "tags": [
+        "google",
+        "gmail",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.gmail.list_labels",
+      "method": "list_labels",
+      "tags": [
+        "google",
+        "gmail",
+        "labels",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.list_messages",
+      "method": "list_messages",
+      "tags": [
+        "google",
+        "gmail",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.list_send_as",
+      "method": "list_send_as",
+      "tags": [
+        "google",
+        "gmail",
+        "settings",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.list_threads",
+      "method": "list_threads",
+      "tags": [
+        "google",
+        "gmail",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.list_unread",
+      "method": "list_unread",
+      "tags": [
+        "google",
+        "gmail",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.gmail.mark_read",
+      "method": "mark_read",
+      "tags": [
+        "google",
+        "gmail",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.mark_unread",
+      "method": "mark_unread",
+      "tags": [
+        "google",
+        "gmail",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.modify_message",
+      "method": "modify_message",
+      "tags": [
+        "google",
+        "gmail",
+        "labels",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.modify_thread",
+      "method": "modify_thread",
+      "tags": [
+        "google",
+        "gmail",
+        "labels",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.patch_send_as",
+      "method": "patch_send_as",
+      "tags": [
+        "google",
+        "gmail",
+        "settings",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.reply_to_message",
+      "method": "reply_to_message",
+      "tags": [
+        "google",
+        "gmail",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.search_messages",
+      "method": "search_messages",
+      "tags": [
+        "google",
+        "gmail",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.gmail.send_draft",
+      "method": "send_draft",
+      "tags": [
+        "google",
+        "gmail",
+        "drafts",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.send_message",
+      "method": "send_message",
+      "tags": [
+        "google",
+        "gmail",
+        "write"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.gmail.trash_message",
+      "method": "trash_message",
+      "tags": [
+        "google",
+        "gmail",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.trash_thread",
+      "method": "trash_thread",
+      "tags": [
+        "google",
+        "gmail",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.untrash_message",
+      "method": "untrash_message",
+      "tags": [
+        "google",
+        "gmail",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.untrash_thread",
+      "method": "untrash_thread",
+      "tags": [
+        "google",
+        "gmail",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.update_draft",
+      "method": "update_draft",
+      "tags": [
+        "google",
+        "gmail",
+        "drafts",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.update_label",
+      "method": "update_label",
+      "tags": [
+        "google",
+        "gmail",
+        "labels",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.gmail.update_vacation_settings",
+      "method": "update_vacation_settings",
+      "tags": [
+        "google",
+        "gmail",
+        "settings",
+        "write"
+      ],
+      "has_alias": false
+    }
+  ],
+  "google.maps": [
+    {
+      "name": "google.maps.compute_route_matrix",
+      "method": "compute_route_matrix",
+      "tags": [
+        "google",
+        "maps",
+        "routes",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.maps.compute_routes",
+      "method": "compute_routes",
+      "tags": [
+        "google",
+        "maps",
+        "routes",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.maps.directions",
+      "method": "directions",
+      "tags": [
+        "google",
+        "maps",
+        "routes",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.maps.elevation",
+      "method": "elevation",
+      "tags": [
+        "google",
+        "maps",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.maps.geocode",
+      "method": "geocode",
+      "tags": [
+        "google",
+        "maps",
+        "geocoding",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.maps.geocode_batch",
+      "method": "geocode_batch",
+      "tags": [
+        "google",
+        "maps",
+        "geocoding",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.maps.maps_link",
+      "method": "maps_link",
+      "tags": [
+        "google",
+        "maps",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.maps.place_details",
+      "method": "place_details",
+      "tags": [
+        "google",
+        "maps",
+        "places",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.maps.place_photo",
+      "method": "place_photo",
+      "tags": [
+        "google",
+        "maps",
+        "places",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.maps.places_autocomplete",
+      "method": "places_autocomplete",
+      "tags": [
+        "google",
+        "maps",
+        "places",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.maps.places_nearby_search",
+      "method": "places_nearby_search",
+      "tags": [
+        "google",
+        "maps",
+        "places",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.maps.places_text_search",
+      "method": "places_text_search",
+      "tags": [
+        "google",
+        "maps",
+        "places",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.maps.reverse_geocode",
+      "method": "reverse_geocode",
+      "tags": [
+        "google",
+        "maps",
+        "geocoding",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.maps.static_map",
+      "method": "static_map",
+      "tags": [
+        "google",
+        "maps",
+        "static",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.maps.street_view_image",
+      "method": "street_view_image",
+      "tags": [
+        "google",
+        "maps",
+        "static",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.maps.street_view_metadata",
+      "method": "street_view_metadata",
+      "tags": [
+        "google",
+        "maps",
+        "static",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.maps.timezone",
+      "method": "timezone",
+      "tags": [
+        "google",
+        "maps",
+        "geocoding",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.maps.travel_time",
+      "method": "travel_time",
+      "tags": [
+        "google",
+        "maps",
+        "routes",
+        "read"
+      ],
+      "has_alias": true
+    }
+  ],
+  "google.sheets": [
+    {
+      "name": "google.sheets.add_chart",
+      "method": "add_chart",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "charts"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.add_conditional_format_rule",
+      "method": "add_conditional_format_rule",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "format"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.add_named_range",
+      "method": "add_named_range",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "data"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.add_protected_range",
+      "method": "add_protected_range",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "protection"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.add_sheet",
+      "method": "add_sheet",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "structure"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.append_values",
+      "method": "append_values",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "values"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.sheets.auto_resize_columns",
+      "method": "auto_resize_columns",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "format"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.auto_resize_rows",
+      "method": "auto_resize_rows",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "format"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.batch_clear_values",
+      "method": "batch_clear_values",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "values"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.batch_get_values",
+      "method": "batch_get_values",
+      "tags": [
+        "google",
+        "sheets",
+        "read",
+        "values"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.batch_update_values",
+      "method": "batch_update_values",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "values"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.clear_basic_filter",
+      "method": "clear_basic_filter",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "filters"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.clear_data_validation",
+      "method": "clear_data_validation",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "validation"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.clear_values",
+      "method": "clear_values",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "values"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.copy_paste_range",
+      "method": "copy_paste_range",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "format",
+        "data"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.copy_sheet_to_spreadsheet",
+      "method": "copy_sheet_to_spreadsheet",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "structure"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.create_spreadsheet",
+      "method": "create_spreadsheet",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "structure"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.cut_paste_range",
+      "method": "cut_paste_range",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "data"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.delete_chart",
+      "method": "delete_chart",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "charts"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.delete_conditional_format_rule",
+      "method": "delete_conditional_format_rule",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "format"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.delete_dimension",
+      "method": "delete_dimension",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "structure"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.delete_named_range",
+      "method": "delete_named_range",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "data"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.delete_protected_range",
+      "method": "delete_protected_range",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "protection"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.delete_sheet",
+      "method": "delete_sheet",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "structure"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.duplicate_sheet",
+      "method": "duplicate_sheet",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "structure"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.find_replace",
+      "method": "find_replace",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "data"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.format_cells",
+      "method": "format_cells",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "format"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.get_spreadsheet",
+      "method": "get_spreadsheet",
+      "tags": [
+        "google",
+        "sheets",
+        "read",
+        "structure"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.get_values",
+      "method": "get_values",
+      "tags": [
+        "google",
+        "sheets",
+        "read",
+        "values"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.sheets.insert_dimension",
+      "method": "insert_dimension",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "structure"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.merge_cells",
+      "method": "merge_cells",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "format"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.move_dimension",
+      "method": "move_dimension",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "structure"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.read_sheet",
+      "method": "read_sheet",
+      "tags": [
+        "google",
+        "sheets",
+        "read",
+        "values",
+        "sugar"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.set_basic_filter",
+      "method": "set_basic_filter",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "filters"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.set_borders",
+      "method": "set_borders",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "format"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.set_data_validation",
+      "method": "set_data_validation",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "validation"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.sort_range",
+      "method": "sort_range",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "data"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.unmerge_cells",
+      "method": "unmerge_cells",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "format"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.update_chart",
+      "method": "update_chart",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "charts"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.update_dimension_properties",
+      "method": "update_dimension_properties",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "structure",
+        "format"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.update_sheet_properties",
+      "method": "update_sheet_properties",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "structure"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.update_spreadsheet_properties",
+      "method": "update_spreadsheet_properties",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "structure"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.sheets.update_values",
+      "method": "update_values",
+      "tags": [
+        "google",
+        "sheets",
+        "write",
+        "values"
+      ],
+      "has_alias": false
+    }
+  ],
+  "google.tasks": [
+    {
+      "name": "google.tasks.clear_completed",
+      "method": "clear_completed",
+      "tags": [
+        "google",
+        "tasks",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.tasks.complete_task",
+      "method": "complete_task",
+      "tags": [
+        "google",
+        "tasks",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.tasks.create_task",
+      "method": "create_task",
+      "tags": [
+        "google",
+        "tasks",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.tasks.create_tasklist",
+      "method": "create_tasklist",
+      "tags": [
+        "google",
+        "tasks",
+        "write",
+        "tasklists"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.tasks.delete_task",
+      "method": "delete_task",
+      "tags": [
+        "google",
+        "tasks",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.tasks.delete_tasklist",
+      "method": "delete_tasklist",
+      "tags": [
+        "google",
+        "tasks",
+        "write",
+        "tasklists"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.tasks.get_task",
+      "method": "get_task",
+      "tags": [
+        "google",
+        "tasks",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.tasks.get_tasklist",
+      "method": "get_tasklist",
+      "tags": [
+        "google",
+        "tasks",
+        "read",
+        "tasklists"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.tasks.list_all_open_tasks",
+      "method": "list_all_open_tasks",
+      "tags": [
+        "google",
+        "tasks",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.tasks.list_default_tasks",
+      "method": "list_default_tasks",
+      "tags": [
+        "google",
+        "tasks",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.tasks.list_overdue",
+      "method": "list_overdue",
+      "tags": [
+        "google",
+        "tasks",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.tasks.list_subtasks",
+      "method": "list_subtasks",
+      "tags": [
+        "google",
+        "tasks",
+        "read",
+        "subtasks"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.tasks.list_tasklists",
+      "method": "list_tasklists",
+      "tags": [
+        "google",
+        "tasks",
+        "read",
+        "tasklists"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.tasks.list_tasks",
+      "method": "list_tasks",
+      "tags": [
+        "google",
+        "tasks",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.tasks.list_today",
+      "method": "list_today",
+      "tags": [
+        "google",
+        "tasks",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.tasks.list_upcoming",
+      "method": "list_upcoming",
+      "tags": [
+        "google",
+        "tasks",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.tasks.move_task",
+      "method": "move_task",
+      "tags": [
+        "google",
+        "tasks",
+        "write",
+        "subtasks"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.tasks.patch_task",
+      "method": "patch_task",
+      "tags": [
+        "google",
+        "tasks",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.tasks.patch_tasklist",
+      "method": "patch_tasklist",
+      "tags": [
+        "google",
+        "tasks",
+        "write",
+        "tasklists"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.tasks.quick_add_task",
+      "method": "quick_add_task",
+      "tags": [
+        "google",
+        "tasks",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.tasks.search_tasks",
+      "method": "search_tasks",
+      "tags": [
+        "google",
+        "tasks",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "google.tasks.uncomplete_task",
+      "method": "uncomplete_task",
+      "tags": [
+        "google",
+        "tasks",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.tasks.update_task",
+      "method": "update_task",
+      "tags": [
+        "google",
+        "tasks",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "google.tasks.update_tasklist",
+      "method": "update_tasklist",
+      "tags": [
+        "google",
+        "tasks",
+        "write",
+        "tasklists"
+      ],
+      "has_alias": false
+    }
+  ],
+  "skills.list": [
+    {
+      "name": "skills.list",
+      "method": "list",
+      "tags": [
+        "skills",
+        "agent",
+        "read"
+      ],
+      "has_alias": false
+    }
+  ],
+  "skills.load": [
+    {
+      "name": "skills.load",
+      "method": "load",
+      "tags": [
+        "skills",
+        "agent",
+        "write"
+      ],
+      "has_alias": true
+    }
+  ],
+  "skills.unload": [
+    {
+      "name": "skills.unload",
+      "method": "unload",
+      "tags": [
+        "skills",
+        "agent",
+        "write"
+      ],
+      "has_alias": true
+    }
+  ],
+  "telegram.send_file": [
+    {
+      "name": "telegram.send_file",
+      "method": "send_file",
+      "tags": [
+        "telegram",
+        "bot",
+        "delivery"
+      ],
+      "has_alias": true
+    }
+  ],
+  "tool_results.get": [
+    {
+      "name": "tool_results.get",
+      "method": "get",
+      "tags": [
+        "agent",
+        "archive",
+        "memory",
+        "tool_results"
+      ],
+      "has_alias": false
+    }
+  ],
+  "workspace.append_file": [
+    {
+      "name": "workspace.append_file",
+      "method": "append_file",
+      "tags": [
+        "workspace",
+        "write",
+        "filesystem"
+      ],
+      "has_alias": false
+    }
+  ],
+  "workspace.clear": [
+    {
+      "name": "workspace.clear",
+      "method": "clear",
+      "tags": [
+        "workspace",
+        "write",
+        "filesystem"
+      ],
+      "has_alias": false
+    }
+  ],
+  "workspace.copy": [
+    {
+      "name": "workspace.copy",
+      "method": "copy",
+      "tags": [
+        "workspace",
+        "write",
+        "filesystem"
+      ],
+      "has_alias": false
+    }
+  ],
+  "workspace.delete": [
+    {
+      "name": "workspace.delete",
+      "method": "delete",
+      "tags": [
+        "workspace",
+        "write",
+        "filesystem"
+      ],
+      "has_alias": false
+    }
+  ],
+  "workspace.find": [
+    {
+      "name": "workspace.find",
+      "method": "find",
+      "tags": [
+        "workspace",
+        "read",
+        "filesystem"
+      ],
+      "has_alias": true
+    }
+  ],
+  "workspace.grep": [
+    {
+      "name": "workspace.grep",
+      "method": "grep",
+      "tags": [
+        "workspace",
+        "read",
+        "filesystem"
+      ],
+      "has_alias": true
+    }
+  ],
+  "workspace.import_from_file_ref": [
+    {
+      "name": "workspace.import_from_file_ref",
+      "method": "import_from_file_ref",
+      "tags": [
+        "workspace",
+        "write",
+        "filesystem"
+      ],
+      "has_alias": false
+    }
+  ],
+  "workspace.list_dir": [
+    {
+      "name": "workspace.list_dir",
+      "method": "list_dir",
+      "tags": [
+        "workspace",
+        "read",
+        "filesystem"
+      ],
+      "has_alias": false
+    }
+  ],
+  "workspace.mkdir": [
+    {
+      "name": "workspace.mkdir",
+      "method": "mkdir",
+      "tags": [
+        "workspace",
+        "write",
+        "filesystem"
+      ],
+      "has_alias": false
+    }
+  ],
+  "workspace.move": [
+    {
+      "name": "workspace.move",
+      "method": "move",
+      "tags": [
+        "workspace",
+        "write",
+        "filesystem"
+      ],
+      "has_alias": false
+    }
+  ],
+  "workspace.read_file": [
+    {
+      "name": "workspace.read_file",
+      "method": "read_file",
+      "tags": [
+        "workspace",
+        "read",
+        "filesystem"
+      ],
+      "has_alias": true
+    }
+  ],
+  "workspace.read_lines": [
+    {
+      "name": "workspace.read_lines",
+      "method": "read_lines",
+      "tags": [
+        "workspace",
+        "read",
+        "filesystem"
+      ],
+      "has_alias": false
+    }
+  ],
+  "workspace.stat": [
+    {
+      "name": "workspace.stat",
+      "method": "stat",
+      "tags": [
+        "workspace",
+        "read",
+        "filesystem"
+      ],
+      "has_alias": false
+    }
+  ],
+  "workspace.unzip": [
+    {
+      "name": "workspace.unzip",
+      "method": "unzip",
+      "tags": [
+        "workspace",
+        "write",
+        "filesystem"
+      ],
+      "has_alias": false
+    }
+  ],
+  "workspace.usage": [
+    {
+      "name": "workspace.usage",
+      "method": "usage",
+      "tags": [
+        "workspace",
+        "read",
+        "filesystem"
+      ],
+      "has_alias": true
+    }
+  ],
+  "workspace.write_file": [
+    {
+      "name": "workspace.write_file",
+      "method": "write_file",
+      "tags": [
+        "workspace",
+        "write",
+        "filesystem"
+      ],
+      "has_alias": true
+    }
+  ],
+  "yandex.auth": [
+    {
+      "name": "yandex.auth.connect_start",
+      "method": "connect_start",
+      "tags": [
+        "yandex",
+        "auth"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.auth.disconnect",
+      "method": "disconnect",
+      "tags": [
+        "yandex",
+        "auth"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.auth.poll_device",
+      "method": "poll_device",
+      "tags": [
+        "yandex",
+        "auth"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.auth.status",
+      "method": "status",
+      "tags": [
+        "yandex",
+        "auth"
+      ],
+      "has_alias": true
+    }
+  ],
+  "yandex.music": [
+    {
+      "name": "yandex.music.account_experiments",
+      "method": "account_experiments",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.account_experiments_details",
+      "method": "account_experiments_details",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.account_settings",
+      "method": "account_settings",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.account_settings_set",
+      "method": "account_settings_set",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.account_status",
+      "method": "account_status",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.after_track",
+      "method": "after_track",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.albums",
+      "method": "albums",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.albums_disclaimer",
+      "method": "albums_disclaimer",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.albums_similar_entities",
+      "method": "albums_similar_entities",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.albums_trailer",
+      "method": "albums_trailer",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.albums_with_tracks",
+      "method": "albums_with_tracks",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.artists",
+      "method": "artists",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.artists_about",
+      "method": "artists_about",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.artists_also_albums",
+      "method": "artists_also_albums",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.artists_brief_info",
+      "method": "artists_brief_info",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.artists_clips",
+      "method": "artists_clips",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.artists_concerts",
+      "method": "artists_concerts",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.artists_direct_albums",
+      "method": "artists_direct_albums",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.artists_disclaimer",
+      "method": "artists_disclaimer",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.artists_discography_albums",
+      "method": "artists_discography_albums",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.artists_donation",
+      "method": "artists_donation",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.artists_info",
+      "method": "artists_info",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.artists_links",
+      "method": "artists_links",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.artists_safe_direct_albums",
+      "method": "artists_safe_direct_albums",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.artists_similar",
+      "method": "artists_similar",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.artists_skeleton",
+      "method": "artists_skeleton",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.artists_track_ids",
+      "method": "artists_track_ids",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.artists_tracks",
+      "method": "artists_tracks",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.artists_trailer",
+      "method": "artists_trailer",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.chart",
+      "method": "chart",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.clips",
+      "method": "clips",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.clips_credits",
+      "method": "clips_credits",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.clips_disclaimer",
+      "method": "clips_disclaimer",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.clips_will_like",
+      "method": "clips_will_like",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.concert_info",
+      "method": "concert_info",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.concert_skeleton",
+      "method": "concert_skeleton",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.concerts_feed",
+      "method": "concerts_feed",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.concerts_locations",
+      "method": "concerts_locations",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.concerts_tab_config",
+      "method": "concerts_tab_config",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.consume_promo_code",
+      "method": "consume_promo_code",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.feed",
+      "method": "feed",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.feed_wizard_is_passed",
+      "method": "feed_wizard_is_passed",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.genres",
+      "method": "genres",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.init",
+      "method": "init",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.label",
+      "method": "label",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.label_albums",
+      "method": "label_albums",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.label_artists",
+      "method": "label_artists",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.landing",
+      "method": "landing",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.metatag",
+      "method": "metatag",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.metatag_albums",
+      "method": "metatag_albums",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.metatag_artists",
+      "method": "metatag_artists",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.metatag_playlists",
+      "method": "metatag_playlists",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.metatags",
+      "method": "metatags",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.music_history",
+      "method": "music_history",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.music_history_items",
+      "method": "music_history_items",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.new_playlists",
+      "method": "new_playlists",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.new_releases",
+      "method": "new_releases",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.permission_alerts",
+      "method": "permission_alerts",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.pin_album",
+      "method": "pin_album",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.pin_artist",
+      "method": "pin_artist",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.pin_playlist",
+      "method": "pin_playlist",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.pin_wave",
+      "method": "pin_wave",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.pins",
+      "method": "pins",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.play_audio",
+      "method": "play_audio",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.playlist",
+      "method": "playlist",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.playlist_similar_entities",
+      "method": "playlist_similar_entities",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.playlists",
+      "method": "playlists",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.playlists_collective_join",
+      "method": "playlists_collective_join",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.playlists_list",
+      "method": "playlists_list",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.playlists_personal",
+      "method": "playlists_personal",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.podcasts",
+      "method": "podcasts",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.queue",
+      "method": "queue",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.queue_create",
+      "method": "queue_create",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.queue_update_position",
+      "method": "queue_update_position",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.queues_list",
+      "method": "queues_list",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.rotor_account_status",
+      "method": "rotor_account_status",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.rotor_station_feedback",
+      "method": "rotor_station_feedback",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.rotor_station_feedback_radio_started",
+      "method": "rotor_station_feedback_radio_started",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.rotor_station_feedback_skip",
+      "method": "rotor_station_feedback_skip",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.rotor_station_feedback_track_finished",
+      "method": "rotor_station_feedback_track_finished",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.rotor_station_feedback_track_started",
+      "method": "rotor_station_feedback_track_started",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.rotor_station_info",
+      "method": "rotor_station_info",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.rotor_station_settings2",
+      "method": "rotor_station_settings2",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.rotor_station_tracks",
+      "method": "rotor_station_tracks",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.rotor_stations_dashboard",
+      "method": "rotor_stations_dashboard",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.rotor_stations_list",
+      "method": "rotor_stations_list",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.search",
+      "method": "search",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "yandex.music.search_suggest",
+      "method": "search_suggest",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.settings",
+      "method": "settings",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.tags",
+      "method": "tags",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.track_download",
+      "method": "track_download",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "yandex.music.track_supplement",
+      "method": "track_supplement",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.tracks",
+      "method": "tracks",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "yandex.music.tracks_credits",
+      "method": "tracks_credits",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.tracks_disclaimer",
+      "method": "tracks_disclaimer",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.tracks_download_info",
+      "method": "tracks_download_info",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.tracks_full_info",
+      "method": "tracks_full_info",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.tracks_lyrics",
+      "method": "tracks_lyrics",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.tracks_similar",
+      "method": "tracks_similar",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.tracks_trailer",
+      "method": "tracks_trailer",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.unpin_album",
+      "method": "unpin_album",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.unpin_artist",
+      "method": "unpin_artist",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.unpin_playlist",
+      "method": "unpin_playlist",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.unpin_wave",
+      "method": "unpin_wave",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_dislikes_artists",
+      "method": "users_dislikes_artists",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_dislikes_artists_add",
+      "method": "users_dislikes_artists_add",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_dislikes_artists_remove",
+      "method": "users_dislikes_artists_remove",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_dislikes_tracks",
+      "method": "users_dislikes_tracks",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "yandex.music.users_dislikes_tracks_add",
+      "method": "users_dislikes_tracks_add",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_dislikes_tracks_remove",
+      "method": "users_dislikes_tracks_remove",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_likes_albums",
+      "method": "users_likes_albums",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "yandex.music.users_likes_albums_add",
+      "method": "users_likes_albums_add",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_likes_albums_remove",
+      "method": "users_likes_albums_remove",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_likes_artists",
+      "method": "users_likes_artists",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "yandex.music.users_likes_artists_add",
+      "method": "users_likes_artists_add",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_likes_artists_remove",
+      "method": "users_likes_artists_remove",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_likes_clips",
+      "method": "users_likes_clips",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_likes_clips_add",
+      "method": "users_likes_clips_add",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_likes_clips_remove",
+      "method": "users_likes_clips_remove",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_likes_playlists",
+      "method": "users_likes_playlists",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_likes_playlists_add",
+      "method": "users_likes_playlists_add",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_likes_playlists_remove",
+      "method": "users_likes_playlists_remove",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_likes_tracks",
+      "method": "users_likes_tracks",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "yandex.music.users_likes_tracks_add",
+      "method": "users_likes_tracks_add",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_likes_tracks_remove",
+      "method": "users_likes_tracks_remove",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_playlists",
+      "method": "users_playlists",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_playlists_change",
+      "method": "users_playlists_change",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_playlists_create",
+      "method": "users_playlists_create",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_playlists_delete",
+      "method": "users_playlists_delete",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_playlists_delete_track",
+      "method": "users_playlists_delete_track",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_playlists_description",
+      "method": "users_playlists_description",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_playlists_insert_track",
+      "method": "users_playlists_insert_track",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_playlists_kinds",
+      "method": "users_playlists_kinds",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_playlists_list",
+      "method": "users_playlists_list",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": true
+    },
+    {
+      "name": "yandex.music.users_playlists_name",
+      "method": "users_playlists_name",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_playlists_recommendations",
+      "method": "users_playlists_recommendations",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_playlists_trailer",
+      "method": "users_playlists_trailer",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_playlists_visibility",
+      "method": "users_playlists_visibility",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_presaves",
+      "method": "users_presaves",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_presaves_add",
+      "method": "users_presaves_add",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_presaves_remove",
+      "method": "users_presaves_remove",
+      "tags": [
+        "yandex",
+        "music",
+        "write"
+      ],
+      "has_alias": false
+    },
+    {
+      "name": "yandex.music.users_settings",
+      "method": "users_settings",
+      "tags": [
+        "yandex",
+        "music",
+        "read"
+      ],
+      "has_alias": false
+    }
+  ]
+}

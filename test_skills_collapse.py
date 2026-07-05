@@ -77,30 +77,15 @@ class SkillCollapseTests(unittest.TestCase):
         self.assertTrue(any(SKILL_COLLAPSED_PREFIX in text for text in gmail_msgs))
         self.assertTrue(any("replaced by google.calendar" in text for text in gmail_msgs))
 
-    def test_idle_collapse_after_seven_turns(self) -> None:
+    def test_idle_collapse_disabled(self) -> None:
         messages = [_loaded_message("google.tasks")]
         collapser = SkillContextCollapser()
         collapser.sync_from_messages(messages, turn_index=0)
         mark_skill_loaded("google.tasks")
 
-        for turn in range(1, 7):
+        for turn in range(1, 10):
             self.assertEqual(collapser.collapse_idle_if_needed(messages, turn), [])
-
-        collapsed = collapser.collapse_idle_if_needed(messages, 7)
-        self.assertEqual(collapsed, ["google.tasks"])
-        self.assertEqual(expanded_skill_ids_in_messages(messages), set())
-        self.assertIn("7+ agent turns", messages[0]["content"])
-
-    def test_tool_use_resets_idle_timer(self) -> None:
-        messages = [_loaded_message("google.drive")]
-        collapser = SkillContextCollapser()
-        collapser.sync_from_messages(messages, turn_index=0)
-
-        for turn in range(1, 6):
-            collapser.collapse_idle_if_needed(messages, turn)
-
-        collapser.on_tool_use("google.drive", 6)
-        self.assertEqual(collapser.collapse_idle_if_needed(messages, 12), [])
+        self.assertEqual(expanded_skill_ids_in_messages(messages), {"google.tasks"})
 
     def test_collapsed_history_not_marked_loaded(self) -> None:
         collapsed = build_collapsed_skill_content("google.maps", reason="was idle")

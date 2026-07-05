@@ -7,3 +7,6 @@ tzdata>=2024.1
 google-api-python-client>=2.120.0
 google-auth-oauthlib>=1.2.0
 google-auth-httplib2>=0.2.0
+yandex-music[async]>=3.0.0
+google-genai>=1.51.0
+sentencepiece>=0.2.0

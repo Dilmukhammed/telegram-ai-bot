@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import contextvars
 
-from skills.skill_map import skill_id_for_tool_name
+from skills.skill_map import skill_id_for_search_tags, skill_id_for_tool_name
 
-# Per agent run: skill_id → set of distinct tool names used this run.
+SEARCH_ACTIVITY_PREFIX = "search_tools:"
+
+# Per agent run: skill_id → distinct activities (use_tool names + tagged searches).
 _run_tools: contextvars.ContextVar[dict[str, set[str]]] = contextvars.ContextVar(
     "skill_run_tools",
     default={},
@@ -22,6 +24,19 @@ def record_tool_use(tool_name: str) -> str | None:
         return None
     current = {key: set(values) for key, values in _run_tools.get().items()}
     current.setdefault(skill_id, set()).add(tool_name)
+    _run_tools.set(current)
+    return skill_id
+
+
+def record_tagged_search(tags: list[str]) -> str | None:
+    """Record a successful search_tools call with tags; return skill_id if mapped."""
+    skill_id = skill_id_for_search_tags(tags)
+    if not skill_id:
+        return None
+    current = {key: set(values) for key, values in _run_tools.get().items()}
+    bucket = current.setdefault(skill_id, set())
+    index = sum(1 for item in bucket if item.startswith(SEARCH_ACTIVITY_PREFIX))
+    bucket.add(f"{SEARCH_ACTIVITY_PREFIX}{index}")
     _run_tools.set(current)
     return skill_id
 

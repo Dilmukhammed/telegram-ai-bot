@@ -3,13 +3,13 @@ from datetime import datetime, timezone
 import logging
 from typing import Any
 
+from agent.context_collapse import collapse_duplicate_use_tool_calls
 from agent.loop import Agent
 from agent.reply_markup import build_reply_markup
 from bot.chat_response import ChatResponse
 from bot.history_persist import trim_history_to_turns
 from bot.message_gap import prefix_message_if_gap
 from bot.vision import history_text_for_image_turn
-from skills.collapse import compact_expanded_skills_inplace
 from skills.session import SkillSessionStore, apply_skill_run_snapshot
 from config import get_settings
 from tools.runtime import ToolRuntime
@@ -72,21 +72,42 @@ class ChatService:
     def stats_report(self, runtime: ToolRuntime) -> str:
         return self._agent.stats_report(runtime)
 
+    async def context_stats_report(self, user_id: int) -> str:
+        return await self._agent.context_stats_report(
+            self.get_history(user_id),
+            user_id=user_id,
+        )
+
+    async def dump_context_to_file(self, user_id: int):
+        from bot.history_dump import dump_user_context
+
+        return await dump_user_context(
+            user_id=user_id,
+            history=self.get_history(user_id),
+            agent=self._agent,
+        )
+
     def trace_last_report(self, user_id: int) -> str:
         return self._agent.trace_last_report(user_id)
 
-    def reset_history(self, user_id: int) -> None:
+    def reset_history(self, user_id: int) -> int:
         had_history = user_id in self._histories
         previous_count = len(self._histories.get(user_id, []))
         self._histories.pop(user_id, None)
         self._last_message_at.pop(user_id, None)
         SkillSessionStore.reset(user_id)
+        from tools.tool_results.store import get_tool_result_store
+
+        deleted = get_tool_result_store().delete_for_user(user_id)
+        if deleted:
+            logger.info("tool_result_archive_reset user_id=%s deleted=%s", user_id, deleted)
         if had_history:
             logger.info(
                 "chat_history_reset user_id=%s cleared_messages=%s",
                 user_id,
                 previous_count,
             )
+        return deleted
 
     def get_history(self, user_id: int) -> list[dict[str, Any]]:
         return self._histories[user_id]
@@ -129,6 +150,7 @@ class ChatService:
 
         history = self._histories[user_id]
         history.extend(turn_messages)
+        collapse_duplicate_use_tool_calls(history)
 
         settings = get_settings()
         max_turns = settings.chat_max_history
@@ -173,13 +195,6 @@ class ChatService:
 
         prepared_text = self.prepare_user_message(user_id, user_text, message_at)
         history = self.get_history(user_id)
-        compacted = compact_expanded_skills_inplace(history)
-        if compacted:
-            logger.info(
-                "chat_history_skill_compact user_id=%s collapsed_messages=%s",
-                user_id,
-                compacted,
-            )
         self._log_history_snapshot(user_id=user_id, stage="before_agent", history=history)
         logger.info(
             "chat_history_current_message user_id=%s %s",

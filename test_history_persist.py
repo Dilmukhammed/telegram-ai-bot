@@ -26,20 +26,20 @@ def _search_exchange(assistant_idx: int = 1) -> list[dict]:
     ]
 
 
-def _use_exchange() -> list[dict]:
+def _use_exchange(*, origin: str = "A", destination: str = "B", call_id: str = "u1") -> list[dict]:
     return [
         {
             "role": "assistant",
             "tool_calls": [
                 {
-                    "id": "u1",
+                    "id": call_id,
                     "type": "function",
                     "function": {
                         "name": "use_tool",
                         "arguments": json.dumps(
                             {
                                 "tool_name": "google.maps.maps_link",
-                                "arguments": {"origin": "A", "destination": "B"},
+                                "arguments": {"origin": origin, "destination": destination},
                             }
                         ),
                     },
@@ -48,12 +48,12 @@ def _use_exchange() -> list[dict]:
         },
         {
             "role": "tool",
-            "tool_call_id": "u1",
+            "tool_call_id": call_id,
             "content": json.dumps(
                 {
                     "tool_name": "google.maps.maps_link",
                     "ok": True,
-                    "result": {"url": "https://maps.google.com/?dir=A|B"},
+                    "result": {"url": f"https://maps.google.com/?dir={origin}|{destination}"},
                 }
             ),
         },
@@ -84,7 +84,7 @@ class HistoryPersistTests(unittest.TestCase):
             *_search_exchange(),
             *_use_exchange(),
             *_search_exchange(assistant_idx=5),
-            *_use_exchange(),
+            *_use_exchange(origin="C", destination="D", call_id="u2"),
         ]
         worker = extract_worker_history_for_persist(
             messages,
@@ -93,6 +93,63 @@ class HistoryPersistTests(unittest.TestCase):
         )
         self.assertEqual(sum(1 for message in worker if message.get("role") == "tool"), 2)
         self.assertFalse(any("search_tools" in str(message) for message in worker))
+
+    def test_extract_collapses_duplicate_use_tool_calls(self) -> None:
+        args = json.dumps(
+            {
+                "tool_name": "yandex.music.playlist",
+                "arguments": {"user_id": "1", "kind": "3"},
+            }
+        )
+        exchange_first = [
+            {
+                "role": "assistant",
+                "tool_calls": [
+                    {
+                        "id": "p1",
+                        "type": "function",
+                        "function": {"name": "use_tool", "arguments": args},
+                    }
+                ],
+            },
+            {
+                "role": "tool",
+                "tool_call_id": "p1",
+                "content": json.dumps({"tool_name": "yandex.music.playlist", "ok": True}),
+            },
+        ]
+        exchange_second = [
+            {
+                "role": "assistant",
+                "tool_calls": [
+                    {
+                        "id": "p2",
+                        "type": "function",
+                        "function": {"name": "use_tool", "arguments": args},
+                    }
+                ],
+            },
+            {
+                "role": "tool",
+                "tool_call_id": "p2",
+                "content": json.dumps({"tool_name": "yandex.music.playlist", "ok": True, "cached": True}),
+            },
+        ]
+        messages = [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "task"},
+            *exchange_first,
+            *exchange_second,
+        ]
+        worker = extract_worker_history_for_persist(
+            messages,
+            worker_start_index=2,
+            display_reply="Done.",
+        )
+        self.assertEqual(sum(1 for message in worker if message.get("role") == "tool"), 1)
+        self.assertTrue(
+            any("Collapsed duplicate tool call" in str(message.get("content", "")) for message in worker)
+        )
 
     def test_trim_history_by_user_turns(self) -> None:
         history = [

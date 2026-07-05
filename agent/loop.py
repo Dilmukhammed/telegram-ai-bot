@@ -7,7 +7,8 @@ import uuid
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from agent.context_collapse import SearchContextCollapser
+from agent.context_collapse import SearchContextCollapser, collapse_duplicate_use_tool_calls
+from agent.context_stats import format_context_stats
 from agent.prompts import AGENT_SYSTEM_PROMPT
 from agent.run_result import AgentRunResult
 from agent.run_trace import RunTraceCollector
@@ -33,14 +34,16 @@ from bot.vision import build_user_message_content
 from skills.auto_load import (
     append_pending_skills_to_messages,
     apply_pending_skill_unloads,
-    auto_load_skills_for_run,
+    auto_load_status_message,
     maybe_auto_load_after_tool,
+    maybe_auto_load_for_skill,
+    prepare_skills_for_run,
     reset_auto_load_run_state,
 )
 from skills.collapse import SkillContextCollapser, sanitize_expanded_skills_for_context
 from skills.pending import reset_skill_run_state
-from skills.session import build_skill_run_snapshot, inject_session_skill_for_run
-from skills.usage_tracker import record_tool_use
+from skills.session import build_skill_run_snapshot
+from skills.usage_tracker import record_tagged_search, record_tool_use
 from tools.workspace.vision_pending import take_pending_vision
 from agent.sources import SourceCollector, append_sources
 from agent.transit_guard import skipped_web_search_result, transit_route_satisfied
@@ -58,6 +61,7 @@ from tools.outbound_files import (
 )
 from tools.run_files import RunFileStore, reset_run_file_store, set_run_file_store
 from tools.runtime import ToolRuntime
+from tools.tool_results.collapser import ToolResultCollapser, args_json_for_use_tool
 
 logger = logging.getLogger(__name__)
 
@@ -138,6 +142,38 @@ def _complete_run(
     )
 
 
+async def _finish_run(
+    messages: list[dict[str, Any]],
+    *,
+    result_collapser: ToolResultCollapser | None,
+    history_len: int,
+    content: str,
+    sources: SourceCollector,
+    maps_links: MapsLinkCollector,
+    gmail_links: GmailLinkCollector,
+    drive_links: DriveLinkCollector,
+    calendar_links: CalendarLinkCollector,
+    tasks_links: TasksLinkCollector,
+    skill_collapser: SkillContextCollapser,
+) -> AgentRunResult:
+    if result_collapser is not None:
+        collapsed = await result_collapser.collapse_all(messages)
+        if collapsed:
+            logger.info("tool_result_archive run_end collapsed=%s", collapsed)
+    return _complete_run(
+        messages,
+        history_len=history_len,
+        content=content,
+        sources=sources,
+        maps_links=maps_links,
+        gmail_links=gmail_links,
+        drive_links=drive_links,
+        calendar_links=calendar_links,
+        tasks_links=tasks_links,
+        skill_collapser=skill_collapser,
+    )
+
+
 def _parse_tool_arguments(raw_args: str) -> dict[str, Any]:
     try:
         return json.loads(raw_args or "{}")
@@ -195,6 +231,8 @@ def _status_for_tool(tool_name: str, arguments: dict[str, Any]) -> str:
         return "Сворачиваю skill…"
     if target == "skills.list":
         return "Список skills…"
+    if target == "tool_results.get":
+        return "Загружаю полный результат инструмента…"
     return f"Запускаю {target}…"
 
 
@@ -217,6 +255,27 @@ class Agent:
             + self._supervisor_telemetry.format_report()
         )
 
+    async def context_stats_report(
+        self,
+        history: list[dict[str, Any]] | None,
+        *,
+        user_id: int | None = None,
+    ) -> str:
+        from local_tokenizer import count_prompt_tokens_local
+        from tools.meta_tools import META_TOOL_DEFINITIONS
+
+        messages = self._build_messages("", history)
+        prompt_tokens = count_prompt_tokens_local(
+            messages,
+            tools=META_TOOL_DEFINITIONS,
+        )
+        return format_context_stats(
+            self._settings,
+            prompt_tokens,
+            user_id=user_id,
+            history=history,
+        )
+
     def trace_last_report(self, user_id: int) -> str:
         return self._trace_store.format_for_telegram(user_id)
 
@@ -237,7 +296,9 @@ class Agent:
 
         messages: list[dict] = [{"role": "system", "content": system}]
         if history:
-            messages.extend(sanitize_expanded_skills_for_context(history))
+            history_for_run = copy.deepcopy(sanitize_expanded_skills_for_context(history))
+            collapse_duplicate_use_tool_calls(history_for_run)
+            messages.extend(history_for_run)
         messages.append(
             {
                 "role": "user",
@@ -312,6 +373,7 @@ class Agent:
         trace: RunTraceCollector,
         collapser: SearchContextCollapser,
         skill_collapser: SkillContextCollapser,
+        result_collapser: ToolResultCollapser | None,
         sources: SourceCollector,
         maps_links: MapsLinkCollector,
         gmail_links: GmailLinkCollector,
@@ -320,7 +382,6 @@ class Agent:
         tasks_links: TasksLinkCollector,
         hinted_tool_groups: set[str],
         hinted_skill_groups: set[str],
-        chat_history: list[dict[str, Any]] | None = None,
     ) -> None:
         parallel_safe = all(
             self._runtime.is_meta_tool_parallel_safe(
@@ -349,16 +410,26 @@ class Agent:
                 )
 
         tool_results: list[str] = []
-        for tool_call_id, result in pairs:
+        for tool_call, (tool_call_id, result) in zip(tool_calls, pairs, strict=True):
             try:
                 payload = json.loads(result)
             except json.JSONDecodeError:
                 payload = {}
             if payload.get("ok"):
-                tool_name = str(payload.get("tool_name") or "")
-                if tool_name:
-                    record_tool_use(tool_name)
-                    maybe_auto_load_after_tool(tool_name, history=chat_history)
+                auto_loaded_skill: str | None = None
+                if tool_call.function.name == "search_tools":
+                    raw_args = _parse_tool_arguments(tool_call.function.arguments)
+                    tags = raw_args.get("tags")
+                    if isinstance(tags, list) and tags:
+                        skill_id = record_tagged_search(tags)
+                        auto_loaded_skill = maybe_auto_load_for_skill(skill_id)
+                else:
+                    tool_name = str(payload.get("tool_name") or "")
+                    if tool_name:
+                        record_tool_use(tool_name)
+                        auto_loaded_skill = maybe_auto_load_after_tool(tool_name)
+                if auto_loaded_skill and on_status:
+                    await on_status(auto_load_status_message(auto_loaded_skill))
             result = maybe_append_tool_hints(
                 result,
                 hinted_search_groups=hinted_tool_groups,
@@ -378,6 +449,19 @@ class Agent:
                     "content": result,
                 }
             )
+            if (
+                result_collapser is not None
+                and tool_call.function.name == "use_tool"
+            ):
+                raw_args = _parse_tool_arguments(tool_call.function.arguments)
+                target, _inner = normalize_use_tool_call(raw_args)
+                result_collapser.register_tool_message(
+                    tool_call_id=tool_call_id,
+                    turn=turn,
+                    content=result,
+                    tool_name=target,
+                    args_json=args_json_for_use_tool(raw_args),
+                )
             for image_path, data_url in take_pending_vision():
                 messages.append(
                     {
@@ -396,9 +480,13 @@ class Agent:
             turn_index=turn,
         )
         skill_collapser.record_tool_uses_from_results(tool_results, turn)
-        skill_collapser.collapse_idle_if_needed(messages, turn)
 
         collapser.on_tool_turn(messages, tool_calls, tool_results)
+        collapse_duplicate_use_tool_calls(messages)
+        if result_collapser is not None:
+            stale = await result_collapser.collapse_stale(messages, turn + 1)
+            if stale:
+                logger.info("tool_result_archive stale collapsed=%s turn=%s", stale, turn + 1)
 
     async def _finalize_with_instruction(self, messages: list[dict], instruction: str) -> str:
         return await self._llm.chat([*messages, {"role": "user", "content": instruction}])
@@ -421,6 +509,7 @@ class Agent:
         retries_left: int,
         history_len: int,
         skill_collapser: SkillContextCollapser,
+        result_collapser: ToolResultCollapser | None,
     ) -> tuple[AgentRunResult | None, int, int, int]:
         """Returns run result (if done), cycles_left, retries_left, bonus_turns to add."""
         if self._supervisor is None or supervisor_cycles_left <= 0:
@@ -434,8 +523,9 @@ class Agent:
                 ),
             )
             return (
-                _complete_run(
+                await _finish_run(
                     messages,
+                    result_collapser=result_collapser,
                     history_len=history_len,
                     content=content,
                     sources=sources,
@@ -508,8 +598,9 @@ class Agent:
             format_supervisor_stop(decision),
         )
         return (
-            _complete_run(
+            await _finish_run(
                 messages,
+                result_collapser=result_collapser,
                 history_len=history_len,
                 content=content,
                 sources=sources,
@@ -551,14 +642,9 @@ class Agent:
         hinted_skill_groups: set[str] = set()
         reset_skill_run_state()
         reset_auto_load_run_state()
+        prepare_skills_for_run(history)
         skill_collapser = SkillContextCollapser()
         skill_collapser.sync_from_messages(messages)
-        session_injected = inject_session_skill_for_run(user_id)
-        if session_injected:
-            logger.info("session_skill_injected skill_id=%s user_id=%s", session_injected, user_id)
-        auto_loaded = auto_load_skills_for_run(user_message, history)
-        if auto_loaded:
-            logger.info("auto_loaded_skills skill_ids=%s", auto_loaded)
         append_pending_skills_to_messages(messages, skill_collapser, turn_index=0)
         trace = RunTraceCollector(
             user_id=user_id,
@@ -579,6 +665,12 @@ class Agent:
         last_soft_trigger_turn = -1
 
         run_id = uuid.uuid4().hex[:12]
+        result_collapser = ToolResultCollapser(
+            settings=self._settings,
+            llm=self._llm,
+            user_id=user_id,
+            run_id=run_id,
+        )
         file_store = RunFileStore(run_id=run_id, user_id=user_id)
         outbound_queue = OutboundQueue()
         file_store_token = set_run_file_store(file_store)
@@ -598,7 +690,6 @@ class Agent:
 
                     if not tool_calls:
                         collapser.collapse_if_pending(messages)
-                        skill_collapser.collapse_idle_if_needed(messages, turn_index)
                         content = (message.content or "").strip()
                         if not content:
                             logger.warning(
@@ -617,8 +708,9 @@ class Agent:
                             trace.finish("error")
                             raise RuntimeError("Model returned empty response")
                         trace.finish("completed")
-                        return _complete_run(
+                        return await _finish_run(
                             messages,
+                            result_collapser=result_collapser,
                             history_len=history_len,
                             content=content,
                             sources=sources,
@@ -640,6 +732,7 @@ class Agent:
                         trace=trace,
                         collapser=collapser,
                         skill_collapser=skill_collapser,
+                        result_collapser=result_collapser,
                         sources=sources,
                         maps_links=maps_links,
                         gmail_links=gmail_links,
@@ -648,7 +741,6 @@ class Agent:
                         tasks_links=tasks_links,
                         hinted_tool_groups=hinted_tool_groups,
                         hinted_skill_groups=hinted_skill_groups,
-                        chat_history=history,
                     )
                     turn_index += 1
 
@@ -688,6 +780,7 @@ class Agent:
                                 retries_left=retries_left,
                                 history_len=history_len,
                                 skill_collapser=skill_collapser,
+                                result_collapser=result_collapser,
                             )
                             if run_result is not None:
                                 return run_result
@@ -717,6 +810,7 @@ class Agent:
                     retries_left=retries_left,
                     history_len=history_len,
                     skill_collapser=skill_collapser,
+                    result_collapser=result_collapser,
                 )
                 if run_result is not None:
                     return run_result

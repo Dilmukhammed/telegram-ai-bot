@@ -1,0 +1,82 @@
+[
+  {
+    "query": "get user liked tracks or library tracks or favorite tracks",
+    "tags": ["yandex", "music"],
+    "note": "agent prod"
+  },
+  {
+    "query": "liked tracks or user tracks",
+    "tags": ["yandex", "music"],
+    "note": "agent prod"
+  },
+  {
+    "query": "search",
+    "tags": null,
+    "note": "generic web"
+  },
+  {
+    "query": "search gmail",
+    "tags": null,
+    "note": "domain search"
+  },
+  {
+    "query": "search drive",
+    "tags": null,
+    "note": "domain search"
+  },
+  {
+    "query": "search calendar",
+    "tags": null,
+    "note": "domain search"
+  },
+  {
+    "query": "search tasks",
+    "tags": null,
+    "note": "domain search gap"
+  },
+  {
+    "query": "search maps places",
+    "tags": null,
+    "note": "domain search"
+  },
+  {
+    "query": "list",
+    "tags": null,
+    "note": "list noise"
+  },
+  {
+    "query": "list files",
+    "tags": null,
+    "note": "list drive gap"
+  },
+  {
+    "query": "list events",
+    "tags": null,
+    "note": "list calendar"
+  },
+  {
+    "query": "status yandex",
+    "tags": null,
+    "note": "auth provider"
+  },
+  {
+    "query": "reverse geocode",
+    "tags": null,
+    "note": "antonym"
+  },
+  {
+    "query": "grep workspace",
+    "tags": null,
+    "note": "workspace search"
+  },
+  {
+    "query": "find workspace markdown files",
+    "tags": null,
+    "note": "workspace find gap"
+  },
+  {
+    "query": "append rows spreadsheet",
+    "tags": null,
+    "note": "sheets append vs read"
+  }
+]

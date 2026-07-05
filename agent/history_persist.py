@@ -4,9 +4,11 @@ import copy
 import logging
 from typing import Any
 
-from agent.context_collapse import collapse_search_tools_exchange
+from agent.context_collapse import (
+    collapse_all_search_tools,
+    collapse_duplicate_use_tool_calls,
+)
 from bot.history_format import strip_rich_appendices
-from skills.collapse import collapse_all_expanded_skills, collapse_persist_reason
 
 logger = logging.getLogger(__name__)
 
@@ -20,11 +22,8 @@ def _is_supervisor_injection(message: dict[str, Any]) -> bool:
 
 def strip_all_search_tools(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     out = copy.deepcopy(messages)
-    removed = 0
-    while collapse_search_tools_exchange(out):
-        removed += 1
-    if removed:
-        logger.info("chat_history_persist stripped search_tools exchanges=%s", removed)
+    collapse_all_search_tools(out)
+    collapse_duplicate_use_tool_calls(out)
     return out
 
 
@@ -42,9 +41,6 @@ def extract_worker_history_for_persist(
     worker = copy.deepcopy(messages[worker_start_index:])
     worker = strip_supervisor_injections(worker)
     worker = strip_all_search_tools(worker)
-    collapsed = collapse_all_expanded_skills(worker, reason=collapse_persist_reason())
-    if collapsed:
-        logger.info("chat_history_persist collapsed_skills=%s", collapsed)
     worker.append(
         {
             "role": "assistant",

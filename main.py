@@ -8,6 +8,7 @@ from aiogram.types import Message
 from agent.loop import Agent
 from bot.chat_service import ChatService
 from bot.inbound_files import save_telegram_document, save_telegram_photo
+from bot.yandex_connect import begin_yandex_connect, yandex_status_text
 from bot.reply import reply_to_user_text, reset_user_queue, send_transcription_to_chat
 from bot.user_location import format_location_user_message
 from bot.workspace_notify import format_document_agent_message, format_photo_agent_message
@@ -15,8 +16,10 @@ from bot.transcription import GroqTranscriber, TranscriptionError, get_transcrib
 from bot.vision import ImageTooLargeError, download_message_photo
 from config import get_settings, google_oauth_configured, google_oauth_manual_mode
 from oauth_server import start_oauth_server
+from rich_demo import build_rich_blocks_demo_markdown
 from streaming import TelegramDraftStreamer
 from tools.bootstrap import get_tool_runtime
+from tools.tool_results.maintenance import run_tool_result_maintenance, tool_result_cleanup_loop
 from tools.builtins.google.auth import (
     auth_status_payload,
     build_authorization_url,
@@ -28,6 +31,7 @@ from tools.builtins.google.auth import (
     revoke_and_delete,
 )
 from tools.builtins.google.token_store import get_token_store
+from tools.builtins.yandex.auth import revoke_and_delete as revoke_yandex
 from tools.phase4_config import admin_user_ids
 
 logging.basicConfig(level=logging.INFO)
@@ -71,19 +75,29 @@ async def main() -> None:
             "Пиши текст, отправляй голосовое, фото или 📍 геолокацию — отвечу.\n"
             "/reset — очистить историю\n"
             "/demo — пример форматирования\n"
-            "/stats — статистика tools + supervisor (admin)\n"
+            "/demo_rich — multi-block POC (текст + фото + collage + …)\n"
+            "/stats — контекст: модель, токены (admin)\n"
             "/trace_last — последний RunTrace (admin)\n"
+            "/dump_context — сохранить историю в data/context_dump.json (admin)\n"
             "/connect_google — подключить Google (Calendar, Gmail, Drive, Sheets, Tasks)\n"
             "/google_callback — вставить URL после OAuth\n"
             "/google_status — статус Google\n"
-            "/disconnect_google — отключить Google"
+            "/disconnect_google — отключить Google\n"
+            "/connect_yandex — подключить Яндекс.Музыку\n"
+            "/yandex_status — статус Яндекс.Музыки\n"
+            "/disconnect_yandex — отключить Яндекс.Музыку"
         )
 
     @dp.message(Command("reset"))
     async def on_reset(message: Message) -> None:
-        chat_service.reset_history(message.from_user.id)
+        archived_deleted = chat_service.reset_history(message.from_user.id)
         reset_user_queue(message.from_user.id)
-        await message.answer("История диалога очищена.")
+        if archived_deleted:
+            await message.answer(
+                f"История диалога очищена. Удалено archived tool results: {archived_deleted}."
+            )
+        else:
+            await message.answer("История диалога очищена.")
 
     @dp.message(Command("demo"))
     async def on_demo(message: Message) -> None:
@@ -111,6 +125,17 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
         )
         await streamer.finalize(demo)
 
+    @dp.message(Command("demo_rich"))
+    async def on_demo_rich(message: Message) -> None:
+        streamer = TelegramDraftStreamer(
+            bot=bot,
+            chat_id=message.chat.id,
+            draft_id=message.message_id,
+            message_thread_id=message.message_thread_id,
+        )
+        await streamer.stream_status("Собираю multi-block POC…")
+        await streamer.finalize(build_rich_blocks_demo_markdown())
+
     @dp.message(Command("stats"))
     async def on_stats(message: Message) -> None:
         admins = admin_user_ids()
@@ -124,7 +149,43 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
             draft_id=message.message_id,
             message_thread_id=message.message_thread_id,
         )
-        await streamer.finalize(chat_service.stats_report(runtime))
+        async with streamer:
+            await streamer.stream_status("Считаю токены…")
+            report = await chat_service.context_stats_report(message.from_user.id)
+            await streamer.finalize(report)
+
+    @dp.message(Command("dump_context"))
+    async def on_dump_context(message: Message) -> None:
+        admins = admin_user_ids()
+        if not admins or message.from_user.id not in admins:
+            await message.answer("Нет доступа. Добавь свой Telegram user id в ADMIN_USER_IDS.")
+            return
+
+        user_id = message.from_user.id
+        await message.answer("Сохраняю историю и считаю токены…")
+        try:
+            path, payload = await chat_service.dump_context_to_file(user_id)
+        except Exception:
+            logger.exception("context dump failed user_id=%s", user_id)
+            await message.answer("Не удалось сохранить dump.")
+            return
+
+        summary = payload["summary"]
+        tokens = payload.get("prompt_tokens")
+        token_line = f"{tokens:,} tokens" if tokens is not None else "tokens: n/a"
+        caption = (
+            f"Context dump\n"
+            f"{token_line} | {summary['messages']} msgs | {summary['user_turns']} turns\n"
+            f"chars: {summary['chars_total']:,} (system {summary['system_prompt_chars']:,})\n"
+            f"file: {path.resolve()}"
+        )
+        from aiogram.types import BufferedInputFile
+
+        data = path.read_bytes()
+        await message.answer_document(
+            BufferedInputFile(data, filename=path.name),
+            caption=caption[:1024],
+        )
 
     @dp.message(Command("trace_last"))
     async def on_trace_last(message: Message) -> None:
@@ -252,6 +313,27 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
             await message.answer("Google Calendar, Gmail, Drive, Sheets и Tasks отключены.")
         else:
             await message.answer("Google не был подключён.")
+
+    @dp.message(Command("connect_yandex"))
+    async def on_connect_yandex(message: Message) -> None:
+        try:
+            text = await begin_yandex_connect(message.from_user.id)
+            await message.answer(text)
+        except Exception as exc:
+            logger.exception("Yandex connect failed for user %s", message.from_user.id)
+            await message.answer(f"Не удалось начать подключение Яндекс.Музыки: {exc}")
+
+    @dp.message(Command("yandex_status"))
+    async def on_yandex_status(message: Message) -> None:
+        await message.answer(yandex_status_text(message.from_user.id))
+
+    @dp.message(Command("disconnect_yandex"))
+    async def on_disconnect_yandex(message: Message) -> None:
+        deleted = await revoke_yandex(message.from_user.id)
+        if deleted:
+            await message.answer("Яндекс.Музыка отключена.")
+        else:
+            await message.answer("Яндекс.Музыка не была подключена.")
 
     @dp.message(F.voice | F.audio)
     async def on_audio(message: Message) -> None:
@@ -389,6 +471,11 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
         )
 
     voice_note = "voice" if transcriber is not None else "no voice (GROQ_API_KEY)"
+    if settings.tool_result_archive_enabled:
+        startup_deleted = run_tool_result_maintenance()
+        if startup_deleted:
+            logger.info("tool_result_archive startup purge deleted=%s", startup_deleted)
+        asyncio.create_task(tool_result_cleanup_loop())
     logger.info(
         "Bot started with agent + rich streaming + %s + vision. Model: %s",
         voice_note,
