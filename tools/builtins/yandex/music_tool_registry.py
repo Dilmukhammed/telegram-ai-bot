@@ -856,8 +856,30 @@ MUSIC_TOOL_REGISTRY: tuple[dict[str, Any], ...] = (
         "method": "users_likes_tracks",
         "auth": True,
         "write": False,
-        "description": 'Yandex Music API `users_likes_tracks` (users likes tracks). Получение треков с отметкой "Мне нравится".',
-        "schema": {'type': 'object', 'properties': {'user_id': {'type': 'string'}, 'if_modified_since_revision': {'type': 'integer', 'default': 0}}, 'additionalProperties': True},
+        "description": (
+            'Yandex Music API `users_likes_tracks` (users likes tracks). '
+            'Получение треков с отметкой "Мне нравится". '
+            "Pagination: by default returns up to 50 tracks (offset=0, limit=50). "
+            "Use offset/limit to fetch the next chunk; response includes total_count, has_more."
+        ),
+        "schema": {
+            'type': 'object',
+            'properties': {
+                'user_id': {'type': 'string'},
+                'if_modified_since_revision': {'type': 'integer', 'default': 0},
+                'offset': {
+                    'type': 'integer',
+                    'default': 0,
+                    'description': '0-based start index into liked tracks. Example: 50 for the second page.',
+                },
+                'limit': {
+                    'type': 'integer',
+                    'default': 50,
+                    'description': 'Max tracks in this response (1-100). Default 50.',
+                },
+            },
+            'additionalProperties': True,
+        },
     },
     {
         "method": "users_likes_tracks_add",

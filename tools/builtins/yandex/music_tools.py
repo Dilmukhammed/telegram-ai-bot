@@ -9,6 +9,11 @@ from tools.builtins.yandex.auth import (
     start_device_connect,
 )
 from tools.builtins.yandex.music_client import call_music_method, download_track_to_file_ref, get_music_client
+from tools.builtins.yandex.music_pagination import (
+    PAGINATED_METHODS,
+    pop_list_pagination,
+    slice_tracks_list_result,
+)
 from tools.builtins.yandex.music_serialize import build_method_response
 from tools.builtins.yandex.music_tool_registry import MUSIC_TOOL_REGISTRY
 from tools.builtins.yandex.tool_hints import YANDEX_MUSIC_OAUTH_HINT
@@ -38,8 +43,22 @@ def _make_handler(method: str, *, auth: bool) -> Any:
     async def handler(arguments: dict[str, Any]) -> dict[str, Any]:
         user_id = _require_user_id()
         client = await get_music_client(telegram_user_id=user_id, require_auth=auth)
-        result = await call_music_method(client, method, _prepare_arguments(arguments))
-        return build_method_response(result, method=method)
+        prepared = _prepare_arguments(arguments)
+        pagination = None
+        max_list = None
+        if method in PAGINATED_METHODS:
+            prepared, offset, limit = pop_list_pagination(prepared)
+            result = await call_music_method(client, method, prepared)
+            result, pagination = slice_tracks_list_result(result, offset=offset, limit=limit)
+            max_list = limit
+        else:
+            result = await call_music_method(client, method, prepared)
+        return build_method_response(
+            result,
+            method=method,
+            pagination=pagination,
+            max_list=max_list,
+        )
 
     return handler
 

@@ -47,28 +47,28 @@ def _looks_like_playlist_dict(data: dict[str, Any]) -> bool:
     return any(key in data for key in ("uid", "kind", "playlist_uuid", "playlistUuid"))
 
 
-def _compact_tracks_field(tracks: Any) -> dict[str, Any] | None:
+def _compact_tracks_field(tracks: Any, *, max_list: int = _MAX_LIST) -> dict[str, Any] | None:
     if isinstance(tracks, dict) and isinstance(tracks.get("items"), list):
         items = tracks["items"]
         compact_items = [
             compact_playlist_track_entry(item)
             if isinstance(item, dict) and _looks_like_playlist_track_entry(item)
-            else serialize_value(item, depth=1)
-            for item in items[:_MAX_LIST]
+            else serialize_value(item, depth=1, max_list=max_list)
+            for item in items[:max_list]
         ]
         result: dict[str, Any] = {"count": tracks.get("count", len(items)), "items": compact_items}
-        if tracks.get("truncated") or len(items) > _MAX_LIST:
+        if tracks.get("truncated") or len(items) > max_list:
             result["truncated"] = True
         return result
     if isinstance(tracks, list):
         compact_items = [
             compact_playlist_track_entry(item)
             if isinstance(item, dict) and _looks_like_playlist_track_entry(item)
-            else serialize_value(item, depth=1)
-            for item in tracks[:_MAX_LIST]
+            else serialize_value(item, depth=1, max_list=max_list)
+            for item in tracks[:max_list]
         ]
         result = {"count": len(tracks), "items": compact_items}
-        if len(tracks) > _MAX_LIST:
+        if len(tracks) > max_list:
             result["truncated"] = True
         return result
     return None
@@ -140,7 +140,7 @@ def compact_track_dict(data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def serialize_value(value: Any, *, depth: int = 0) -> Any:
+def serialize_value(value: Any, *, depth: int = 0, max_list: int = _MAX_LIST) -> Any:
     if depth >= _MAX_DEPTH:
         return str(value)
     if value is None or isinstance(value, (bool, int, float)):
@@ -151,7 +151,7 @@ def serialize_value(value: Any, *, depth: int = 0) -> Any:
         raw = value.to_dict()
         if isinstance(raw, dict) and _looks_like_track_dict(raw):
             return compact_track_dict(raw)
-        return serialize_value(raw, depth=depth + 1)
+        return serialize_value(raw, depth=depth + 1, max_list=max_list)
     if isinstance(value, dict):
         if _looks_like_playlist_track_entry(value):
             return compact_playlist_track_entry(value)
@@ -160,20 +160,31 @@ def serialize_value(value: Any, *, depth: int = 0) -> Any:
         if _looks_like_track_dict(value):
             return compact_track_dict(value)
         return {
-            str(key): serialize_value(item, depth=depth + 1)
+            str(key): serialize_value(item, depth=depth + 1, max_list=max_list)
             for key, item in value.items()
         }
     if isinstance(value, (list, tuple)):
-        items = [serialize_value(item, depth=depth + 1) for item in value[:_MAX_LIST]]
+        items = [serialize_value(item, depth=depth + 1, max_list=max_list) for item in value[:max_list]]
         result: dict[str, Any] = {"count": len(value), "items": items}
-        if len(value) > _MAX_LIST:
+        if len(value) > max_list:
             result["truncated"] = True
         return result
     return _truncate(str(value))
 
 
-def build_method_response(value: Any, *, method: str) -> dict[str, Any]:
-    serialized = serialize_value(value)
+def build_method_response(
+    value: Any,
+    *,
+    method: str,
+    pagination: dict[str, Any] | None = None,
+    max_list: int | None = None,
+) -> dict[str, Any]:
+    list_cap = max_list if max_list is not None else _MAX_LIST
+    serialized = serialize_value(value, max_list=list_cap)
     if isinstance(serialized, dict) and "count" in serialized and "items" in serialized:
-        return {"method": method, **serialized}
-    return {"method": method, "result": serialized}
+        response: dict[str, Any] = {"method": method, **serialized}
+    else:
+        response = {"method": method, "result": serialized}
+    if pagination:
+        response.update(pagination)
+    return response

@@ -31,6 +31,19 @@ def strip_supervisor_injections(messages: list[dict[str, Any]]) -> list[dict[str
     return [message for message in messages if not _is_supervisor_injection(message)]
 
 
+def strip_reasoning_content(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Remove model reasoning_content from assistant messages; keep content as-is."""
+    out = copy.deepcopy(messages)
+    strip_reasoning_content_inplace(out)
+    return out
+
+
+def strip_reasoning_content_inplace(messages: list[dict[str, Any]]) -> None:
+    for message in messages:
+        if message.get("role") == "assistant":
+            message.pop("reasoning_content", None)
+
+
 def extract_worker_history_for_persist(
     messages: list[dict[str, Any]],
     *,
@@ -41,6 +54,7 @@ def extract_worker_history_for_persist(
     worker = copy.deepcopy(messages[worker_start_index:])
     worker = strip_supervisor_injections(worker)
     worker = strip_all_search_tools(worker)
+    strip_reasoning_content_inplace(worker)
     worker.append(
         {
             "role": "assistant",

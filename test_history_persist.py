@@ -1,7 +1,10 @@
 import json
 import unittest
 
-from agent.history_persist import extract_worker_history_for_persist
+from agent.history_persist import (
+    extract_worker_history_for_persist,
+    strip_reasoning_content,
+)
 from bot.history_persist import trim_history_to_turns, trim_history_to_turns
 
 
@@ -163,6 +166,50 @@ class HistoryPersistTests(unittest.TestCase):
         trimmed = trim_history_to_turns(history, 1)
         self.assertEqual(trimmed[0]["content"], "two")
         self.assertEqual(len(trimmed), 4)
+
+
+class StripReasoningContentTests(unittest.TestCase):
+    def test_strip_reasoning_content_keeps_assistant_content(self) -> None:
+        messages = [
+            {"role": "user", "content": "hi"},
+            {
+                "role": "assistant",
+                "content": "Let's check yandex.auth.status.",
+                "reasoning_content": "**Planning**\n\nUse auth status first.",
+                "tool_calls": [{"id": "1", "type": "function", "function": {"name": "use_tool", "arguments": "{}"}}],
+            },
+        ]
+        stripped = strip_reasoning_content(messages)
+        self.assertNotIn("reasoning_content", stripped[1])
+        self.assertEqual(stripped[1]["content"], "Let's check yandex.auth.status.")
+        self.assertIn("reasoning_content", messages[1])
+
+    def test_extract_worker_history_for_persist_strips_reasoning_content(self) -> None:
+        messages = [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "q"},
+            {
+                "role": "assistant",
+                "content": "planning in content stays",
+                "reasoning_content": "hidden reasoning",
+                "tool_calls": [
+                    {
+                        "id": "u1",
+                        "type": "function",
+                        "function": {"name": "use_tool", "arguments": '{"tool_name":"echo.test","arguments":{}}'},
+                    }
+                ],
+            },
+            {"role": "tool", "tool_call_id": "u1", "content": '{"ok": true}'},
+        ]
+        worker = extract_worker_history_for_persist(
+            messages,
+            worker_start_index=2,
+            display_reply="final",
+        )
+        assistant_with_tools = worker[0]
+        self.assertNotIn("reasoning_content", assistant_with_tools)
+        self.assertEqual(assistant_with_tools["content"], "planning in content stays")
 
 
 if __name__ == "__main__":

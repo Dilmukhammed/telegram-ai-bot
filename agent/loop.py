@@ -5,6 +5,7 @@ import logging
 import time
 import uuid
 from collections.abc import Awaitable, Callable
+from dataclasses import replace
 from typing import Any
 
 from agent.context_collapse import SearchContextCollapser, collapse_duplicate_use_tool_calls
@@ -47,7 +48,8 @@ from skills.usage_tracker import record_tagged_search, record_tool_use
 from tools.workspace.vision_pending import take_pending_vision
 from agent.sources import SourceCollector, append_sources
 from agent.transit_guard import skipped_web_search_result, transit_route_satisfied
-from agent.history_persist import extract_worker_history_for_persist
+from agent.history_persist import extract_worker_history_for_persist, strip_reasoning_content_inplace
+from agent.worker_content_summarize import summarize_worker_assistant_content
 from config import Settings
 from llm import LLMClient
 from tools.coerce import normalize_use_tool_call
@@ -155,12 +157,14 @@ async def _finish_run(
     calendar_links: CalendarLinkCollector,
     tasks_links: TasksLinkCollector,
     skill_collapser: SkillContextCollapser,
+    llm: LLMClient,
+    settings: Settings,
 ) -> AgentRunResult:
     if result_collapser is not None:
         collapsed = await result_collapser.collapse_all(messages)
         if collapsed:
             logger.info("tool_result_archive run_end collapsed=%s", collapsed)
-    return _complete_run(
+    result = _complete_run(
         messages,
         history_len=history_len,
         content=content,
@@ -172,6 +176,16 @@ async def _finish_run(
         tasks_links=tasks_links,
         skill_collapser=skill_collapser,
     )
+    try:
+        worker_history = await summarize_worker_assistant_content(
+            result.worker_history,
+            llm=llm,
+            settings=settings,
+        )
+        return replace(result, worker_history=worker_history)
+    except Exception:
+        logger.warning("worker_content_summarize failed; keeping original content", exc_info=True)
+        return result
 
 
 def _parse_tool_arguments(raw_args: str) -> dict[str, Any]:
@@ -297,6 +311,7 @@ class Agent:
         messages: list[dict] = [{"role": "system", "content": system}]
         if history:
             history_for_run = copy.deepcopy(sanitize_expanded_skills_for_context(history))
+            strip_reasoning_content_inplace(history_for_run)
             collapse_duplicate_use_tool_calls(history_for_run)
             messages.extend(history_for_run)
         messages.append(
@@ -535,6 +550,8 @@ class Agent:
                     calendar_links=calendar_links,
                     tasks_links=tasks_links,
                     skill_collapser=skill_collapser,
+                    llm=self._llm,
+                    settings=self._settings,
                 ),
                 supervisor_cycles_left,
                 retries_left,
@@ -610,6 +627,8 @@ class Agent:
                 calendar_links=calendar_links,
                 tasks_links=tasks_links,
                 skill_collapser=skill_collapser,
+                llm=self._llm,
+                settings=self._settings,
             ),
             supervisor_cycles_left,
             retries_left,
@@ -720,9 +739,13 @@ class Agent:
                             calendar_links=calendar_links,
                             tasks_links=tasks_links,
                             skill_collapser=skill_collapser,
+                            llm=self._llm,
+                            settings=self._settings,
                         )
 
-                    messages.append(message.model_dump(exclude_none=True))
+                    assistant_message = message.model_dump(exclude_none=True)
+                    assistant_message.pop("reasoning_content", None)
+                    messages.append(assistant_message)
                     await self._execute_tool_turn(
                         turn=turn_index,
                         messages=messages,
