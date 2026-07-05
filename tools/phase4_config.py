@@ -74,6 +74,8 @@ def rate_limit_for_tool(tool_name: str, spec_limit: tuple[int, int] | None) -> t
         if any(token in tool_name for token in ("_add", "_remove", "_delete", "_create", "_set", "_insert", "_change", "_join", "_update", "pin_", "unpin_", "feedback", "play_audio", "consume_")):
             return settings.rate_limit_yandex_music_write
         return settings.rate_limit_yandex_music_read
+    if tool_name.startswith("pdf."):
+        return settings.pdf_rate_limit_read
     return spec_limit
 
 

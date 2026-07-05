@@ -36,9 +36,9 @@ def _looks_like_track_dict(data: dict[str, Any]) -> bool:
 
 def _looks_like_playlist_track_entry(data: dict[str, Any]) -> bool:
     track = data.get("track")
-    return isinstance(track, dict) and "track" in data and (
-        "timestamp" in data or "original_index" in data or "album_id" in data
-    )
+    if not isinstance(track, dict) or "track" not in data:
+        return False
+    return "original_index" in data or "album_id" in data
 
 
 def _looks_like_playlist_dict(data: dict[str, Any]) -> bool:

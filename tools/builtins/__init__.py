@@ -5,7 +5,7 @@ from tools.builtins.telegram_send import TELEGRAM_SEND_FILE
 from tools.builtins.tool_results_get import TOOL_RESULTS_GET
 from tools.builtins.skills_tools import SKILLS_TOOLS
 from tools.builtins.workspace import WORKSPACE_TOOLS
-from tools.builtins.google import GOOGLE_TOOLS
+from tools.builtins.pdf import PDF_TOOLS
 from tools.schema import ToolSpec
 
 BUILTIN_TOOLS: tuple[ToolSpec, ...] = (
@@ -16,6 +16,7 @@ BUILTIN_TOOLS: tuple[ToolSpec, ...] = (
     TOOL_RESULTS_GET,
     *SKILLS_TOOLS,
     *WORKSPACE_TOOLS,
+    *PDF_TOOLS,
 )
 
 __all__ = ("BUILTIN_TOOLS", "GOOGLE_TOOLS")

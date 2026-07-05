@@ -856,30 +856,8 @@ MUSIC_TOOL_REGISTRY: tuple[dict[str, Any], ...] = (
         "method": "users_likes_tracks",
         "auth": True,
         "write": False,
-        "description": (
-            'Yandex Music API `users_likes_tracks` (users likes tracks). '
-            'Получение треков с отметкой "Мне нравится". '
-            "Pagination: by default returns up to 50 tracks (offset=0, limit=50). "
-            "Use offset/limit to fetch the next chunk; response includes total_count, has_more."
-        ),
-        "schema": {
-            'type': 'object',
-            'properties': {
-                'user_id': {'type': 'string'},
-                'if_modified_since_revision': {'type': 'integer', 'default': 0},
-                'offset': {
-                    'type': 'integer',
-                    'default': 0,
-                    'description': '0-based start index into liked tracks. Example: 50 for the second page.',
-                },
-                'limit': {
-                    'type': 'integer',
-                    'default': 50,
-                    'description': 'Max tracks in this response (1-100). Default 50.',
-                },
-            },
-            'additionalProperties': True,
-        },
+        "description": 'Yandex Music API `users_likes_tracks` (users likes tracks). Получение треков с отметкой "Мне нравится".',
+        "schema": {'type': 'object', 'properties': {'user_id': {'type': 'string'}, 'if_modified_since_revision': {'type': 'integer', 'default': 0}}, 'additionalProperties': True},
     },
     {
         "method": "users_likes_tracks_add",
@@ -926,7 +904,7 @@ MUSIC_TOOL_REGISTRY: tuple[dict[str, Any], ...] = (
     {
         "method": "users_playlists_delete_track",
         "auth": True,
-        "write": False,
+        "write": True,
         "description": 'Yandex Music API `users_playlists_delete_track` (users playlists delete track). Удаление треков из плейлиста.',
         "schema": {'type': 'object', 'properties': {'kind': {'description': 'Parameter `kind` (passed to Yandex Music API).'}, 'from': {'description': 'Alias for API parameter `from`.'}, 'to': {'description': 'Parameter `to` (passed to Yandex Music API).'}, 'revision': {'type': 'integer', 'default': 1}, 'user_id': {'type': 'string'}}, 'required': ['kind', 'to'], 'additionalProperties': True},
     },
@@ -940,7 +918,7 @@ MUSIC_TOOL_REGISTRY: tuple[dict[str, Any], ...] = (
     {
         "method": "users_playlists_insert_track",
         "auth": True,
-        "write": False,
+        "write": True,
         "description": 'Yandex Music API `users_playlists_insert_track` (users playlists insert track). Добавление трека в плейлист.',
         "schema": {'type': 'object', 'properties': {'kind': {'description': 'Parameter `kind` (passed to Yandex Music API).'}, 'track_id': {'type': 'string'}, 'album_id': {'type': 'string'}, 'at': {'type': 'integer', 'default': 0}, 'revision': {'type': 'integer', 'default': 1}, 'user_id': {'type': 'string'}}, 'required': ['kind', 'track_id', 'album_id'], 'additionalProperties': True},
     },

@@ -42,7 +42,28 @@ async def get_music_client(*, telegram_user_id: int | None, require_auth: bool) 
     return client
 
 
+REVISION_AWARE_METHODS: frozenset[str] = frozenset(
+    {"users_playlists_insert_track", "users_playlists_delete_track", "users_playlists_change"}
+)
+
+
+async def _fetch_current_revision(client: ClientAsync, kind: str | int) -> int:
+    playlist = await client.users_playlists(kind=kind)
+    if playlist is None:
+        raise ValueError(f"Playlist not found: kind={kind}")
+    revision = getattr(playlist, "revision", None)
+    if not isinstance(revision, int) or revision < 1:
+        revision = 1
+    return revision
+
+
 async def call_music_method(client: ClientAsync, method: str, arguments: dict[str, Any]) -> Any:
+    if method in REVISION_AWARE_METHODS:
+        kind = arguments.get("kind")
+        revision = arguments.get("revision")
+        if kind is not None and (revision is None or revision <= 1):
+            arguments = dict(arguments)
+            arguments["revision"] = await _fetch_current_revision(client, kind)
     fn = getattr(client, method, None)
     if fn is None or not callable(fn):
         raise ValueError(f"Unknown Yandex Music API method: {method}")

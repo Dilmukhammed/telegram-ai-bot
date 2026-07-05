@@ -47,6 +47,9 @@ TAG_HINT_PROFILES: tuple[tuple[str, ...], ...] = (
     ("google", "auth"),
     ("web", "exa"),
     ("web",),
+    ("pdf",),
+    ("pdf", "read"),
+    ("pdf", "write"),
 )
 
 

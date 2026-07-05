@@ -50,6 +50,8 @@ WRITE_SUFFIXES = (
     "_create",
     "_set",
     "_insert",
+    "_insert_track",
+    "_delete_track",
     "_change",
     "_join",
     "_update",

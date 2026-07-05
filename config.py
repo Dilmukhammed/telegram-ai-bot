@@ -18,10 +18,10 @@ REASONING_EFFORT_LEVELS = frozenset(
     {"minimal", "low", "medium", "high", "xhigh", "auto", "none"}
 )
 
-DEFAULT_AGENT_MAX_TOOL_TURNS = 30
+DEFAULT_AGENT_MAX_TOOL_TURNS = 100
 DEFAULT_AGENT_SUPERVISOR_ENABLED = True
-DEFAULT_AGENT_SUPERVISOR_BONUS_TURNS = 10
-DEFAULT_AGENT_SUPERVISOR_MAX_CYCLES = 2
+DEFAULT_AGENT_SUPERVISOR_BONUS_TURNS = 30
+DEFAULT_AGENT_SUPERVISOR_MAX_CYCLES = 10
 DEFAULT_AGENT_SUPERVISOR_TRACE_MAX_CHARS = 12_000
 DEFAULT_AGENT_SUPERVISOR_SOFT_TRIGGERS = True
 DEFAULT_AGENT_SUPERVISOR_PERIODIC_EVERY = 0
@@ -95,10 +95,24 @@ DEFAULT_TOOL_RESULT_SUMMARIZE_MAX_INPUT_CHARS = 12_000
 DEFAULT_TOOL_RESULT_SUMMARIZE_MAX_RETRIES = 3
 DEFAULT_TOOL_RESULT_SUMMARIZE_MIN_CHARS = 80
 DEFAULT_TOOL_RESULT_SUMMARIZE_MAX_CONCURRENT = 3
+DEFAULT_WORKER_CONTENT_SUMMARIZE_MAX_CHARS = 200
 DEFAULT_TOOL_RESULT_ARCHIVE_ENABLED = True
 DEFAULT_TOOL_RESULT_COLLAPSE_WAIT_SECONDS = 30.0
 DEFAULT_TOOL_RESULT_CLEANUP_INTERVAL_SECONDS = 3600
 DEFAULT_TOOL_RESULT_MAX_ROWS_PER_USER = 0
+
+DEFAULT_PDF_RATE_LIMIT_READ = "30/60"
+DEFAULT_PDF_MAX_TEXT_CHARS_PER_PAGE = 8000
+DEFAULT_PDF_MAX_TABLES = 20
+DEFAULT_PDF_MAX_IMAGES = 20
+DEFAULT_PDF_MAX_SEARCH_RESULTS = 50
+
+DEFAULT_OCR_BASE_URL = ""
+DEFAULT_OCR_API_KEY = ""
+DEFAULT_OCR_MODEL = ""
+DEFAULT_OCR_MAX_PAGES = 50
+DEFAULT_OCR_DPI = 200
+DEFAULT_OCR_RATE_LIMIT = "10/60"
 
 DEFAULT_GOOGLE_OAUTH_CLIENT_TYPE = "installed"
 DEFAULT_GOOGLE_OAUTH_BIND_HOST = "127.0.0.1"
@@ -442,6 +456,24 @@ class Settings:
     tool_result_collapse_wait_seconds: float
     tool_result_cleanup_interval_seconds: int
     tool_result_max_rows_per_user: int
+
+    # Worker content summarize (assistant planning text compression)
+    worker_content_summarize_max_chars: int
+
+    # PDF tools
+    pdf_rate_limit_read: tuple[int, int] | None
+    pdf_max_text_chars_per_page: int
+    pdf_max_tables: int
+    pdf_max_images: int
+    pdf_max_search_results: int
+
+    # OCR via vision API
+    ocr_base_url: str
+    ocr_api_key: str
+    ocr_model: str
+    ocr_max_pages: int
+    ocr_dpi: int
+    ocr_rate_limit: tuple[int, int] | None
 
 
 def _maps_transit_link_provider_env(name: str, default: str) -> str:
@@ -794,6 +826,31 @@ def get_settings(*, require_telegram_token: bool = False) -> Settings:
         tool_result_max_rows_per_user=_int_env(
             "TOOL_RESULT_MAX_ROWS_PER_USER",
             DEFAULT_TOOL_RESULT_MAX_ROWS_PER_USER,
+        ),
+        worker_content_summarize_max_chars=_int_env(
+            "WORKER_CONTENT_SUMMARIZE_MAX_CHARS",
+            DEFAULT_WORKER_CONTENT_SUMMARIZE_MAX_CHARS,
+        ),
+        pdf_rate_limit_read=_parse_rate_limit(
+            _optional_str_env("PDF_RATE_LIMIT_READ") or DEFAULT_PDF_RATE_LIMIT_READ
+        ),
+        pdf_max_text_chars_per_page=_int_env(
+            "PDF_MAX_TEXT_CHARS_PER_PAGE",
+            DEFAULT_PDF_MAX_TEXT_CHARS_PER_PAGE,
+        ),
+        pdf_max_tables=_int_env("PDF_MAX_TABLES", DEFAULT_PDF_MAX_TABLES),
+        pdf_max_images=_int_env("PDF_MAX_IMAGES", DEFAULT_PDF_MAX_IMAGES),
+        pdf_max_search_results=_int_env(
+            "PDF_MAX_SEARCH_RESULTS",
+            DEFAULT_PDF_MAX_SEARCH_RESULTS,
+        ),
+        ocr_base_url=_str_env("OCR_BASE_URL", DEFAULT_OCR_BASE_URL),
+        ocr_api_key=_str_env("OCR_API_KEY", DEFAULT_OCR_API_KEY),
+        ocr_model=_str_env("OCR_MODEL", DEFAULT_OCR_MODEL),
+        ocr_max_pages=_int_env("OCR_MAX_PAGES", DEFAULT_OCR_MAX_PAGES),
+        ocr_dpi=_int_env("OCR_DPI", DEFAULT_OCR_DPI),
+        ocr_rate_limit=_parse_rate_limit(
+            _optional_str_env("OCR_RATE_LIMIT") or DEFAULT_OCR_RATE_LIMIT
         ),
     )
 

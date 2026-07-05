@@ -8,4 +8,7 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 data/google_tokens.sqlite
+data/yandex_tokens.sqlite
+data/tool_results.sqlite
+data/context_dump.json
 data/workspaces/

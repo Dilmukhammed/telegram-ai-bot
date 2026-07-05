@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 
@@ -28,7 +29,13 @@ def _pick_query(arguments: dict[str, Any]) -> str | None:
 
 def normalize_use_tool_call(raw: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     tool_name = _coerce_str(raw.get("tool_name"))
-    inner = dict(raw.get("arguments") or {})
+    _raw_args = raw.get("arguments")
+    if isinstance(_raw_args, str):
+        try:
+            _raw_args = json.loads(_raw_args)
+        except json.JSONDecodeError:
+            _raw_args = {}
+    inner = dict(_raw_args or {})
 
     if not tool_name and inner.get("tool_name") is not None:
         tool_name = _coerce_str(inner.pop("tool_name"))

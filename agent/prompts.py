@@ -37,6 +37,7 @@ Skills are **detailed playbooks** stored on the server (not in this system promp
 | google.gmail | google, gmail | Inbox, send, threads, labels, drafts |
 | yandex.music | yandex, music | Search, playlists, likes, download, radio |
 | workspace | workspace, filesystem | Server sandbox, uploads, read/write files |
+| pdf | pdf, read | Extract text/tables/images, OCR, render, edit, forms, security, create |
 
 ## Connected capabilities
 
@@ -75,6 +76,21 @@ Skills are **detailed playbooks** stored on the server (not in this system promp
 
 **Web search (Exa)** — `exa.web_search` + `exa.web_fetch` for live internet (not user's Gmail/Drive).
 
+**PDF documents** — 37 tools for reading, editing, creating, and manipulating PDFs.
+- Skill: `skills.load` → `skill_id: "pdf"`.
+- **Read:** `pdf.extract_text` (text from pages), `pdf.extract_tables`, `pdf.extract_images` (output: vision/file_ref/both), `pdf.read_metadata`, `pdf.get_outline`, `pdf.search_text`, `pdf.get_page_info`, `pdf.extract_links`, `pdf.extract_forms`.
+- **OCR:** `pdf.ocr` (vision API, for scanned PDFs — requires OCR_API_KEY), `pdf.is_scanned` (check before OCR).
+- **Render:** `pdf.render` (pages → PNG, output: vision/file_ref/both, scale for thumbnails).
+- **Pages:** `pdf.split`, `pdf.extract_pages`, `pdf.merge`, `pdf.rotate_pages` ({"1-3":90,"5":180}), `pdf.delete_pages`, `pdf.reorder_pages` (order or swap).
+- **Edit:** `pdf.overlay` (watermark/header/footer/page_numbers/text), `pdf.redact_text`, `pdf.add_image`, `pdf.add_annotations` (highlight/strikethrough/underline/squiggly).
+- **Forms:** `pdf.fill_form`, `pdf.flatten_form`, `pdf.create_form`, `pdf.reset_form`.
+- **Security:** `pdf.encrypt`, `pdf.decrypt`, `pdf.get_permissions`.
+- **Optimize:** `pdf.optimize` (light/medium/aggressive), `pdf.repair`.
+- **Metadata:** `pdf.set_metadata`, `pdf.set_outline`, `pdf.add_bookmark`.
+- **Create:** `pdf.create` (text or markdown → PDF), `pdf.create_from_images`, `pdf.create_blank`.
+- Input: `file_ref` (from drive download/export/gmail attachment) or `path` (workspace).
+- Output: new PDFs return `file_ref` for `telegram.send_file`.
+
 **Archived tool results** — long tool outputs are stored by numeric ref. Collapsed messages show an **approximate summary only** — do not trust summaries for exact quotes, IDs, counts, or URLs. Use `tool_results.get` with `{"ref":42,"mode":"full"}` when you need the exact stored payload.
 
 **Telegram file delivery** — `telegram.send_file` with `file_ref` (Drive/Gmail download) or workspace `path`. Do not invent `file_ref`.
@@ -101,6 +117,7 @@ search_tools filters by tags (AND — tool must have every listed tag).
 | Web search (Exa) | ["web", "search"] or ["web", "exa"] | fetch, internet, news, read, url |
 | Telegram delivery | ["telegram", "bot"] | send_file, delivery |
 | Agent workspace | ["workspace"] or ["workspace", "filesystem"] | read, write |
+| PDF tools | ["pdf"] | read, write, text, tables, images, ocr, render, pages, overlay, forms, security, optimize, metadata, create |
 | Google OAuth | ["google", "auth"] | — |
 
 Examples:
