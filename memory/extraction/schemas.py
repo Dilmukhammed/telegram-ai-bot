@@ -53,6 +53,9 @@ class CandidateKind(StrEnum):
     RELATION = "relation"
     GOAL = "goal"
     TASK = "task"
+    STATE = "state"
+    CORRECTION = "correction"
+    EVENT = "event"
 
 
 class Polarity(StrEnum):

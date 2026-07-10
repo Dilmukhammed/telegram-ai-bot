@@ -3020,7 +3020,10 @@ Initial candidate support:
 - `preference`;
 - `relation`;
 - `goal`;
-- `task`.
+- `task`;
+- `state`;
+- `correction`;
+- `event`.
 
 Requirements:
 
@@ -4518,7 +4521,7 @@ PR 2 gates enforced immediately:
 - matching/metrics golden tests: 100%;
 - deterministic replay/report generation: 100%.
 
-Extractor gates defined now but activated only when PR 3 provides a real subject:
+Extractor gates are active for the `extraction` subject:
 
 - mention precision at least 98%;
 - mention recall at least 90%;
@@ -4795,15 +4798,20 @@ PR 2 is complete when:
 
 # Next action
 
-PR 0, PR 1, and PR 2 are implemented. The PR 3 shadow code path is also implemented:
+PR 0, PR 1, and PR 2 are implemented. PR 3 shadow extraction is implemented:
 
 - schema v4 stores mentions, typed candidates, and exact candidate evidence;
 - `memory/extraction/` provides strict schemas, parser, prompts, and the text processor;
+- supported candidate kinds match the reviewed `text_v1` gold corpus, including `state`, `correction`, and `event`;
 - normalization schedules extraction only for direct user statements and exact API results;
 - PR 2 exposes an opt-in `extraction` subject that requires `--allow-network`;
+- extraction quality gates are active for the `extraction` subject;
 - extraction remains disabled by default and cannot affect Telegram answers.
 
-PR 3 is not release-qualified until the draft gold corpus receives truthful human review and a live model run meets the extraction gates. The next engineering slice is PR 4 independent verification. Before automatic graph memory reaches users, later work still includes:
+PR 3 is not release-qualified until a live model run passes smoke and full extraction eval.
+Use the existing `summarize` LLM profile by default (`MEMORY_EXTRACTION_MODEL_PROFILE=summarize`).
+
+The next engineering slice is PR 4 independent verification. Before automatic graph memory reaches users, later work still includes:
 
 - code for all vertical slices;
 - gold fixtures and repeated evaluation;

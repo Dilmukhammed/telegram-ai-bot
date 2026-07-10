@@ -491,7 +491,7 @@ class PackLoaderTests(unittest.TestCase):
 
 
 class CheckedInCorpusTests(unittest.TestCase):
-    def test_text_v1_has_exact_balanced_draft_corpus(self) -> None:
+    def test_text_v1_has_exact_balanced_reviewed_corpus(self) -> None:
         root = Path(__file__).parent / "memory" / "eval" / "fixtures" / "text_v1"
         pack = load_pack(root)
         self.assertEqual(len(pack.fixtures), 64)
@@ -503,9 +503,12 @@ class CheckedInCorpusTests(unittest.TestCase):
             },
             {"ru": 32, "en": 28, "mixed": 4},
         )
-        self.assertFalse(pack.manifest.coverage.require_reviewed)
-        self.assertTrue(all(case.review.status.value == "draft" for case in pack.fixtures))
-        self.assertEqual(len(pack.pack_hash), 64)
+        self.assertTrue(pack.manifest.coverage.require_reviewed)
+        self.assertTrue(all(case.review.status.value == "reviewed" for case in pack.fixtures))
+        self.assertEqual(
+            pack.pack_hash,
+            "4d07ad4649f0172117d89ad475e0d4f6ad04c3ea82bdae10453af42bb7853630",
+        )
 
 
 if __name__ == "__main__":

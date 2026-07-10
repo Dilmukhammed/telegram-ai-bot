@@ -20,6 +20,9 @@ Supported candidate kinds:
 - `relation`
 - `goal`
 - `task`
+- `state`
+- `correction`
+- `event`
 
 No entity resolution, verification, graph writes, retrieval, or prompt injection is included.
 
@@ -30,6 +33,9 @@ MEMORY_EXTRACTION_ENABLED=0
 MEMORY_EXTRACTION_MODEL_PROFILE=summarize
 MEMORY_EXTRACTION_MAX_TOKENS=4096
 ```
+
+Extraction reuses the existing `LLMClient` profiles (`summarize` by default, or `agent` / `checker`).
+No separate extraction model endpoint is required.
 
 Extraction requires the memory worker. The default remains disabled. Normalization schedules extraction only for:
 
@@ -63,7 +69,9 @@ python -m memory.eval.runner \
 
 Network access is denied unless `--allow-network` is explicit. The production ingestion, worker, prompt, parser, and persistence path run inside isolated temporary databases. Runtime mention IDs are mapped to gold semantic mention references before candidate scoring.
 
-The checked-in corpus remains draft. A live result must not be called release-ready until human review metadata is truthful and active extraction gates pass.
+The checked-in `text_v1` corpus is human-reviewed. Extraction gates are active for the
+`extraction` subject. A live run is release-qualified only after smoke/full extraction eval
+passes with `--allow-network`.
 
 ## Verification
 
