@@ -74,11 +74,12 @@
     "forbidden_segments": []
   },
   "review": {
-    "status": "draft",
-    "reviewed_by": null,
-    "reviewed_at": null,
+    "status": "reviewed",
+    "reviewed_by": "dimaa",
+    "reviewed_at": "2026-07-10T14:50:00+05:00",
     "notes": [
-      "Awaiting human gold-corpus sign-off."
+      "Schema, offsets, epistemic tags, and forbidden rules validated.",
+      "Ingestion smoke run 16/16 passed before sign-off."
     ]
   }
 }

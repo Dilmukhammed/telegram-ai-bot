@@ -1,0 +1,4083 @@
+{
+  "breakdowns": {
+    "candidate_kind": {},
+    "criticality": {
+      "critical": {
+        "case_count": 16,
+        "failed_count": 0,
+        "passed_count": 16
+      },
+      "normal": {
+        "case_count": 48,
+        "failed_count": 0,
+        "passed_count": 48
+      }
+    },
+    "language": {
+      "en": {
+        "case_count": 28,
+        "failed_count": 0,
+        "passed_count": 28
+      },
+      "mixed": {
+        "case_count": 4,
+        "failed_count": 0,
+        "passed_count": 4
+      },
+      "ru": {
+        "case_count": 32,
+        "failed_count": 0,
+        "passed_count": 32
+      }
+    },
+    "slice": {
+      "chunking_overlap": {
+        "case_count": 1,
+        "failed_count": 0,
+        "passed_count": 1
+      },
+      "correction_followup": {
+        "case_count": 8,
+        "failed_count": 0,
+        "passed_count": 8
+      },
+      "direct_attribute_relation": {
+        "case_count": 21,
+        "failed_count": 0,
+        "passed_count": 21
+      },
+      "exact_tool_result": {
+        "case_count": 6,
+        "failed_count": 0,
+        "passed_count": 6
+      },
+      "goal_task_deadline": {
+        "case_count": 12,
+        "failed_count": 0,
+        "passed_count": 12
+      },
+      "hard_negative": {
+        "case_count": 18,
+        "failed_count": 0,
+        "passed_count": 18
+      },
+      "irrelevant_abstention": {
+        "case_count": 8,
+        "failed_count": 0,
+        "passed_count": 8
+      },
+      "multi_turn": {
+        "case_count": 16,
+        "failed_count": 0,
+        "passed_count": 16
+      },
+      "negation": {
+        "case_count": 11,
+        "failed_count": 0,
+        "passed_count": 11
+      },
+      "preference_constraint": {
+        "case_count": 19,
+        "failed_count": 0,
+        "passed_count": 19
+      },
+      "temporal_precision": {
+        "case_count": 11,
+        "failed_count": 0,
+        "passed_count": 11
+      },
+      "uncertainty_alternative": {
+        "case_count": 9,
+        "failed_count": 0,
+        "passed_count": 9
+      },
+      "wrong_speaker_hearsay": {
+        "case_count": 9,
+        "failed_count": 0,
+        "passed_count": 9
+      }
+    }
+  },
+  "case_count": 64,
+  "compatibility": {
+    "gate_hash": "b9b18f60d6de05f2ae26b2ee2e7891b54cb72baa09debdcc5a3a26cf3ce66460",
+    "gate_schema_version": "1",
+    "pack_hash": "4d07ad4649f0172117d89ad475e0d4f6ad04c3ea82bdae10453af42bb7853630",
+    "pack_id": "text_v1",
+    "pack_version": "1",
+    "pipeline_id": "text_ingestion_v1",
+    "report_schema_version": "1",
+    "subject_id": "pr1_ingestion",
+    "subject_schema_version": "1"
+  },
+  "critical_failures": [],
+  "error_count": 0,
+  "exit_code": 0,
+  "failed_count": 0,
+  "failure_counts": {},
+  "gate_hash": "b9b18f60d6de05f2ae26b2ee2e7891b54cb72baa09debdcc5a3a26cf3ce66460",
+  "gate_schema_version": "1",
+  "gates": [
+    {
+      "comparison": "gte",
+      "gate_id": "corpus_coverage",
+      "name": "corpus_coverage",
+      "observed": 1.0,
+      "passed": true,
+      "reason": null,
+      "threshold": 1.0
+    },
+    {
+      "comparison": "lte",
+      "gate_id": "cross_user_leakage_count",
+      "name": "cross_user_leakage_count",
+      "observed": 0.0,
+      "passed": true,
+      "reason": null,
+      "threshold": 0.0
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "deterministic_replay",
+      "name": "deterministic_replay",
+      "observed": 1.0,
+      "passed": true,
+      "reason": null,
+      "threshold": 1.0
+    },
+    {
+      "comparison": "eq",
+      "gate_id": "failure_code:fixture_invalid",
+      "name": "failure_code:fixture_invalid",
+      "observed": 0,
+      "passed": true,
+      "reason": null,
+      "threshold": 0
+    },
+    {
+      "comparison": "eq",
+      "gate_id": "failure_code:pointer_dereference_failed",
+      "name": "failure_code:pointer_dereference_failed",
+      "observed": 0,
+      "passed": true,
+      "reason": null,
+      "threshold": 0
+    },
+    {
+      "comparison": "eq",
+      "gate_id": "failure_code:pointer_owner_mismatch",
+      "name": "failure_code:pointer_owner_mismatch",
+      "observed": 0,
+      "passed": true,
+      "reason": null,
+      "threshold": 0
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "fixture_schema_validity",
+      "name": "fixture_schema_validity",
+      "observed": 1.0,
+      "passed": true,
+      "reason": null,
+      "threshold": 1.0
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "matching_metrics_golden",
+      "name": "matching_metrics_golden",
+      "observed": 1.0,
+      "passed": true,
+      "reason": null,
+      "threshold": 1.0
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "pointer_dereference_accuracy",
+      "name": "pointer_dereference_accuracy",
+      "observed": 1.0,
+      "passed": true,
+      "reason": null,
+      "threshold": 1.0
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "pointer_ownership_accuracy",
+      "name": "pointer_ownership_accuracy",
+      "observed": 1.0,
+      "passed": true,
+      "reason": null,
+      "threshold": 1.0
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "release_fixtures_reviewed",
+      "name": "release_fixtures_reviewed",
+      "observed": 1.0,
+      "passed": true,
+      "reason": null,
+      "threshold": 1.0
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "segment_exactness",
+      "name": "segment_exactness",
+      "observed": 1.0,
+      "passed": true,
+      "reason": null,
+      "threshold": 1.0
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "slice_count:critical_slice:correction_followup",
+      "name": "slice_count:critical_slice:correction_followup",
+      "observed": 8,
+      "passed": true,
+      "reason": null,
+      "threshold": 8
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "slice_count:critical_slice:direct_attribute_relation",
+      "name": "slice_count:critical_slice:direct_attribute_relation",
+      "observed": 21,
+      "passed": true,
+      "reason": null,
+      "threshold": 8
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "slice_count:critical_slice:exact_tool_result",
+      "name": "slice_count:critical_slice:exact_tool_result",
+      "observed": 6,
+      "passed": true,
+      "reason": null,
+      "threshold": 6
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "slice_count:critical_slice:goal_task_deadline",
+      "name": "slice_count:critical_slice:goal_task_deadline",
+      "observed": 12,
+      "passed": true,
+      "reason": null,
+      "threshold": 6
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "slice_count:critical_slice:irrelevant_abstention",
+      "name": "slice_count:critical_slice:irrelevant_abstention",
+      "observed": 8,
+      "passed": true,
+      "reason": null,
+      "threshold": 8
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "slice_count:critical_slice:negation",
+      "name": "slice_count:critical_slice:negation",
+      "observed": 11,
+      "passed": true,
+      "reason": null,
+      "threshold": 8
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "slice_count:critical_slice:preference_constraint",
+      "name": "slice_count:critical_slice:preference_constraint",
+      "observed": 19,
+      "passed": true,
+      "reason": null,
+      "threshold": 8
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "slice_count:critical_slice:temporal_precision",
+      "name": "slice_count:critical_slice:temporal_precision",
+      "observed": 11,
+      "passed": true,
+      "reason": null,
+      "threshold": 6
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "slice_count:critical_slice:uncertainty_alternative",
+      "name": "slice_count:critical_slice:uncertainty_alternative",
+      "observed": 9,
+      "passed": true,
+      "reason": null,
+      "threshold": 8
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "slice_count:critical_slice:wrong_speaker_hearsay",
+      "name": "slice_count:critical_slice:wrong_speaker_hearsay",
+      "observed": 9,
+      "passed": true,
+      "reason": null,
+      "threshold": 8
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "slice_count:language:en",
+      "name": "slice_count:language:en",
+      "observed": 28,
+      "passed": true,
+      "reason": null,
+      "threshold": 28
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "slice_count:language:mixed",
+      "name": "slice_count:language:mixed",
+      "observed": 4,
+      "passed": true,
+      "reason": null,
+      "threshold": 4
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "slice_count:language:ru",
+      "name": "slice_count:language:ru",
+      "observed": 32,
+      "passed": true,
+      "reason": null,
+      "threshold": 32
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "slice_count:tier:smoke",
+      "name": "slice_count:tier:smoke",
+      "observed": 16,
+      "passed": true,
+      "reason": null,
+      "threshold": 16
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "slice_count:total",
+      "name": "slice_count:total",
+      "observed": 64,
+      "passed": true,
+      "reason": null,
+      "threshold": 64
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "source_exactness",
+      "name": "source_exactness",
+      "observed": 1.0,
+      "passed": true,
+      "reason": null,
+      "threshold": 1.0
+    },
+    {
+      "comparison": "gte",
+      "gate_id": "source_version_exactness",
+      "name": "source_version_exactness",
+      "observed": 1.0,
+      "passed": true,
+      "reason": null,
+      "threshold": 1.0
+    }
+  ],
+  "hard_zero_failure_codes": [
+    "fixture_invalid",
+    "pointer_dereference_failed",
+    "pointer_owner_mismatch"
+  ],
+  "metrics": {
+    "candidate_precision": {
+      "macro": {
+        "denominator": 0,
+        "numerator": 0,
+        "value": null
+      },
+      "micro": {
+        "denominator": 0,
+        "numerator": 0,
+        "value": null,
+        "wilson_95": null
+      }
+    },
+    "candidate_recall": {
+      "macro": {
+        "denominator": 0,
+        "numerator": 0,
+        "value": null
+      },
+      "micro": {
+        "denominator": 0,
+        "numerator": 0,
+        "value": null,
+        "wilson_95": null
+      }
+    },
+    "corpus_coverage": {
+      "denominator": 1,
+      "numerator": 1,
+      "value": 1.0
+    },
+    "cross_user_leakage_count": {
+      "denominator": 1,
+      "numerator": 0,
+      "value": 0.0
+    },
+    "deterministic_replay": {
+      "denominator": 1,
+      "numerator": 1,
+      "value": 1.0
+    },
+    "exact_segment_text_span": {
+      "macro": {
+        "denominator": 63,
+        "numerator": 63.0,
+        "value": 1.0
+      },
+      "micro": {
+        "denominator": 82,
+        "numerator": 82,
+        "value": 1.0,
+        "wilson_95": {
+          "confidence": 0.95,
+          "lower": 0.9552493763098998,
+          "upper": 1.0
+        }
+      }
+    },
+    "fixture_schema_validity": {
+      "denominator": 1,
+      "numerator": 1,
+      "value": 1.0
+    },
+    "forbidden_candidate_rate": {
+      "macro": {
+        "denominator": 64,
+        "numerator": 0.0,
+        "value": 0.0
+      },
+      "micro": {
+        "denominator": 64,
+        "numerator": 0,
+        "value": 0.0,
+        "wilson_95": {
+          "confidence": 0.95,
+          "lower": 0.0,
+          "upper": 0.05662405979280534
+        }
+      }
+    },
+    "matching_metrics_golden": {
+      "denominator": 1,
+      "numerator": 1,
+      "value": 1.0
+    },
+    "mention_precision": {
+      "macro": {
+        "denominator": 0,
+        "numerator": 0,
+        "value": null
+      },
+      "micro": {
+        "denominator": 0,
+        "numerator": 0,
+        "value": null,
+        "wilson_95": null
+      }
+    },
+    "mention_recall": {
+      "macro": {
+        "denominator": 0,
+        "numerator": 0,
+        "value": null
+      },
+      "micro": {
+        "denominator": 0,
+        "numerator": 0,
+        "value": null,
+        "wilson_95": null
+      }
+    },
+    "normalization_job_completion": {
+      "macro": {
+        "denominator": 64,
+        "numerator": 64.0,
+        "value": 1.0
+      },
+      "micro": {
+        "denominator": 81,
+        "numerator": 81,
+        "value": 1.0,
+        "wilson_95": {
+          "confidence": 0.95,
+          "lower": 0.9547219145675847,
+          "upper": 1.0
+        }
+      }
+    },
+    "pointer_dereference_accuracy": {
+      "macro": {
+        "denominator": 64,
+        "numerator": 64.0,
+        "value": 1.0
+      },
+      "micro": {
+        "denominator": 165,
+        "numerator": 165,
+        "value": 1.0,
+        "wilson_95": {
+          "confidence": 0.95,
+          "lower": 0.977248130598222,
+          "upper": 1.0
+        }
+      }
+    },
+    "pointer_ownership_accuracy": {
+      "macro": {
+        "denominator": 64,
+        "numerator": 64.0,
+        "value": 1.0
+      },
+      "micro": {
+        "denominator": 165,
+        "numerator": 165,
+        "value": 1.0,
+        "wilson_95": {
+          "confidence": 0.95,
+          "lower": 0.977248130598222,
+          "upper": 1.0
+        }
+      }
+    },
+    "release_fixtures_reviewed": {
+      "denominator": 64,
+      "numerator": 64,
+      "value": 1.0
+    },
+    "segment_exactness": {
+      "macro": {
+        "denominator": 64,
+        "numerator": 64.0,
+        "value": 1.0
+      },
+      "micro": {
+        "denominator": 84,
+        "numerator": 84,
+        "value": 1.0,
+        "wilson_95": {
+          "confidence": 0.95,
+          "lower": 0.95626827158534,
+          "upper": 0.9999999999999999
+        }
+      }
+    },
+    "source_exactness": {
+      "macro": {
+        "denominator": 64,
+        "numerator": 64.0,
+        "value": 1.0
+      },
+      "micro": {
+        "denominator": 81,
+        "numerator": 81,
+        "value": 1.0,
+        "wilson_95": {
+          "confidence": 0.95,
+          "lower": 0.9547219145675847,
+          "upper": 1.0
+        }
+      }
+    },
+    "source_version_exactness": {
+      "macro": {
+        "denominator": 64,
+        "numerator": 64.0,
+        "value": 1.0
+      },
+      "micro": {
+        "denominator": 81,
+        "numerator": 81,
+        "value": 1.0,
+        "wilson_95": {
+          "confidence": 0.95,
+          "lower": 0.9547219145675847,
+          "upper": 1.0
+        }
+      }
+    }
+  },
+  "pack_hash": "4d07ad4649f0172117d89ad475e0d4f6ad04c3ea82bdae10453af42bb7853630",
+  "pack_id": "text_v1",
+  "pack_slice_counts": {
+    "critical_slice:chunking_overlap": 1,
+    "critical_slice:correction_followup": 8,
+    "critical_slice:direct_attribute_relation": 21,
+    "critical_slice:exact_tool_result": 6,
+    "critical_slice:goal_task_deadline": 12,
+    "critical_slice:hard_negative": 18,
+    "critical_slice:irrelevant_abstention": 8,
+    "critical_slice:multi_turn": 16,
+    "critical_slice:negation": 11,
+    "critical_slice:preference_constraint": 19,
+    "critical_slice:temporal_precision": 11,
+    "critical_slice:uncertainty_alternative": 9,
+    "critical_slice:wrong_speaker_hearsay": 9,
+    "language:en": 28,
+    "language:mixed": 4,
+    "language:ru": 32,
+    "slice:chunking_overlap": 1,
+    "slice:correction_followup": 8,
+    "slice:direct_attribute_relation": 21,
+    "slice:exact_tool_result": 6,
+    "slice:goal_task_deadline": 12,
+    "slice:hard_negative": 18,
+    "slice:irrelevant_abstention": 8,
+    "slice:multi_turn": 16,
+    "slice:negation": 11,
+    "slice:preference_constraint": 19,
+    "slice:temporal_precision": 11,
+    "slice:uncertainty_alternative": 9,
+    "slice:wrong_speaker_hearsay": 9,
+    "tier:full": 48,
+    "tier:smoke": 16,
+    "total": 64
+  },
+  "pack_version": "1",
+  "passed": true,
+  "passed_count": 64,
+  "pipeline_id": "text_ingestion_v1",
+  "processor_version": "unknown",
+  "report_hash": "1c9d21d0d8b72562079c4ea55db16cfca6b1e4bfcc876fd08e5bb88bc16ae72a",
+  "report_schema_version": "1",
+  "slice_metrics": {
+    "candidate_kind": {},
+    "criticality": {
+      "critical": {
+        "candidate_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "candidate_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "exact_segment_text_span": {
+          "macro": {
+            "denominator": 16,
+            "numerator": 16.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 24,
+            "numerator": 24,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8620237953250198,
+              "upper": 1.0
+            }
+          }
+        },
+        "forbidden_candidate_rate": {
+          "macro": {
+            "denominator": 16,
+            "numerator": 0.0,
+            "value": 0.0
+          },
+          "micro": {
+            "denominator": 16,
+            "numerator": 0,
+            "value": 0.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.0,
+              "upper": 0.1936076805344365
+            }
+          }
+        },
+        "mention_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "mention_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "normalization_job_completion": {
+          "macro": {
+            "denominator": 16,
+            "numerator": 16.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 25,
+            "numerator": 25,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8668077490609515,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "pointer_dereference_accuracy": {
+          "macro": {
+            "denominator": 16,
+            "numerator": 16.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 50,
+            "numerator": 50,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9286524008666414,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_ownership_accuracy": {
+          "macro": {
+            "denominator": 16,
+            "numerator": 16.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 50,
+            "numerator": 50,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9286524008666414,
+              "upper": 1.0
+            }
+          }
+        },
+        "segment_exactness": {
+          "macro": {
+            "denominator": 16,
+            "numerator": 16.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 25,
+            "numerator": 25,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8668077490609515,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "source_exactness": {
+          "macro": {
+            "denominator": 16,
+            "numerator": 16.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 25,
+            "numerator": 25,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8668077490609515,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "source_version_exactness": {
+          "macro": {
+            "denominator": 16,
+            "numerator": 16.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 25,
+            "numerator": 25,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8668077490609515,
+              "upper": 0.9999999999999999
+            }
+          }
+        }
+      },
+      "normal": {
+        "candidate_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "candidate_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "exact_segment_text_span": {
+          "macro": {
+            "denominator": 47,
+            "numerator": 47.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 58,
+            "numerator": 58,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9378821442127971,
+              "upper": 1.0
+            }
+          }
+        },
+        "forbidden_candidate_rate": {
+          "macro": {
+            "denominator": 48,
+            "numerator": 0.0,
+            "value": 0.0
+          },
+          "micro": {
+            "denominator": 48,
+            "numerator": 0,
+            "value": 0.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 6.938893903907228e-18,
+              "upper": 0.07410012966611748
+            }
+          }
+        },
+        "mention_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "mention_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "normalization_job_completion": {
+          "macro": {
+            "denominator": 48,
+            "numerator": 48.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 56,
+            "numerator": 56,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9358060632812366,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_dereference_accuracy": {
+          "macro": {
+            "denominator": 48,
+            "numerator": 48.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 115,
+            "numerator": 115,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9676757685506868,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "pointer_ownership_accuracy": {
+          "macro": {
+            "denominator": 48,
+            "numerator": 48.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 115,
+            "numerator": 115,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9676757685506868,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "segment_exactness": {
+          "macro": {
+            "denominator": 48,
+            "numerator": 48.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 59,
+            "numerator": 59,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9388706294732116,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_exactness": {
+          "macro": {
+            "denominator": 48,
+            "numerator": 48.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 56,
+            "numerator": 56,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9358060632812366,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_version_exactness": {
+          "macro": {
+            "denominator": 48,
+            "numerator": 48.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 56,
+            "numerator": 56,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9358060632812366,
+              "upper": 1.0
+            }
+          }
+        }
+      }
+    },
+    "language": {
+      "en": {
+        "candidate_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "candidate_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "exact_segment_text_span": {
+          "macro": {
+            "denominator": 28,
+            "numerator": 28.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 36,
+            "numerator": 36,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9035813714055363,
+              "upper": 1.0
+            }
+          }
+        },
+        "forbidden_candidate_rate": {
+          "macro": {
+            "denominator": 28,
+            "numerator": 0.0,
+            "value": 0.0
+          },
+          "micro": {
+            "denominator": 28,
+            "numerator": 0,
+            "value": 0.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 1.3877787807814457e-17,
+              "upper": 0.12064330476584563
+            }
+          }
+        },
+        "mention_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "mention_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "normalization_job_completion": {
+          "macro": {
+            "denominator": 28,
+            "numerator": 28.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 33,
+            "numerator": 33,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.895730002457548,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_dereference_accuracy": {
+          "macro": {
+            "denominator": 28,
+            "numerator": 28.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 69,
+            "numerator": 69,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9472627418109483,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_ownership_accuracy": {
+          "macro": {
+            "denominator": 28,
+            "numerator": 28.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 69,
+            "numerator": 69,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9472627418109483,
+              "upper": 1.0
+            }
+          }
+        },
+        "segment_exactness": {
+          "macro": {
+            "denominator": 28,
+            "numerator": 28.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 36,
+            "numerator": 36,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9035813714055363,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_exactness": {
+          "macro": {
+            "denominator": 28,
+            "numerator": 28.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 33,
+            "numerator": 33,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.895730002457548,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_version_exactness": {
+          "macro": {
+            "denominator": 28,
+            "numerator": 28.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 33,
+            "numerator": 33,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.895730002457548,
+              "upper": 1.0
+            }
+          }
+        }
+      },
+      "mixed": {
+        "candidate_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "candidate_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "exact_segment_text_span": {
+          "macro": {
+            "denominator": 4,
+            "numerator": 4.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 5,
+            "numerator": 5,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.5655175352168251,
+              "upper": 1.0
+            }
+          }
+        },
+        "forbidden_candidate_rate": {
+          "macro": {
+            "denominator": 4,
+            "numerator": 0.0,
+            "value": 0.0
+          },
+          "micro": {
+            "denominator": 4,
+            "numerator": 0,
+            "value": 0.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.0,
+              "upper": 0.4898908364545973
+            }
+          }
+        },
+        "mention_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "mention_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "normalization_job_completion": {
+          "macro": {
+            "denominator": 4,
+            "numerator": 4.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 5,
+            "numerator": 5,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.5655175352168251,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_dereference_accuracy": {
+          "macro": {
+            "denominator": 4,
+            "numerator": 4.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 10,
+            "numerator": 10,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7224672001371107,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "pointer_ownership_accuracy": {
+          "macro": {
+            "denominator": 4,
+            "numerator": 4.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 10,
+            "numerator": 10,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7224672001371107,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "segment_exactness": {
+          "macro": {
+            "denominator": 4,
+            "numerator": 4.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 5,
+            "numerator": 5,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.5655175352168251,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_exactness": {
+          "macro": {
+            "denominator": 4,
+            "numerator": 4.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 5,
+            "numerator": 5,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.5655175352168251,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_version_exactness": {
+          "macro": {
+            "denominator": 4,
+            "numerator": 4.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 5,
+            "numerator": 5,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.5655175352168251,
+              "upper": 1.0
+            }
+          }
+        }
+      },
+      "ru": {
+        "candidate_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "candidate_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "exact_segment_text_span": {
+          "macro": {
+            "denominator": 31,
+            "numerator": 31.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 41,
+            "numerator": 41,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9143324298155681,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "forbidden_candidate_rate": {
+          "macro": {
+            "denominator": 32,
+            "numerator": 0.0,
+            "value": 0.0
+          },
+          "micro": {
+            "denominator": 32,
+            "numerator": 0,
+            "value": 0.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.0,
+              "upper": 0.1071791982550706
+            }
+          }
+        },
+        "mention_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "mention_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "normalization_job_completion": {
+          "macro": {
+            "denominator": 32,
+            "numerator": 32.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 43,
+            "numerator": 43,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9179901967742088,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_dereference_accuracy": {
+          "macro": {
+            "denominator": 32,
+            "numerator": 32.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 86,
+            "numerator": 86,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9572418027142576,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "pointer_ownership_accuracy": {
+          "macro": {
+            "denominator": 32,
+            "numerator": 32.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 86,
+            "numerator": 86,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9572418027142576,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "segment_exactness": {
+          "macro": {
+            "denominator": 32,
+            "numerator": 32.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 43,
+            "numerator": 43,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9179901967742088,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_exactness": {
+          "macro": {
+            "denominator": 32,
+            "numerator": 32.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 43,
+            "numerator": 43,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9179901967742088,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_version_exactness": {
+          "macro": {
+            "denominator": 32,
+            "numerator": 32.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 43,
+            "numerator": 43,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9179901967742088,
+              "upper": 1.0
+            }
+          }
+        }
+      }
+    },
+    "slice_tags": {
+      "chunking_overlap": {
+        "candidate_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "candidate_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "exact_segment_text_span": {
+          "macro": {
+            "denominator": 1,
+            "numerator": 1.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 4,
+            "numerator": 4,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.5101091635454027,
+              "upper": 1.0
+            }
+          }
+        },
+        "forbidden_candidate_rate": {
+          "macro": {
+            "denominator": 1,
+            "numerator": 0.0,
+            "value": 0.0
+          },
+          "micro": {
+            "denominator": 1,
+            "numerator": 0,
+            "value": 0.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.0,
+              "upper": 0.7934506856227626
+            }
+          }
+        },
+        "mention_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "mention_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "normalization_job_completion": {
+          "macro": {
+            "denominator": 1,
+            "numerator": 1.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 1,
+            "numerator": 1,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.20654931437723745,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_dereference_accuracy": {
+          "macro": {
+            "denominator": 1,
+            "numerator": 1.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 5,
+            "numerator": 5,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.5655175352168251,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_ownership_accuracy": {
+          "macro": {
+            "denominator": 1,
+            "numerator": 1.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 5,
+            "numerator": 5,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.5655175352168251,
+              "upper": 1.0
+            }
+          }
+        },
+        "segment_exactness": {
+          "macro": {
+            "denominator": 1,
+            "numerator": 1.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 4,
+            "numerator": 4,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.5101091635454027,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_exactness": {
+          "macro": {
+            "denominator": 1,
+            "numerator": 1.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 1,
+            "numerator": 1,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.20654931437723745,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_version_exactness": {
+          "macro": {
+            "denominator": 1,
+            "numerator": 1.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 1,
+            "numerator": 1,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.20654931437723745,
+              "upper": 1.0
+            }
+          }
+        }
+      },
+      "correction_followup": {
+        "candidate_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "candidate_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "exact_segment_text_span": {
+          "macro": {
+            "denominator": 8,
+            "numerator": 8.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 17,
+            "numerator": 17,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8156818649911483,
+              "upper": 1.0
+            }
+          }
+        },
+        "forbidden_candidate_rate": {
+          "macro": {
+            "denominator": 8,
+            "numerator": 0.0,
+            "value": 0.0
+          },
+          "micro": {
+            "denominator": 8,
+            "numerator": 0,
+            "value": 0.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.0,
+              "upper": 0.32440756488388023
+            }
+          }
+        },
+        "mention_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "mention_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "normalization_job_completion": {
+          "macro": {
+            "denominator": 8,
+            "numerator": 8.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 17,
+            "numerator": 17,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8156818649911483,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_dereference_accuracy": {
+          "macro": {
+            "denominator": 8,
+            "numerator": 8.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 34,
+            "numerator": 34,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8984854458466761,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "pointer_ownership_accuracy": {
+          "macro": {
+            "denominator": 8,
+            "numerator": 8.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 34,
+            "numerator": 34,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8984854458466761,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "segment_exactness": {
+          "macro": {
+            "denominator": 8,
+            "numerator": 8.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 17,
+            "numerator": 17,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8156818649911483,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_exactness": {
+          "macro": {
+            "denominator": 8,
+            "numerator": 8.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 17,
+            "numerator": 17,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8156818649911483,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_version_exactness": {
+          "macro": {
+            "denominator": 8,
+            "numerator": 8.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 17,
+            "numerator": 17,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8156818649911483,
+              "upper": 1.0
+            }
+          }
+        }
+      },
+      "direct_attribute_relation": {
+        "candidate_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "candidate_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "exact_segment_text_span": {
+          "macro": {
+            "denominator": 21,
+            "numerator": 21.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 27,
+            "numerator": 27,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8754449702581328,
+              "upper": 0.9999999999999998
+            }
+          }
+        },
+        "forbidden_candidate_rate": {
+          "macro": {
+            "denominator": 21,
+            "numerator": 0.0,
+            "value": 0.0
+          },
+          "micro": {
+            "denominator": 21,
+            "numerator": 0,
+            "value": 0.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.0,
+              "upper": 0.154639018924847
+            }
+          }
+        },
+        "mention_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "mention_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "normalization_job_completion": {
+          "macro": {
+            "denominator": 21,
+            "numerator": 21.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 27,
+            "numerator": 27,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8754449702581328,
+              "upper": 0.9999999999999998
+            }
+          }
+        },
+        "pointer_dereference_accuracy": {
+          "macro": {
+            "denominator": 21,
+            "numerator": 21.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 54,
+            "numerator": 54,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9335864119091037,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_ownership_accuracy": {
+          "macro": {
+            "denominator": 21,
+            "numerator": 21.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 54,
+            "numerator": 54,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9335864119091037,
+              "upper": 1.0
+            }
+          }
+        },
+        "segment_exactness": {
+          "macro": {
+            "denominator": 21,
+            "numerator": 21.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 27,
+            "numerator": 27,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8754449702581328,
+              "upper": 0.9999999999999998
+            }
+          }
+        },
+        "source_exactness": {
+          "macro": {
+            "denominator": 21,
+            "numerator": 21.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 27,
+            "numerator": 27,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8754449702581328,
+              "upper": 0.9999999999999998
+            }
+          }
+        },
+        "source_version_exactness": {
+          "macro": {
+            "denominator": 21,
+            "numerator": 21.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 27,
+            "numerator": 27,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8754449702581328,
+              "upper": 0.9999999999999998
+            }
+          }
+        }
+      },
+      "exact_tool_result": {
+        "candidate_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "candidate_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "exact_segment_text_span": {
+          "macro": {
+            "denominator": 6,
+            "numerator": 6.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 8,
+            "numerator": 8,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.6755924351161198,
+              "upper": 1.0
+            }
+          }
+        },
+        "forbidden_candidate_rate": {
+          "macro": {
+            "denominator": 6,
+            "numerator": 0.0,
+            "value": 0.0
+          },
+          "micro": {
+            "denominator": 6,
+            "numerator": 0,
+            "value": 0.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 2.7755575615628914e-17,
+              "upper": 0.3903342879021653
+            }
+          }
+        },
+        "mention_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "mention_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "normalization_job_completion": {
+          "macro": {
+            "denominator": 6,
+            "numerator": 6.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 9,
+            "numerator": 9,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7008549515804559,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_dereference_accuracy": {
+          "macro": {
+            "denominator": 6,
+            "numerator": 6.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 18,
+            "numerator": 18,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8241207763533425,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_ownership_accuracy": {
+          "macro": {
+            "denominator": 6,
+            "numerator": 6.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 18,
+            "numerator": 18,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8241207763533425,
+              "upper": 1.0
+            }
+          }
+        },
+        "segment_exactness": {
+          "macro": {
+            "denominator": 6,
+            "numerator": 6.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 9,
+            "numerator": 9,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7008549515804559,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_exactness": {
+          "macro": {
+            "denominator": 6,
+            "numerator": 6.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 9,
+            "numerator": 9,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7008549515804559,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_version_exactness": {
+          "macro": {
+            "denominator": 6,
+            "numerator": 6.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 9,
+            "numerator": 9,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7008549515804559,
+              "upper": 1.0
+            }
+          }
+        }
+      },
+      "goal_task_deadline": {
+        "candidate_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "candidate_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "exact_segment_text_span": {
+          "macro": {
+            "denominator": 12,
+            "numerator": 12.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 14,
+            "numerator": 14,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7846891972623643,
+              "upper": 1.0
+            }
+          }
+        },
+        "forbidden_candidate_rate": {
+          "macro": {
+            "denominator": 12,
+            "numerator": 0.0,
+            "value": 0.0
+          },
+          "micro": {
+            "denominator": 12,
+            "numerator": 0,
+            "value": 0.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 2.7755575615628914e-17,
+              "upper": 0.24249400665524085
+            }
+          }
+        },
+        "mention_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "mention_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "normalization_job_completion": {
+          "macro": {
+            "denominator": 12,
+            "numerator": 12.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 15,
+            "numerator": 15,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7961166989641515,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_dereference_accuracy": {
+          "macro": {
+            "denominator": 12,
+            "numerator": 12.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 30,
+            "numerator": 30,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8864866068260312,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "pointer_ownership_accuracy": {
+          "macro": {
+            "denominator": 12,
+            "numerator": 12.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 30,
+            "numerator": 30,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8864866068260312,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "segment_exactness": {
+          "macro": {
+            "denominator": 12,
+            "numerator": 12.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 15,
+            "numerator": 15,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7961166989641515,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_exactness": {
+          "macro": {
+            "denominator": 12,
+            "numerator": 12.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 15,
+            "numerator": 15,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7961166989641515,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_version_exactness": {
+          "macro": {
+            "denominator": 12,
+            "numerator": 12.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 15,
+            "numerator": 15,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7961166989641515,
+              "upper": 1.0
+            }
+          }
+        }
+      },
+      "hard_negative": {
+        "candidate_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "candidate_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "exact_segment_text_span": {
+          "macro": {
+            "denominator": 18,
+            "numerator": 18.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 24,
+            "numerator": 24,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8620237953250198,
+              "upper": 1.0
+            }
+          }
+        },
+        "forbidden_candidate_rate": {
+          "macro": {
+            "denominator": 18,
+            "numerator": 0.0,
+            "value": 0.0
+          },
+          "micro": {
+            "denominator": 18,
+            "numerator": 0,
+            "value": 0.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.0,
+              "upper": 0.17587922364665765
+            }
+          }
+        },
+        "mention_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "mention_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "normalization_job_completion": {
+          "macro": {
+            "denominator": 18,
+            "numerator": 18.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 24,
+            "numerator": 24,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8620237953250198,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_dereference_accuracy": {
+          "macro": {
+            "denominator": 18,
+            "numerator": 18.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 48,
+            "numerator": 48,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9258998703338824,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "pointer_ownership_accuracy": {
+          "macro": {
+            "denominator": 18,
+            "numerator": 18.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 48,
+            "numerator": 48,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9258998703338824,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "segment_exactness": {
+          "macro": {
+            "denominator": 18,
+            "numerator": 18.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 24,
+            "numerator": 24,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8620237953250198,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_exactness": {
+          "macro": {
+            "denominator": 18,
+            "numerator": 18.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 24,
+            "numerator": 24,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8620237953250198,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_version_exactness": {
+          "macro": {
+            "denominator": 18,
+            "numerator": 18.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 24,
+            "numerator": 24,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8620237953250198,
+              "upper": 1.0
+            }
+          }
+        }
+      },
+      "irrelevant_abstention": {
+        "candidate_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "candidate_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "exact_segment_text_span": {
+          "macro": {
+            "denominator": 7,
+            "numerator": 7.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 10,
+            "numerator": 10,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7224672001371107,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "forbidden_candidate_rate": {
+          "macro": {
+            "denominator": 8,
+            "numerator": 0.0,
+            "value": 0.0
+          },
+          "micro": {
+            "denominator": 8,
+            "numerator": 0,
+            "value": 0.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.0,
+              "upper": 0.32440756488388023
+            }
+          }
+        },
+        "mention_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "mention_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "normalization_job_completion": {
+          "macro": {
+            "denominator": 8,
+            "numerator": 8.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 8,
+            "numerator": 8,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.6755924351161198,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_dereference_accuracy": {
+          "macro": {
+            "denominator": 8,
+            "numerator": 8.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 19,
+            "numerator": 19,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8318207759473837,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_ownership_accuracy": {
+          "macro": {
+            "denominator": 8,
+            "numerator": 8.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 19,
+            "numerator": 19,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8318207759473837,
+              "upper": 1.0
+            }
+          }
+        },
+        "segment_exactness": {
+          "macro": {
+            "denominator": 8,
+            "numerator": 8.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 11,
+            "numerator": 11,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7411670330319684,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_exactness": {
+          "macro": {
+            "denominator": 8,
+            "numerator": 8.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 8,
+            "numerator": 8,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.6755924351161198,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_version_exactness": {
+          "macro": {
+            "denominator": 8,
+            "numerator": 8.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 8,
+            "numerator": 8,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.6755924351161198,
+              "upper": 1.0
+            }
+          }
+        }
+      },
+      "multi_turn": {
+        "candidate_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "candidate_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "exact_segment_text_span": {
+          "macro": {
+            "denominator": 16,
+            "numerator": 16.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 32,
+            "numerator": 32,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8928208017449293,
+              "upper": 1.0
+            }
+          }
+        },
+        "forbidden_candidate_rate": {
+          "macro": {
+            "denominator": 16,
+            "numerator": 0.0,
+            "value": 0.0
+          },
+          "micro": {
+            "denominator": 16,
+            "numerator": 0,
+            "value": 0.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.0,
+              "upper": 0.1936076805344365
+            }
+          }
+        },
+        "mention_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "mention_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "normalization_job_completion": {
+          "macro": {
+            "denominator": 16,
+            "numerator": 16.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 33,
+            "numerator": 33,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.895730002457548,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_dereference_accuracy": {
+          "macro": {
+            "denominator": 16,
+            "numerator": 16.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 66,
+            "numerator": 66,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9449974429864586,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "pointer_ownership_accuracy": {
+          "macro": {
+            "denominator": 16,
+            "numerator": 16.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 66,
+            "numerator": 66,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9449974429864586,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "segment_exactness": {
+          "macro": {
+            "denominator": 16,
+            "numerator": 16.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 33,
+            "numerator": 33,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.895730002457548,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_exactness": {
+          "macro": {
+            "denominator": 16,
+            "numerator": 16.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 33,
+            "numerator": 33,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.895730002457548,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_version_exactness": {
+          "macro": {
+            "denominator": 16,
+            "numerator": 16.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 33,
+            "numerator": 33,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.895730002457548,
+              "upper": 1.0
+            }
+          }
+        }
+      },
+      "negation": {
+        "candidate_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "candidate_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "exact_segment_text_span": {
+          "macro": {
+            "denominator": 11,
+            "numerator": 11.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 11,
+            "numerator": 11,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7411670330319684,
+              "upper": 1.0
+            }
+          }
+        },
+        "forbidden_candidate_rate": {
+          "macro": {
+            "denominator": 11,
+            "numerator": 0.0,
+            "value": 0.0
+          },
+          "micro": {
+            "denominator": 11,
+            "numerator": 0,
+            "value": 0.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.0,
+              "upper": 0.2588329669680317
+            }
+          }
+        },
+        "mention_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "mention_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "normalization_job_completion": {
+          "macro": {
+            "denominator": 11,
+            "numerator": 11.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 11,
+            "numerator": 11,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7411670330319684,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_dereference_accuracy": {
+          "macro": {
+            "denominator": 11,
+            "numerator": 11.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 22,
+            "numerator": 22,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8513451253913791,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_ownership_accuracy": {
+          "macro": {
+            "denominator": 11,
+            "numerator": 11.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 22,
+            "numerator": 22,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8513451253913791,
+              "upper": 1.0
+            }
+          }
+        },
+        "segment_exactness": {
+          "macro": {
+            "denominator": 11,
+            "numerator": 11.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 11,
+            "numerator": 11,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7411670330319684,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_exactness": {
+          "macro": {
+            "denominator": 11,
+            "numerator": 11.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 11,
+            "numerator": 11,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7411670330319684,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_version_exactness": {
+          "macro": {
+            "denominator": 11,
+            "numerator": 11.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 11,
+            "numerator": 11,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7411670330319684,
+              "upper": 1.0
+            }
+          }
+        }
+      },
+      "preference_constraint": {
+        "candidate_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "candidate_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "exact_segment_text_span": {
+          "macro": {
+            "denominator": 19,
+            "numerator": 19.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 24,
+            "numerator": 24,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8620237953250198,
+              "upper": 1.0
+            }
+          }
+        },
+        "forbidden_candidate_rate": {
+          "macro": {
+            "denominator": 19,
+            "numerator": 0.0,
+            "value": 0.0
+          },
+          "micro": {
+            "denominator": 19,
+            "numerator": 0,
+            "value": 0.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.0,
+              "upper": 0.16817922405261626
+            }
+          }
+        },
+        "mention_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "mention_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "normalization_job_completion": {
+          "macro": {
+            "denominator": 19,
+            "numerator": 19.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 24,
+            "numerator": 24,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8620237953250198,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_dereference_accuracy": {
+          "macro": {
+            "denominator": 19,
+            "numerator": 19.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 48,
+            "numerator": 48,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9258998703338824,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "pointer_ownership_accuracy": {
+          "macro": {
+            "denominator": 19,
+            "numerator": 19.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 48,
+            "numerator": 48,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.9258998703338824,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "segment_exactness": {
+          "macro": {
+            "denominator": 19,
+            "numerator": 19.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 24,
+            "numerator": 24,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8620237953250198,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_exactness": {
+          "macro": {
+            "denominator": 19,
+            "numerator": 19.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 24,
+            "numerator": 24,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8620237953250198,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_version_exactness": {
+          "macro": {
+            "denominator": 19,
+            "numerator": 19.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 24,
+            "numerator": 24,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8620237953250198,
+              "upper": 1.0
+            }
+          }
+        }
+      },
+      "temporal_precision": {
+        "candidate_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "candidate_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "exact_segment_text_span": {
+          "macro": {
+            "denominator": 11,
+            "numerator": 11.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 12,
+            "numerator": 12,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7575059933447592,
+              "upper": 1.0
+            }
+          }
+        },
+        "forbidden_candidate_rate": {
+          "macro": {
+            "denominator": 11,
+            "numerator": 0.0,
+            "value": 0.0
+          },
+          "micro": {
+            "denominator": 11,
+            "numerator": 0,
+            "value": 0.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.0,
+              "upper": 0.2588329669680317
+            }
+          }
+        },
+        "mention_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "mention_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "normalization_job_completion": {
+          "macro": {
+            "denominator": 11,
+            "numerator": 11.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 12,
+            "numerator": 12,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7575059933447592,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_dereference_accuracy": {
+          "macro": {
+            "denominator": 11,
+            "numerator": 11.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 24,
+            "numerator": 24,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8620237953250198,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_ownership_accuracy": {
+          "macro": {
+            "denominator": 11,
+            "numerator": 11.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 24,
+            "numerator": 24,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8620237953250198,
+              "upper": 1.0
+            }
+          }
+        },
+        "segment_exactness": {
+          "macro": {
+            "denominator": 11,
+            "numerator": 11.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 12,
+            "numerator": 12,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7575059933447592,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_exactness": {
+          "macro": {
+            "denominator": 11,
+            "numerator": 11.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 12,
+            "numerator": 12,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7575059933447592,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_version_exactness": {
+          "macro": {
+            "denominator": 11,
+            "numerator": 11.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 12,
+            "numerator": 12,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7575059933447592,
+              "upper": 1.0
+            }
+          }
+        }
+      },
+      "uncertainty_alternative": {
+        "candidate_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "candidate_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "exact_segment_text_span": {
+          "macro": {
+            "denominator": 9,
+            "numerator": 9.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 13,
+            "numerator": 13,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7719046276458016,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "forbidden_candidate_rate": {
+          "macro": {
+            "denominator": 9,
+            "numerator": 0.0,
+            "value": 0.0
+          },
+          "micro": {
+            "denominator": 9,
+            "numerator": 0,
+            "value": 0.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.0,
+              "upper": 0.2991450484195441
+            }
+          }
+        },
+        "mention_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "mention_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "normalization_job_completion": {
+          "macro": {
+            "denominator": 9,
+            "numerator": 9.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 13,
+            "numerator": 13,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7719046276458016,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "pointer_dereference_accuracy": {
+          "macro": {
+            "denominator": 9,
+            "numerator": 9.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 26,
+            "numerator": 26,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8712710781407846,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_ownership_accuracy": {
+          "macro": {
+            "denominator": 9,
+            "numerator": 9.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 26,
+            "numerator": 26,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8712710781407846,
+              "upper": 1.0
+            }
+          }
+        },
+        "segment_exactness": {
+          "macro": {
+            "denominator": 9,
+            "numerator": 9.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 13,
+            "numerator": 13,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7719046276458016,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "source_exactness": {
+          "macro": {
+            "denominator": 9,
+            "numerator": 9.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 13,
+            "numerator": 13,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7719046276458016,
+              "upper": 0.9999999999999999
+            }
+          }
+        },
+        "source_version_exactness": {
+          "macro": {
+            "denominator": 9,
+            "numerator": 9.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 13,
+            "numerator": 13,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7719046276458016,
+              "upper": 0.9999999999999999
+            }
+          }
+        }
+      },
+      "wrong_speaker_hearsay": {
+        "candidate_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "candidate_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "exact_segment_text_span": {
+          "macro": {
+            "denominator": 9,
+            "numerator": 9.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 11,
+            "numerator": 11,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7411670330319684,
+              "upper": 1.0
+            }
+          }
+        },
+        "forbidden_candidate_rate": {
+          "macro": {
+            "denominator": 9,
+            "numerator": 0.0,
+            "value": 0.0
+          },
+          "micro": {
+            "denominator": 9,
+            "numerator": 0,
+            "value": 0.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.0,
+              "upper": 0.2991450484195441
+            }
+          }
+        },
+        "mention_precision": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "mention_recall": {
+          "macro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null
+          },
+          "micro": {
+            "denominator": 0,
+            "numerator": 0,
+            "value": null,
+            "wilson_95": null
+          }
+        },
+        "normalization_job_completion": {
+          "macro": {
+            "denominator": 9,
+            "numerator": 9.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 12,
+            "numerator": 12,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7575059933447592,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_dereference_accuracy": {
+          "macro": {
+            "denominator": 9,
+            "numerator": 9.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 24,
+            "numerator": 24,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8620237953250198,
+              "upper": 1.0
+            }
+          }
+        },
+        "pointer_ownership_accuracy": {
+          "macro": {
+            "denominator": 9,
+            "numerator": 9.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 24,
+            "numerator": 24,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.8620237953250198,
+              "upper": 1.0
+            }
+          }
+        },
+        "segment_exactness": {
+          "macro": {
+            "denominator": 9,
+            "numerator": 9.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 12,
+            "numerator": 12,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7575059933447592,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_exactness": {
+          "macro": {
+            "denominator": 9,
+            "numerator": 9.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 12,
+            "numerator": 12,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7575059933447592,
+              "upper": 1.0
+            }
+          }
+        },
+        "source_version_exactness": {
+          "macro": {
+            "denominator": 9,
+            "numerator": 9.0,
+            "value": 1.0
+          },
+          "micro": {
+            "denominator": 12,
+            "numerator": 12,
+            "value": 1.0,
+            "wilson_95": {
+              "confidence": 0.95,
+              "lower": 0.7575059933447592,
+              "upper": 1.0
+            }
+          }
+        }
+      }
+    }
+  },
+  "subject_id": "pr1_ingestion",
+  "subject_schema_version": "1",
+  "subject_type": "ingestion"
+}

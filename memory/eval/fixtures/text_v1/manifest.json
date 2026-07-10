@@ -103,6 +103,6 @@
     },
     "multi_turn_minimum": 16,
     "hard_negative_minimum": 8,
-    "require_reviewed": false
+    "require_reviewed": true
   }
 }
