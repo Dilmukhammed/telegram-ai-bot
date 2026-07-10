@@ -14,6 +14,39 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
+# LLMClient profile names for thorough system (see config THOROUGH_* env vars).
+THOROUGH_LLM_PROFILES = frozenset(
+    {
+        "thorough_planner_unit",
+        "thorough_planner_surface",
+        "thorough_planner_hot",
+        "thorough_merger",
+    }
+)
+
+_THOROUGH_PROFILE_ATTRS: dict[str, tuple[str, str, str]] = {
+    "thorough_planner_unit": (
+        "thorough_planner_unit_model",
+        "thorough_planner_unit_base_url",
+        "thorough_planner_unit_api_key",
+    ),
+    "thorough_planner_surface": (
+        "thorough_planner_surface_model",
+        "thorough_planner_surface_base_url",
+        "thorough_planner_surface_api_key",
+    ),
+    "thorough_planner_hot": (
+        "thorough_planner_hot_model",
+        "thorough_planner_hot_base_url",
+        "thorough_planner_hot_api_key",
+    ),
+    "thorough_merger": (
+        "thorough_merger_model",
+        "thorough_merger_base_url",
+        "thorough_merger_api_key",
+    ),
+}
+
 RetryCallback = Callable[[int, float], Awaitable[None] | None]
 
 
@@ -22,11 +55,34 @@ class LLMRequestTimeoutError(TimeoutError):
 
 
 class LLMClient:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, *, profile: str = "agent") -> None:
         self._settings = settings
+        if profile in {"summarize", "coach"}:
+            self._model = settings.summarize_model
+            base_url = settings.summarize_base_url
+            api_key = settings.summarize_api_key
+            self._reasoning_effort: str | None = None
+        elif profile == "checker":
+            self._model = settings.checker_model
+            base_url = settings.checker_base_url
+            api_key = settings.checker_api_key
+            self._reasoning_effort = None
+        elif profile in _THOROUGH_PROFILE_ATTRS:
+            model_attr, base_attr, key_attr = _THOROUGH_PROFILE_ATTRS[profile]
+            self._model = getattr(settings, model_attr)
+            base_url = getattr(settings, base_attr)
+            api_key = getattr(settings, key_attr)
+            self._reasoning_effort = None
+        elif profile == "agent":
+            self._model = settings.openai_model
+            base_url = settings.openai_base_url
+            api_key = settings.openai_api_key
+            self._reasoning_effort = settings.reasoning_effort
+        else:
+            raise ValueError(f"Unknown LLM profile: {profile!r}")
         self._client = AsyncOpenAI(
-            base_url=settings.openai_base_url,
-            api_key=settings.openai_api_key,
+            base_url=base_url,
+            api_key=api_key,
         )
 
     @property
@@ -35,11 +91,11 @@ class LLMClient:
 
     def _completion_kwargs(self, **extra: Any) -> dict[str, Any]:
         kwargs: dict[str, Any] = {
-            "model": self._settings.openai_model,
+            "model": self._model,
             **extra,
         }
-        if self._settings.reasoning_effort:
-            kwargs["reasoning_effort"] = self._settings.reasoning_effort
+        if self._reasoning_effort:
+            kwargs["reasoning_effort"] = self._reasoning_effort
         return kwargs
 
     async def _call_with_timeout_retry(
@@ -171,16 +227,20 @@ class LLMClient:
         messages: list[dict[str, str]],
         *,
         max_tokens: int = 512,
+        response_format: dict[str, str] | None = None,
         on_retry: RetryCallback | None = None,
     ) -> str:
         """Fast utility completion without reasoning_effort (summaries, classifiers)."""
 
         async def _call() -> str:
-            response = await self._client.chat.completions.create(
-                model=self._settings.openai_model,
-                messages=messages,
-                max_tokens=max_tokens,
-            )
+            kwargs: dict[str, Any] = {
+                "model": self._model,
+                "messages": messages,
+                "max_tokens": max_tokens,
+            }
+            if response_format is not None:
+                kwargs["response_format"] = response_format
+            response = await self._client.chat.completions.create(**kwargs)
             content = (response.choices[0].message.content or "").strip()
             if not content:
                 raise RuntimeError("Empty response from model")

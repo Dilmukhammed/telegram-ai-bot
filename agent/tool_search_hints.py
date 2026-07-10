@@ -21,6 +21,7 @@ _TOOL_GROUP_TAGS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("yandex.music.", ("yandex", "music")),
     ("exa.", ("web", "search")),
     ("telegram.", ("telegram", "bot")),
+    ("chat.", ("chat", "history")),
     ("workspace.", ("workspace", "filesystem")),
 )
 

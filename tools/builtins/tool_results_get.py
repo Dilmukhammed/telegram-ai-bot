@@ -94,7 +94,7 @@ TOOL_RESULTS_GET = ToolSpec(
     handler=_tool_results_get_handler,
     tags=("agent", "archive", "memory", "tool_results"),
     cache_ttl_seconds=None,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     parallel_safe=True,
     examples=(
         "retrieve full archived tool result by ref",

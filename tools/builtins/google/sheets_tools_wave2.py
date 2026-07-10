@@ -12,9 +12,10 @@ from tools.builtins.google.sheets_structure import (
     update_sheet_properties_handler,
 )
 from tools.builtins.google.tool_hints import GOOGLE_SHEETS_OAUTH_HINT
+from tools.builtins.google.sheets_checker import SHEETS_CHECKER_QUESTIONS_BY_TOOL
 from tools.schema import ToolSpec
 
-_WRITE_RATE_LIMIT = (30, 60)
+_WRITE_RATE_LIMIT = (60, 60)
 
 _SPREADSHEET_ID = {
     "type": "string",
@@ -57,6 +58,7 @@ GOOGLE_SHEETS_ADD_SHEET = ToolSpec(
     tags=("google", "sheets", "write", "structure"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("add worksheet tab", "new sheet March", "create tab in spreadsheet"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.add_sheet"],
 )
 
 GOOGLE_SHEETS_DELETE_SHEET = ToolSpec(
@@ -79,6 +81,7 @@ GOOGLE_SHEETS_DELETE_SHEET = ToolSpec(
     tags=("google", "sheets", "write", "structure"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("delete worksheet tab", "remove sheet from spreadsheet"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.delete_sheet"],
 )
 
 GOOGLE_SHEETS_DUPLICATE_SHEET = ToolSpec(
@@ -102,6 +105,7 @@ GOOGLE_SHEETS_DUPLICATE_SHEET = ToolSpec(
     tags=("google", "sheets", "write", "structure"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("duplicate sheet tab", "copy worksheet template", "clone tab in same file"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.duplicate_sheet"],
 )
 
 GOOGLE_SHEETS_COPY_SHEET_TO_SPREADSHEET = ToolSpec(
@@ -130,6 +134,7 @@ GOOGLE_SHEETS_COPY_SHEET_TO_SPREADSHEET = ToolSpec(
     tags=("google", "sheets", "write", "structure"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("copy sheet to another spreadsheet", "move tab to different file"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.copy_sheet_to_spreadsheet"],
 )
 
 GOOGLE_SHEETS_UPDATE_SHEET_PROPERTIES = ToolSpec(
@@ -156,6 +161,7 @@ GOOGLE_SHEETS_UPDATE_SHEET_PROPERTIES = ToolSpec(
     tags=("google", "sheets", "write", "structure"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("rename sheet tab", "hide worksheet", "freeze first row", "reorder tabs"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.update_sheet_properties"],
 )
 
 GOOGLE_SHEETS_INSERT_DIMENSION = ToolSpec(
@@ -188,6 +194,7 @@ GOOGLE_SHEETS_INSERT_DIMENSION = ToolSpec(
     tags=("google", "sheets", "write", "structure"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("insert rows", "add blank columns", "insert 5 rows at row 3"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.insert_dimension"],
 )
 
 GOOGLE_SHEETS_DELETE_DIMENSION = ToolSpec(
@@ -213,6 +220,7 @@ GOOGLE_SHEETS_DELETE_DIMENSION = ToolSpec(
     tags=("google", "sheets", "write", "structure"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("delete rows 5-10", "remove column C", "delete columns D-F"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.delete_dimension"],
 )
 
 GOOGLE_SHEETS_MOVE_DIMENSION = ToolSpec(
@@ -241,6 +249,7 @@ GOOGLE_SHEETS_MOVE_DIMENSION = ToolSpec(
     tags=("google", "sheets", "write", "structure"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("move rows", "reorder columns", "move column block"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.move_dimension"],
 )
 
 GOOGLE_SHEETS_UPDATE_DIMENSION_PROPERTIES = ToolSpec(
@@ -267,6 +276,7 @@ GOOGLE_SHEETS_UPDATE_DIMENSION_PROPERTIES = ToolSpec(
     tags=("google", "sheets", "write", "structure", "format"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("set column width", "hide columns D-F", "set row height"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.update_dimension_properties"],
 )
 
 SHEETS_WAVE2_TOOL_NAMES: tuple[str, ...] = tuple(

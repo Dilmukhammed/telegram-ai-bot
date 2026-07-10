@@ -67,9 +67,11 @@ Load once per run: `skills.load` → `skill_id: "google.drive"`.
 ### Upload / create
 
 1. `create_folder` (optional parent `folder_id`).
-2. `upload_file` — `content_text` for text or `content_base64` for binary; respect upload size limits.
+2. `upload_file` — prefer **`path`** for Telegram/workspace files (e.g. `uploads/123_report.pdf`); else `content_text` / `content_base64`. Exactly one body source. `name` optional when `path` is set.
 3. Or `create_file` for empty Google Docs/Sheets/Slides.
 4. Organize: `move_file`, `rename_file`, `copy_file`, `star_file` / `unstar_file`.
+
+**Telegram upload → Drive:** use the `path=…` from the user message — do not re-download or invent paths.
 
 ### Trash vs permanent delete
 

@@ -33,6 +33,7 @@ class SummarizeQueue:
         tool_name: str,
         args_json: str | None,
         payload_json: str,
+        payload_kind: str = "result",
     ) -> asyncio.Task[None]:
         async def _run() -> None:
             async with self._semaphore:
@@ -44,6 +45,7 @@ class SummarizeQueue:
                     tool_name=tool_name,
                     args_json=args_json,
                     payload_json=payload_json,
+                    payload_kind=payload_kind,
                 )
 
         task = asyncio.create_task(_run())

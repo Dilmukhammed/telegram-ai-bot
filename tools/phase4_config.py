@@ -74,6 +74,8 @@ def rate_limit_for_tool(tool_name: str, spec_limit: tuple[int, int] | None) -> t
         if any(token in tool_name for token in ("_add", "_remove", "_delete", "_create", "_set", "_insert", "_change", "_join", "_update", "pin_", "unpin_", "feedback", "play_audio", "consume_")):
             return settings.rate_limit_yandex_music_write
         return settings.rate_limit_yandex_music_read
+    if tool_name == "pdf.ocr":
+        return settings.ocr_rate_limit
     if tool_name.startswith("pdf."):
         return settings.pdf_rate_limit_read
     return spec_limit
@@ -85,3 +87,20 @@ def max_tool_calls_per_user_hour() -> int:
 
 def admin_user_ids() -> frozenset[int]:
     return get_settings().admin_user_ids
+
+
+def allowed_user_ids() -> frozenset[int]:
+    return get_settings().allowed_user_ids
+
+
+def is_user_allowed(user_id: int) -> bool:
+    from bot.access_service import get_access_service
+
+    return get_access_service().is_allowed(user_id)
+
+
+def access_denied_message() -> str:
+    return (
+        "Нет доступа к боту. "
+        "Запрос отправлен администратору — ожидай одобрения."
+    )

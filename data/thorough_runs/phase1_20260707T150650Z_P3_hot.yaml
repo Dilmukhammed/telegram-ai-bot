@@ -1,0 +1,68 @@
+phase_plan:
+  planner_id: hot_window
+  summary: >-
+    Create a structured spreadsheet to track 5 apartment rental listings.
+    Gather data via web research in two batches to respect context limits,
+    persisting each batch to the spreadsheet immediately to prevent data loss
+    from tool result archiving.
+  phase_count: 4
+  phases:
+    - id: 1
+      name: Spreadsheet Initialization
+      goal: Create the target spreadsheet and define the exact column headers requested by the user.
+      logical_blocks:
+        - Create new spreadsheet
+        - Set title and permissions
+        - Insert header row (Address/Name, Price, Area sq.m, Wi-Fi, Parking, Metro Distance, Source Link)
+      entry_condition: User request received and decoded.
+      exit_condition: Spreadsheet created and headers populated.
+      collapse_risk: low
+      must_persist_before_exit:
+        - Spreadsheet URL and ID
+      context_notes: Keep the sheet ID in active context for subsequent phases.
+
+    - id: 2
+      name: Web Research and Extraction - Batch 1
+      goal: Find 3 apartment rental listings, extract the required attributes, and write them to the spreadsheet.
+      logical_blocks:
+        - Search for apartment rentals in the target city
+        - Fetch details for 3 distinct listings
+        - Extract price, area, Wi-Fi, parking, metro distance, and source URL
+        - Append these 3 rows to the spreadsheet
+      entry_condition: Spreadsheet ID is available in context.
+      exit_condition: 3 rows successfully written to the spreadsheet.
+      collapse_risk: high
+      must_persist_before_exit:
+        - Extracted data for 3 listings written to spreadsheet rows
+        - Source URLs verified and saved in the sheet
+      context_notes: Web fetch results will archive quickly. Do not rely on holding raw HTML or JSON in context. Write to sheet immediately after each extraction.
+
+    - id: 3
+      name: Web Research and Extraction - Batch 2
+      goal: Find 2 additional apartment rental listings, extract attributes, and append to the spreadsheet.
+      logical_blocks:
+        - Search for 2 more apartment rentals ensuring no duplicates from Batch 1
+        - Fetch details for the 2 listings
+        - Extract required attributes
+        - Append these 2 rows to the spreadsheet
+      entry_condition: Batch 1 data is safely persisted in the spreadsheet.
+      exit_condition: All 5 rows are now present in the spreadsheet.
+      collapse_risk: high
+      must_persist_before_exit:
+        - Extracted data for 2 listings written to spreadsheet rows
+        - Total row count in spreadsheet equals 5 plus header
+      context_notes: Previous search results are likely archived. Rely on the spreadsheet to check for duplicates rather than context memory.
+
+    - id: 4
+      name: Finalization and Delivery
+      goal: Format the spreadsheet for readability, verify data integrity, and deliver the final link to the user.
+      logical_blocks:
+        - Read back the spreadsheet data to verify all 5 rows are complete
+        - Apply basic formatting such as bold headers and auto-resize columns
+        - Generate and format the final delivery message with the spreadsheet link
+      entry_condition: Spreadsheet contains 5 complete data rows.
+      exit_condition: User receives the formatted spreadsheet link and a summary of the findings.
+      collapse_risk: low
+      must_persist_before_exit:
+        - Final spreadsheet link delivered to user
+      context_notes: Use a fresh read of the sheet to confirm data, as previous write confirmations might be archived.

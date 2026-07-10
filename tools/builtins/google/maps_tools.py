@@ -32,6 +32,7 @@ from tools.builtins.google.maps_routes import (
     travel_time,
 )
 from tools.builtins.google.maps_serialize import MAPS_URI_USER_HINT
+from tools.builtins.google.maps_checker import MAPS_CHECKER_QUESTIONS_BY_TOOL
 from tools.schema import ToolSpec
 
 _MAPS_URI_TOOL_HINT = (
@@ -161,9 +162,10 @@ GOOGLE_MAPS_GEOCODE = ToolSpec(
     handler=_geocode_handler,
     tags=("google", "maps", "geocoding", "read"),
     cache_ttl_seconds=86400,
-    rate_limit=(30, 60),
+    rate_limit=(60, 60),
     parallel_safe=True,
     examples=("where is Chorsu Bazaar", "geocode Tashkent airport address"),
+    verification_questions=MAPS_CHECKER_QUESTIONS_BY_TOOL["google.maps.geocode"],
 )
 
 GOOGLE_MAPS_REVERSE_GEOCODE = ToolSpec(
@@ -182,9 +184,10 @@ GOOGLE_MAPS_REVERSE_GEOCODE = ToolSpec(
     handler=_reverse_geocode_handler,
     tags=("google", "maps", "geocoding", "read"),
     cache_ttl_seconds=86400,
-    rate_limit=(30, 60),
+    rate_limit=(60, 60),
     parallel_safe=True,
     examples=("what address is at these coordinates", "reverse geocode location"),
+    verification_questions=MAPS_CHECKER_QUESTIONS_BY_TOOL["google.maps.reverse_geocode"],
 )
 
 GOOGLE_MAPS_GEOCODE_BATCH = ToolSpec(
@@ -206,9 +209,10 @@ GOOGLE_MAPS_GEOCODE_BATCH = ToolSpec(
     handler=_geocode_batch_handler,
     tags=("google", "maps", "geocoding", "read"),
     cache_ttl_seconds=86400,
-    rate_limit=(30, 60),
+    rate_limit=(60, 60),
     parallel_safe=False,
     examples=("geocode multiple addresses", "batch geocode delivery stops"),
+    verification_questions=MAPS_CHECKER_QUESTIONS_BY_TOOL["google.maps.geocode_batch"],
 )
 
 _LOCATION_BIAS_PARAMS = {
@@ -306,9 +310,10 @@ GOOGLE_MAPS_PLACES_TEXT_SEARCH = ToolSpec(
     handler=_places_text_search_handler,
     tags=("google", "maps", "places", "read"),
     cache_ttl_seconds=3600,
-    rate_limit=(15, 60),
+    rate_limit=(30, 60),
     parallel_safe=True,
     examples=("coffee shop in Tashkent center", "find pharmacy near me"),
+    verification_questions=MAPS_CHECKER_QUESTIONS_BY_TOOL["google.maps.places_text_search"],
 )
 
 GOOGLE_MAPS_PLACES_NEARBY_SEARCH = ToolSpec(
@@ -335,9 +340,10 @@ GOOGLE_MAPS_PLACES_NEARBY_SEARCH = ToolSpec(
     handler=_places_nearby_search_handler,
     tags=("google", "maps", "places", "read"),
     cache_ttl_seconds=3600,
-    rate_limit=(15, 60),
+    rate_limit=(30, 60),
     parallel_safe=True,
     examples=("restaurants nearby", "atm near coordinates"),
+    verification_questions=MAPS_CHECKER_QUESTIONS_BY_TOOL["google.maps.places_nearby_search"],
 )
 
 GOOGLE_MAPS_PLACE_DETAILS = ToolSpec(
@@ -364,9 +370,10 @@ GOOGLE_MAPS_PLACE_DETAILS = ToolSpec(
     handler=_place_details_handler,
     tags=("google", "maps", "places", "read"),
     cache_ttl_seconds=21600,
-    rate_limit=(20, 60),
+    rate_limit=(40, 60),
     parallel_safe=True,
     examples=("place opening hours", "phone number for restaurant"),
+    verification_questions=MAPS_CHECKER_QUESTIONS_BY_TOOL["google.maps.place_details"],
 )
 
 GOOGLE_MAPS_PLACE_PHOTO = ToolSpec(
@@ -388,9 +395,10 @@ GOOGLE_MAPS_PLACE_PHOTO = ToolSpec(
     handler=_place_photo_handler,
     tags=("google", "maps", "places", "read"),
     cache_ttl_seconds=86400,
-    rate_limit=(20, 60),
+    rate_limit=(40, 60),
     parallel_safe=True,
     examples=("photo of restaurant", "place image url"),
+    verification_questions=MAPS_CHECKER_QUESTIONS_BY_TOOL["google.maps.place_photo"],
 )
 
 GOOGLE_MAPS_PLACES_AUTOCOMPLETE = ToolSpec(
@@ -408,9 +416,10 @@ GOOGLE_MAPS_PLACES_AUTOCOMPLETE = ToolSpec(
     handler=_places_autocomplete_handler,
     tags=("google", "maps", "places", "read"),
     cache_ttl_seconds=600,
-    rate_limit=(15, 60),
+    rate_limit=(30, 60),
     parallel_safe=True,
     examples=("autocomplete address partial", "suggest places while typing"),
+    verification_questions=MAPS_CHECKER_QUESTIONS_BY_TOOL["google.maps.places_autocomplete"],
 )
 
 GOOGLE_MAPS_PLACES_TOOLS: tuple[ToolSpec, ...] = (
@@ -523,9 +532,10 @@ GOOGLE_MAPS_COMPUTE_ROUTES = ToolSpec(
     handler=_compute_routes_handler,
     tags=("google", "maps", "routes", "read"),
     cache_ttl_seconds=1800,
-    rate_limit=(10, 60),
+    rate_limit=(20, 60),
     parallel_safe=True,
     examples=("route from airport to city center", "driving directions with steps"),
+    verification_questions=MAPS_CHECKER_QUESTIONS_BY_TOOL["google.maps.compute_routes"],
 )
 
 GOOGLE_MAPS_COMPUTE_ROUTE_MATRIX = ToolSpec(
@@ -553,9 +563,10 @@ GOOGLE_MAPS_COMPUTE_ROUTE_MATRIX = ToolSpec(
     handler=_compute_route_matrix_handler,
     tags=("google", "maps", "routes", "read"),
     cache_ttl_seconds=1800,
-    rate_limit=(10, 60),
+    rate_limit=(20, 60),
     parallel_safe=True,
     examples=("travel time matrix between offices", "compare ETA to multiple places"),
+    verification_questions=MAPS_CHECKER_QUESTIONS_BY_TOOL["google.maps.compute_route_matrix"],
 )
 
 GOOGLE_MAPS_DIRECTIONS = ToolSpec(
@@ -585,9 +596,10 @@ GOOGLE_MAPS_DIRECTIONS = ToolSpec(
     handler=_directions_handler,
     tags=("google", "maps", "routes", "read"),
     cache_ttl_seconds=1800,
-    rate_limit=(10, 60),
+    rate_limit=(20, 60),
     parallel_safe=False,
     examples=("how to drive to Chorsu Bazaar", "transit directions to airport"),
+    verification_questions=MAPS_CHECKER_QUESTIONS_BY_TOOL["google.maps.directions"],
 )
 
 GOOGLE_MAPS_TRAVEL_TIME = ToolSpec(
@@ -611,9 +623,10 @@ GOOGLE_MAPS_TRAVEL_TIME = ToolSpec(
     handler=_travel_time_handler,
     tags=("google", "maps", "routes", "read"),
     cache_ttl_seconds=1800,
-    rate_limit=(10, 60),
+    rate_limit=(20, 60),
     parallel_safe=True,
     examples=("how long to drive to airport", "walking time between places"),
+    verification_questions=MAPS_CHECKER_QUESTIONS_BY_TOOL["google.maps.travel_time"],
 )
 
 GOOGLE_MAPS_ROUTES_TOOLS: tuple[ToolSpec, ...] = (
@@ -723,9 +736,10 @@ GOOGLE_MAPS_STATIC_MAP = ToolSpec(
     handler=_static_map_handler,
     tags=("google", "maps", "static", "read"),
     cache_ttl_seconds=3600,
-    rate_limit=(5, 60),
+    rate_limit=(10, 60),
     parallel_safe=True,
     examples=("show Chorsu on a map", "static map with markers"),
+    verification_questions=MAPS_CHECKER_QUESTIONS_BY_TOOL["google.maps.static_map"],
 )
 
 GOOGLE_MAPS_STREET_VIEW_METADATA = ToolSpec(
@@ -739,9 +753,10 @@ GOOGLE_MAPS_STREET_VIEW_METADATA = ToolSpec(
     handler=_street_view_metadata_handler,
     tags=("google", "maps", "static", "read"),
     cache_ttl_seconds=86400,
-    rate_limit=(5, 60),
+    rate_limit=(10, 60),
     parallel_safe=True,
     examples=("is street view available here", "panorama exists at coordinates"),
+    verification_questions=MAPS_CHECKER_QUESTIONS_BY_TOOL["google.maps.street_view_metadata"],
 )
 
 GOOGLE_MAPS_STREET_VIEW_IMAGE = ToolSpec(
@@ -764,9 +779,10 @@ GOOGLE_MAPS_STREET_VIEW_IMAGE = ToolSpec(
     handler=_street_view_image_handler,
     tags=("google", "maps", "static", "read"),
     cache_ttl_seconds=3600,
-    rate_limit=(5, 60),
+    rate_limit=(10, 60),
     parallel_safe=True,
     examples=("street view photo url", "panorama image at location"),
+    verification_questions=MAPS_CHECKER_QUESTIONS_BY_TOOL["google.maps.street_view_image"],
 )
 
 GOOGLE_MAPS_TIMEZONE = ToolSpec(
@@ -786,9 +802,10 @@ GOOGLE_MAPS_TIMEZONE = ToolSpec(
     handler=_timezone_handler,
     tags=("google", "maps", "geocoding", "read"),
     cache_ttl_seconds=604800,
-    rate_limit=(30, 60),
+    rate_limit=(60, 60),
     parallel_safe=True,
     examples=("timezone for Tashkent coordinates", "utc offset at lat lng"),
+    verification_questions=MAPS_CHECKER_QUESTIONS_BY_TOOL["google.maps.timezone"],
 )
 
 GOOGLE_MAPS_ELEVATION = ToolSpec(
@@ -816,9 +833,10 @@ GOOGLE_MAPS_ELEVATION = ToolSpec(
     handler=_elevation_handler,
     tags=("google", "maps", "read"),
     cache_ttl_seconds=604800,
-    rate_limit=(30, 60),
+    rate_limit=(60, 60),
     parallel_safe=True,
     examples=("elevation at coordinates", "altitude above sea level"),
+    verification_questions=MAPS_CHECKER_QUESTIONS_BY_TOOL["google.maps.elevation"],
 )
 
 GOOGLE_MAPS_STATIC_TOOLS: tuple[ToolSpec, ...] = (
@@ -864,6 +882,7 @@ GOOGLE_MAPS_MAPS_LINK = ToolSpec(
     tags=("google", "maps", "read"),
     parallel_safe=True,
     examples=("open map search for Chorsu Bazaar", "google maps directions link"),
+    verification_questions=MAPS_CHECKER_QUESTIONS_BY_TOOL["google.maps.maps_link"],
 )
 
 GOOGLE_MAPS_GEOCODING_TOOLS: tuple[ToolSpec, ...] = (

@@ -358,7 +358,150 @@ class DriveHandlerTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("export_file", result["error"])
 
 
+class DriveUploadContentTests(unittest.TestCase):
+    def test_decode_requires_exactly_one_source(self) -> None:
+        from tools.builtins.google.drive_files import _decode_upload_content
+
+        with self.assertRaises(ValueError):
+            _decode_upload_content({})
+        with self.assertRaises(ValueError):
+            _decode_upload_content(
+                {"content_text": "hi", "content_base64": "YQ=="},
+                user_id=1,
+            )
+        with self.assertRaises(ValueError):
+            _decode_upload_content(
+                {"path": "uploads/a.pdf", "content_text": "hi"},
+                user_id=1,
+            )
+
+    def test_decode_content_text(self) -> None:
+        from tools.builtins.google.drive_files import _decode_upload_content
+
+        content, mime, source = _decode_upload_content({"content_text": "hello"}, user_id=1)
+        self.assertEqual(content, b"hello")
+        self.assertEqual(mime, "text/plain")
+        self.assertIsNone(source)
+
+    def test_decode_workspace_path(self) -> None:
+        import tempfile
+        from unittest.mock import patch
+
+        from tools.builtins.google.drive_files import _decode_upload_content
+        from tools.workspace.store import save_bytes
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("tools.workspace.store.get_settings") as settings, patch(
+                "tools.workspace.paths.get_settings"
+            ) as paths_settings:
+                mock = MagicMock()
+                mock.workspace_root = tmp
+                mock.workspace_upload_max_bytes = 10 * 1024 * 1024
+                mock.workspace_max_bytes_per_user = 500 * 1024 * 1024
+                mock.workspace_max_files_per_user = 1000
+                settings.return_value = mock
+                paths_settings.return_value = mock
+                save_bytes(
+                    1,
+                    relative="uploads/report.pdf",
+                    data=b"%PDF-1.4",
+                    mime_type="application/pdf",
+                )
+                content, mime, source = _decode_upload_content(
+                    {"path": "uploads/report.pdf"},
+                    user_id=1,
+                )
+        self.assertEqual(content, b"%PDF-1.4")
+        self.assertEqual(mime, "application/pdf")
+        self.assertEqual(source, "uploads/report.pdf")
+
+
 class DriveWriteHandlerTests(unittest.IsolatedAsyncioTestCase):
+    async def test_upload_file_from_workspace_path(self) -> None:
+        import tempfile
+        from unittest.mock import patch
+
+        from tools.builtins.google.drive_files import upload_file_handler
+        from tools.workspace.store import save_bytes
+
+        created = {
+            "id": "file1",
+            "name": "report.pdf",
+            "mimeType": "application/pdf",
+            "webViewLink": "https://drive.google.com/file/d/file1/view",
+        }
+
+        async def _fake_run_drive_call(user_id, callback):
+            return callback(MagicMock())
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("tools.workspace.store.get_settings") as settings, patch(
+                "tools.workspace.paths.get_settings"
+            ) as paths_settings, patch(
+                "tools.builtins.google.drive_files.get_settings"
+            ) as drive_settings, patch(
+                "tools.builtins.google.drive_files.run_drive_call",
+                new=_fake_run_drive_call,
+            ), patch(
+                "tools.builtins.google.drive_files.create_file_with_content",
+                return_value=created,
+            ) as create_mock:
+                mock = MagicMock()
+                mock.workspace_root = tmp
+                mock.workspace_upload_max_bytes = 10 * 1024 * 1024
+                mock.workspace_max_bytes_per_user = 500 * 1024 * 1024
+                mock.workspace_max_files_per_user = 1000
+                mock.drive_max_upload_bytes = 10 * 1024 * 1024
+                settings.return_value = mock
+                paths_settings.return_value = mock
+                drive_settings.return_value = mock
+                save_bytes(
+                    1,
+                    relative="uploads/report.pdf",
+                    data=b"%PDF-1.4 hello",
+                    mime_type="application/pdf",
+                )
+                token = set_run_context(RunContext(user_id=1))
+                try:
+                    result = await upload_file_handler({"path": "uploads/report.pdf"})
+                finally:
+                    reset_run_context(token)
+
+        self.assertTrue(result["created"])
+        self.assertTrue(result["uploaded"])
+        self.assertEqual(result["source_path"], "uploads/report.pdf")
+        self.assertEqual(result["file"]["name"], "report.pdf")
+        create_mock.assert_called_once()
+        kwargs = create_mock.call_args.kwargs
+        self.assertEqual(kwargs["content"], b"%PDF-1.4 hello")
+        self.assertEqual(kwargs["mime_type"], "application/pdf")
+        self.assertEqual(kwargs["metadata"]["name"], "report.pdf")
+
+    async def test_upload_file_path_missing_raises(self) -> None:
+        import tempfile
+        from unittest.mock import patch
+
+        from tools.builtins.google.drive_files import upload_file_handler
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("tools.workspace.store.get_settings") as settings, patch(
+                "tools.workspace.paths.get_settings"
+            ) as paths_settings:
+                mock = MagicMock()
+                mock.workspace_root = tmp
+                mock.workspace_upload_max_bytes = 10 * 1024 * 1024
+                mock.workspace_max_bytes_per_user = 500 * 1024 * 1024
+                mock.workspace_max_files_per_user = 1000
+                settings.return_value = mock
+                paths_settings.return_value = mock
+                token = set_run_context(RunContext(user_id=1))
+                try:
+                    with self.assertRaises(ValueError) as ctx:
+                        await upload_file_handler({"path": "uploads/missing.pdf"})
+                finally:
+                    reset_run_context(token)
+        self.assertIn("workspace path error", str(ctx.exception))
+
     async def test_delete_file_requires_confirm(self) -> None:
         from tools.builtins.google.drive_files import delete_file_handler
 

@@ -14,9 +14,10 @@ from tools.builtins.google.sheets_advanced import (
     update_chart_handler,
 )
 from tools.builtins.google.tool_hints import GOOGLE_SHEETS_OAUTH_HINT
+from tools.builtins.google.sheets_checker import SHEETS_CHECKER_QUESTIONS_BY_TOOL
 from tools.schema import ToolSpec
 
-_WRITE_RATE_LIMIT = (30, 60)
+_WRITE_RATE_LIMIT = (60, 60)
 
 _SPREADSHEET_ID = {
     "type": "string",
@@ -89,6 +90,7 @@ GOOGLE_SHEETS_SET_DATA_VALIDATION = ToolSpec(
     tags=("google", "sheets", "write", "validation"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("add dropdown to column", "validate numbers 1-100", "dropdown Active Inactive"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.set_data_validation"],
 )
 
 GOOGLE_SHEETS_CLEAR_DATA_VALIDATION = ToolSpec(
@@ -106,6 +108,7 @@ GOOGLE_SHEETS_CLEAR_DATA_VALIDATION = ToolSpec(
     tags=("google", "sheets", "write", "validation"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("remove dropdown validation", "clear validation rules"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.clear_data_validation"],
 )
 
 GOOGLE_SHEETS_ADD_CONDITIONAL_FORMAT_RULE = ToolSpec(
@@ -148,6 +151,7 @@ GOOGLE_SHEETS_ADD_CONDITIONAL_FORMAT_RULE = ToolSpec(
     tags=("google", "sheets", "write", "format"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("highlight negative numbers red", "conditional formatting", "color cells when value greater than 100"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.add_conditional_format_rule"],
 )
 
 GOOGLE_SHEETS_DELETE_CONDITIONAL_FORMAT_RULE = ToolSpec(
@@ -170,6 +174,7 @@ GOOGLE_SHEETS_DELETE_CONDITIONAL_FORMAT_RULE = ToolSpec(
     tags=("google", "sheets", "write", "format"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("delete conditional format rule", "remove highlight rule"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.delete_conditional_format_rule"],
 )
 
 GOOGLE_SHEETS_SET_BASIC_FILTER = ToolSpec(
@@ -188,6 +193,7 @@ GOOGLE_SHEETS_SET_BASIC_FILTER = ToolSpec(
     tags=("google", "sheets", "write", "filters"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("enable filter on table", "add autofilter to header", "turn on filter view"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.set_basic_filter"],
 )
 
 GOOGLE_SHEETS_CLEAR_BASIC_FILTER = ToolSpec(
@@ -205,6 +211,7 @@ GOOGLE_SHEETS_CLEAR_BASIC_FILTER = ToolSpec(
     tags=("google", "sheets", "write", "filters"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("remove autofilter", "clear filter from sheet"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.clear_basic_filter"],
 )
 
 GOOGLE_SHEETS_ADD_CHART = ToolSpec(
@@ -240,6 +247,7 @@ GOOGLE_SHEETS_ADD_CHART = ToolSpec(
     tags=("google", "sheets", "write", "charts"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("create chart from data", "add pie chart", "insert bar chart from table"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.add_chart"],
 )
 
 GOOGLE_SHEETS_UPDATE_CHART = ToolSpec(
@@ -267,6 +275,7 @@ GOOGLE_SHEETS_UPDATE_CHART = ToolSpec(
     tags=("google", "sheets", "write", "charts"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("rename chart", "change chart type to line", "update chart data range"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.update_chart"],
 )
 
 GOOGLE_SHEETS_DELETE_CHART = ToolSpec(
@@ -287,6 +296,7 @@ GOOGLE_SHEETS_DELETE_CHART = ToolSpec(
     tags=("google", "sheets", "write", "charts"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("delete chart", "remove embedded chart"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.delete_chart"],
 )
 
 GOOGLE_SHEETS_ADD_PROTECTED_RANGE = ToolSpec(
@@ -310,6 +320,7 @@ GOOGLE_SHEETS_ADD_PROTECTED_RANGE = ToolSpec(
     tags=("google", "sheets", "write", "protection"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("protect header row", "lock formula cells", "protect range from editing"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.add_protected_range"],
 )
 
 GOOGLE_SHEETS_DELETE_PROTECTED_RANGE = ToolSpec(
@@ -330,6 +341,7 @@ GOOGLE_SHEETS_DELETE_PROTECTED_RANGE = ToolSpec(
     tags=("google", "sheets", "write", "protection"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("remove range protection", "unlock protected cells"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.delete_protected_range"],
 )
 
 SHEETS_WAVE4_TOOL_NAMES: tuple[str, ...] = tuple(

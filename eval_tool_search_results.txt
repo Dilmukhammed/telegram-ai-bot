@@ -1,0 +1,68 @@
+﻿## Provider: api
+
+- Cases: **37**
+- Hit@1: **56.8%**
+- Hit@3: **83.8%**
+- Hit@5: **89.2%**
+- MRR: **0.707**
+- Misses: **4**
+
+### Failures
+- `Gmail email attachment download` -> expected `('google.gmail.get_attachment',)`; got `('google.gmail.send_message', 'google.gmail.list_inbox', 'google.gmail.forward_message', 'google.gmail.get_profile', 'google.gmail.search_messages')`
+- `Google OAuth connection status` -> expected `('google.auth.status',)`; got `('google.auth.connect_url', 'google.gmail.send_message', 'google.auth.disconnect', 'google.calendar.quick_add_event', 'google.gmail.list_threads')`
+- `read file from workspace sandbox` -> expected `('workspace.read_file',)`; got `('workspace.write_file', 'workspace.mkdir', 'workspace.import_from_file_ref', 'workspace.usage', 'workspace.list_dir')`
+- `search tracks` tags=['yandex', 'music'] -> expected `('yandex.music.search',)`; got `('yandex.music.tracks', 'yandex.music.rotor_station_tracks', 'yandex.music.users_dislikes_tracks', 'yandex.music.users_dislikes_tracks_remove', 'yandex.music.tracks_trailer')`
+
+### Found but not rank 1
+- #2 `Gmail inbox unread messages` -> `google.gmail.send_message` (want one of `('google.gmail.list_inbox', 'google.gmail.list_unread')`)
+- #2 `search Gmail messages` -> `google.gmail.send_message` (want one of `('google.gmail.search_messages',)`)
+- #2 `Google Maps driving directions route` -> `google.maps.static_map` (want one of `('google.maps.compute_routes', 'google.maps.travel_time')`)
+- #2 `reverse geocode coordinates to address` -> `google.maps.geocode_batch` (want one of `('google.maps.reverse_geocode',)`)
+- #2 `Yandex Music search tracks` -> `yandex.music.tracks` (want one of `('yandex.music.search',)`)
+- #2 `Yandex OAuth connection status` -> `yandex.auth.poll_device` (want one of `('yandex.auth.status',)`)
+- #2 `load agent skill playbook` -> `skills.unload` (want one of `('skills.load',)`)
+- #2 `spreadsheet values` -> `google.sheets.create_spreadsheet` (want one of `('google.sheets.get_values',)`)
+- #3 `geocode address to coordinates` -> `google.maps.geocode_batch` (want one of `('google.maps.geocode',)`)
+- #3 `grep search workspace files` -> `workspace.write_file` (want one of `('workspace.grep',)`)
+- #4 `workspace disk usage quota` -> `workspace.write_file` (want one of `('workspace.usage',)`)
+- #4 `list calendar events` -> `google.calendar.create_event` (want one of `('google.calendar.list_events',)`)
+
+## Provider: keyword
+
+- Cases: **37**
+- Hit@1: **27.0%**
+- Hit@3: **35.1%**
+- Hit@5: **43.2%**
+- MRR: **0.324**
+- Misses: **21**
+
+### Failures
+- `Google Calendar events today` -> expected `('google.calendar.list_today',)`; got `('google.auth.status', 'google.auth.connect_url', 'google.auth.disconnect', 'google.calendar.get_calendar', 'google.calendar.list_events')`
+- `Google Calendar upcoming events` -> expected `('google.calendar.list_upcoming',)`; got `('google.auth.status', 'google.auth.connect_url', 'google.auth.disconnect', 'google.calendar.get_calendar', 'google.calendar.list_events')`
+- `create Google Calendar event` -> expected `('google.calendar.create_event', 'google.calendar.quick_add_event')`; got `('google.auth.status', 'google.auth.connect_url', 'google.auth.disconnect', 'google.calendar.get_calendar', 'google.calendar.list_events')`
+- `Google Calendar free busy availability` -> expected `('google.calendar.freebusy', 'google.calendar.find_free_slots')`; got `('google.auth.status', 'google.auth.connect_url', 'google.auth.disconnect', 'google.calendar.get_calendar', 'google.calendar.list_events')`
+- `search Google Calendar events` -> expected `('google.calendar.search_events',)`; got `('exa.web_search', 'google.auth.status', 'google.auth.connect_url', 'google.auth.disconnect', 'google.calendar.get_calendar')`
+- `Gmail inbox unread messages` -> expected `('google.gmail.list_inbox', 'google.gmail.list_unread')`; got `('google.gmail.get_profile', 'google.gmail.list_labels', 'google.gmail.get_label', 'google.gmail.search_messages', 'google.gmail.list_messages')`
+- `send email via Gmail` -> expected `('google.gmail.send_message',)`; got `('google.gmail.get_profile', 'google.gmail.list_labels', 'google.gmail.get_label', 'google.gmail.search_messages', 'google.gmail.list_messages')`
+- `Gmail email attachment download` -> expected `('google.gmail.get_attachment',)`; got `('google.gmail.get_profile', 'google.gmail.list_labels', 'google.gmail.get_label', 'google.gmail.search_messages', 'google.gmail.list_messages')`
+- `Google Drive search files` -> expected `('google.drive.search_files',)`; got `('exa.web_search', 'google.auth.status', 'google.auth.connect_url', 'google.auth.disconnect', 'google.calendar.get_calendar')`
+- `download file from Google Drive` -> expected `('google.drive.download_file',)`; got `('google.auth.status', 'google.auth.connect_url', 'google.auth.disconnect', 'google.calendar.get_calendar', 'google.calendar.list_events')`
+- `export Google Doc from Drive` -> expected `('google.drive.export_file',)`; got `('google.auth.status', 'google.auth.connect_url', 'google.auth.disconnect', 'google.calendar.get_calendar', 'google.calendar.list_events')`
+- `Google Maps driving directions route` -> expected `('google.maps.compute_routes', 'google.maps.travel_time')`; got `('google.auth.status', 'google.auth.connect_url', 'google.auth.disconnect', 'google.calendar.get_calendar', 'google.calendar.list_events')`
+- `geocode address to coordinates` -> expected `('google.maps.geocode',)`; got `('google.gmail.reply_to_message', 'google.drive.get_changes_start_token', 'google.sheets.copy_sheet_to_spreadsheet', 'google.sheets.auto_resize_columns', 'google.sheets.auto_resize_rows')`
+- `reverse geocode coordinates to address` -> expected `('google.maps.reverse_geocode',)`; got `('google.gmail.reply_to_message', 'google.drive.get_changes_start_token', 'google.sheets.copy_sheet_to_spreadsheet', 'google.sheets.auto_resize_columns', 'google.sheets.auto_resize_rows')`
+- `append rows Google Sheets` -> expected `('google.sheets.append_values',)`; got `('google.auth.status', 'google.auth.connect_url', 'google.auth.disconnect', 'google.calendar.get_calendar', 'google.calendar.list_events')`
+- `Google Tasks list tasks` -> expected `('google.tasks.list_tasks', 'google.tasks.list_default_tasks')`; got `('google.tasks.list_tasklists', 'google.tasks.get_tasklist', 'google.tasks.create_tasklist', 'google.tasks.update_tasklist', 'google.tasks.patch_tasklist')`
+- `Yandex Music search tracks` tags=['yandex', 'music'] -> expected `('yandex.music.search',)`; got `('yandex.music.account_experiments', 'yandex.music.account_experiments_details', 'yandex.music.account_settings', 'yandex.music.account_settings_set', 'yandex.music.account_status')`
+- `download Yandex Music track mp3` tags=['yandex', 'music'] -> expected `('yandex.music.track_download',)`; got `('yandex.music.account_experiments', 'yandex.music.account_experiments_details', 'yandex.music.account_settings', 'yandex.music.account_settings_set', 'yandex.music.account_status')`
+- `Yandex Music user playlists` tags=['yandex', 'music'] -> expected `('yandex.music.users_playlists_list',)`; got `('yandex.music.account_experiments', 'yandex.music.account_experiments_details', 'yandex.music.account_settings', 'yandex.music.account_settings_set', 'yandex.music.account_status')`
+- `write file to workspace` -> expected `('workspace.write_file',)`; got `('workspace.list_dir', 'workspace.stat', 'workspace.read_file', 'workspace.read_lines', 'workspace.usage')`
+- `grep search workspace files` -> expected `('workspace.grep',)`; got `('exa.web_search', 'workspace.list_dir', 'workspace.stat', 'workspace.read_file', 'workspace.read_lines')`
+
+### Found but not rank 1
+- #2 `Google Sheets read cell values` -> `google.sheets.get_spreadsheet` (want one of `('google.sheets.get_values', 'google.sheets.read_sheet')`)
+- #2 `list calendar events` -> `google.calendar.get_calendar` (want one of `('google.calendar.list_events',)`)
+- #3 `read file from workspace sandbox` -> `workspace.list_dir` (want one of `('workspace.read_file',)`)
+- #4 `search tracks` -> `yandex.music.albums_with_tracks` (want one of `('yandex.music.search',)`)
+- #5 `search Gmail messages` -> `exa.web_search` (want one of `('google.gmail.search_messages',)`)
+- #5 `workspace disk usage quota` -> `workspace.list_dir` (want one of `('workspace.usage',)`)

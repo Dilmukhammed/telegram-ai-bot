@@ -1,0 +1,133 @@
+The user wants me to plan a multi-agent task for creating a Google Sheet titled "Ташкент — кофейни для работы" (Tashkent — coffee shops for work).
+
+The task requires:
+1. Create a Google Sheet with the title.
+2. Find 5 coffee shops/coworkings in Tashkent suitable for working with a laptop.
+3. For each row: name, district/address, working hours, Wi-Fi, outlets, approximate espresso price, source link.
+4. One tab, headers in first row.
+5. At the end, a short message recommending the best one for long work and why.
+
+Following the P1 — Unit / Substance planner rules:
+- One logical phase = one entity end-to-end (discover → verify fields → persist → only then next entity)
+- Hot window ~8-10 worker turns
+- Must persist before raw data goes cold
+- No tool names in output
+- Output valid YAML only
+
+Let me plan phases:
+
+Phase 1: Create the Google Sheet structure
+- Create spreadsheet with title
+- Add headers in first row
+- Set up the sheet
+
+Phase 2-6: One phase per coffee shop (5 coffee shops)
+- Each phase: search web, verify fields, write to sheet row
+- After each row, persist to sheet before moving on
+
+Phase 7: Final verdict
+- Read all rows from sheet
+- Synthesize recommendation
+- Write short message (maybe as a note in sheet or as a separate output? The user wants a message at the end - probably in the sheet or as a final message to user. Since it's a sheet, perhaps add it as a note in the sheet or just provide it as the final answer. Better to add it to the sheet in a separate cell or just deliver it as text. I'll add it as a note below the data or as a final cell entry. But the user said "В конце — короткое сообщение" - probably means in the final response or in the sheet. I'll persist it to the sheet as a final text block and also deliver it.)
+
+Wait, the user said "В конце — короткое сообщение: какая из пяти лучше для длинной работы и почему". This could be:
+- In the conversation at the end
+- In the sheet itself
+
+Given the instructions say "content units: one logical phase = one entity end-to-end", and the sheet is the deliverable, I should probably add this message to the sheet as well, or deliver it as text. But the primary deliverable is the sheet. I'll include the verdict in the sheet (maybe in a separate cell below the data) and also mention it in the final context.
+
+Actually, looking at the task structure: "Один таб, заголовки в первой строке. В конце — короткое сообщение..." The "в конце" likely refers to "at the end of the conversation/report" or possibly in the sheet. I'll plan to add it as a note in the sheet (e.g., in cell A8 or similar) and also as final user-facing text.
+
+Let me structure the phases:
+
+Phase 1: Setup — Create Google Sheet and headers
+- Goal: Create spreadsheet "Ташкент — кофейни для работы", add tab with headers: Название, Район/Адрес, Часы работы, Wi-Fi, Розетки, Цена эспрессо, Ссылка
+- Exit: Sheet exists with headers in row 1
+- Persist: Sheet URL/ID
+
+Phase 2: Coffee shop #1
+- Goal: Find first suitable coffee shop in Tashkent for laptop work, verify all fields, append to row 2
+- Entry: Sheet exists
+- Exit: Row 2 populated
+- Must persist before exit: Row 2 data in sheet
+
+Phase 3: Coffee shop #2
+- Goal: Find second coffee shop, append to row 3
+- Exit: Row 3 populated
+- Must persist: Row 3
+
+Phase 4: Coffee shop #3
+- Goal: Find third coffee shop, append to row 4
+- Exit: Row 4 populated
+- Must persist: Row 4
+
+Phase 5: Coffee shop #4
+- Goal: Find fourth coffee shop, append to row 5
+- Exit: Row 5 populated
+- Must persist: Row 5
+
+Phase 6: Coffee shop #5
+- Goal: Find fifth coffee shop, append to row 6
+- Exit: Row 6 populated
+- Must persist: Row 6
+
+Phase 7: Synthesis and verdict
+- Goal: Read all 5 rows from sheet, determine best for long work, write 2-3 sentence verdict and append to sheet (e.g., row 8 or a note) and/or deliver to user
+- Entry: All 5 rows populated
+- Exit: Verdict written to sheet or delivered
+- Must persist: Verdict text
+
+Wait, is 7 phases too many for the hot window? The hot window is ~8-10 worker turns. Each phase is one worker turn? Actually, each phase corresponds to one tool use or one logical step. If I do web searches in phases 2-6, each phase might take multiple turns (search, then parse, then write). But the planner can group them. Actually, in the multi-agent system, each phase is executed by the worker. The worker can do multiple tool calls within a phase? The instructions say "one logical phase = one entity end-to-end". But looking at the context collapse rules, each phase might be one worker turn. However, the planner doesn't specify exact tool calls, just logical blocks.
+
+Actually, to be safe regarding the hot window: if each coffee shop requires a web search (which might take 1-2 turns), then 5 coffee shops = 5-10 turns just for searching, plus sheet creation and writing. That's borderline. But since results are persisted to the sheet after each entity, the raw data doesn't need to stay hot. The sheet acts as durable memory.
+
+So the plan is solid.
+
+Let me refine the YAML.
+
+Headers: "Название", "Район/Адрес", "Часы работы", "Wi-Fi", "Розетки", "Цена эспрессо", "Ссылка"
+
+For the verdict phase: Should I add it to the sheet or just deliver it? The user said "В конце — короткое сообщение". Since they asked to create a sheet with 5 rows, the message is probably outside the table. I'll add it below the table in the sheet and also provide it as the final answer.
+
+Let me check the constraints again:
+- Output only valid YAML
+- No markdown fences
+- No preamble
+- No tool names
+- Must have: phase_plan with planner_id, summary, phase_count, phases
+- Each phase: id, name, goal, logical_blocks, entry_condition, exit_condition, collapse_risk, must_persist_before_exit, context_notes
+
+Optional: delivery_atmosphere, non_goals, assumptions
+
+Let me draft the YAML carefully.
+
+```yaml
+phase_plan:
+  planner_id: unit
+  summary: Создать Google-таблицу с 5 кофейнями/коворкингами Ташкента для работы с ноутбуком, заполнить 7 полей по каждой и выдать краткий вердикт лучшей для длинной работы.
+  phase_count: 7
+  assumptions:
+    - Интернет-поиск выдает актуальные страницы кофеен/коворкингов Ташкента с указанным адресом и режимом работы.
+    - Google-таблицы доступны для создания и записи.
+  non_goals:
+    - Бронирование мест или оформление подписки в коворкинги.
+    - Сбор контактных телефонов или меню полностью.
+    - Визуальное форматирование сверх базовых заголовков.
+  phases:
+    - id: 1
+      name: Создание таблицы и заголовков
+      goal: Создать новую Google-таблицу с названием «Ташкент — кофейни для работы», один лист, в первой строке — 7 заголовков.
+      logical_blocks:
+        - Создание таблицы с указанным названием.
+        - Запись заголовков в row 1: Название, Район/Адрес, Часы работы, Wi-Fi, Розетки, Цена эспрессо, Ссылка.
+      entry_condition: Отсутствие таблицы с этой задачей.
+      exit_condition: Таблица создана, заголовки записаны, URL/ID таблицы известен.
+      collapse_risk: low
+      must_persist_before_exit:
+        - ID/URL таблицы
+        - Заголовки в row 1
+      context_notes: После создания структура таблицы становится единственным источником истины для последующих строк.
+
+    - id: 2
+      name: Кофейня 1 — поиск и запись
+      goal: Найти в интернете первую подходящую кофейню/коворкинг в Ташкенте

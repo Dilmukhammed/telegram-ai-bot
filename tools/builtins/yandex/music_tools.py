@@ -121,7 +121,7 @@ def _build_music_tools() -> tuple[ToolSpec, ...]:
             description += YANDEX_MUSIC_OAUTH_HINT
         tags = ("yandex", "music", "write" if write else "read")
         cache = None if write else 300 if method in {"search", "search_suggest"} else 120
-        rate = (30, 60) if write else (60, 60)
+        rate = (60, 60) if write else (120, 60)
         tools.append(
             ToolSpec(
                 name=_tool_name(method),

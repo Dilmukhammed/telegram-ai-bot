@@ -1,0 +1,125 @@
+{
+  "schema_version": "1",
+  "fixture_id": "ru_temporal_032",
+  "title": "Birthday date from exact tool result",
+  "tier": "full",
+  "language": "ru",
+  "criticality": "normal",
+  "slice_tags": [
+    "temporal_precision",
+    "direct_attribute_relation",
+    "exact_tool_result"
+  ],
+  "reference_time": "2026-07-10T12:00:00+05:00",
+  "timezone": "Asia/Tashkent",
+  "users": [
+    {
+      "user_alias": "u1",
+      "user_id": 1032,
+      "display_name": "Synthetic User",
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "t1",
+      "kind": "tool_result",
+      "user_alias": "u1",
+      "tool_name": "google.people.get",
+      "payload_kind": "result",
+      "payload_json": "{\"field\":\"date_of_birth\",\"value\":\"1990-05-03\",\"source\":\"contacts\"}",
+      "ok": true,
+      "cached": false,
+      "occurred_at": "2026-07-10T09:00:00+05:00"
+    }
+  ],
+  "expected": {
+    "sources": [
+      {
+        "source_event": "t1",
+        "source_type": "tool_result",
+        "source_ref_alias": "t1",
+        "authority_class": "tool_api_result",
+        "content_hash_rule": "sha256_raw_payload",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "t1"
+        },
+        "normalization_job_status": "done"
+      }
+    ],
+    "segments": [
+      {
+        "source_event": "t1",
+        "segment_type": "tool_payload",
+        "ordinal": 0,
+        "text": "{\"field\":\"date_of_birth\",\"value\":\"1990-05-03\",\"source\":\"contacts\"}",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "t1"
+        }
+      }
+    ],
+    "mentions": [],
+    "candidates": [
+      {
+        "candidate_ref": "c1",
+        "kind": "entity_attribute",
+        "schema_name": "date_of_birth",
+        "schema_version": "1",
+        "arguments": [
+          {
+            "role": "person",
+            "literal": "self"
+          },
+          {
+            "role": "value",
+            "literal": "1990-05-03"
+          }
+        ],
+        "attributes": {},
+        "polarity": "positive",
+        "epistemic": {
+          "mode": "retrieved",
+          "speaker_commitment": "certain",
+          "scope": "proposition",
+          "alternatives": [],
+          "needs_confirmation": false
+        },
+        "temporal": null,
+        "status": "proposed",
+        "evidence": [
+          {
+            "source_event": "t1",
+            "relation": "supports",
+            "exact_quote": "{\"field\":\"date_of_birth\",\"value\":\"1990-05-03\",\"source\":\"contacts\"}",
+            "char_start": 0,
+            "char_end": 66
+          }
+        ]
+      }
+    ],
+    "forbidden_candidates": [],
+    "expect_abstention": false,
+    "forbidden_sources": [
+      {
+        "source_type": "tool_summary"
+      }
+    ],
+    "forbidden_segments": [
+      {
+        "segment_type": "tool_summary"
+      }
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "Awaiting human gold-corpus sign-off."
+    ]
+  }
+}

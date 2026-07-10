@@ -1,0 +1,126 @@
+{
+  "schema_version": "1",
+  "fixture_id": "en_uncertain_048",
+  "title": "Probable music preference",
+  "tier": "full",
+  "language": "en",
+  "criticality": "normal",
+  "slice_tags": [
+    "uncertainty_alternative",
+    "preference_constraint"
+  ],
+  "reference_time": "2026-07-10T12:00:00+05:00",
+  "timezone": "Asia/Tashkent",
+  "users": [
+    {
+      "user_alias": "u1",
+      "user_id": 1048,
+      "display_name": "Synthetic User",
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "m1",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "I probably prefer jazz.",
+      "content_type": "text",
+      "occurred_at": "2026-07-10T09:00:00+05:00",
+      "metadata": {}
+    }
+  ],
+  "expected": {
+    "sources": [
+      {
+        "source_event": "m1",
+        "source_type": "chat_message",
+        "source_ref_alias": "m1",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m1"
+        },
+        "normalization_job_status": "done"
+      }
+    ],
+    "segments": [
+      {
+        "source_event": "m1",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "I probably prefer jazz.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m1"
+        }
+      }
+    ],
+    "mentions": [],
+    "candidates": [
+      {
+        "candidate_ref": "c1",
+        "kind": "preference",
+        "schema_name": "likes_music",
+        "schema_version": "1",
+        "arguments": [
+          {
+            "role": "subject",
+            "literal": "self"
+          },
+          {
+            "role": "value",
+            "literal": "jazz"
+          }
+        ],
+        "attributes": {},
+        "polarity": "unknown",
+        "epistemic": {
+          "mode": "asserted",
+          "speaker_commitment": "probable",
+          "scope": "proposition",
+          "alternatives": [],
+          "needs_confirmation": true
+        },
+        "temporal": null,
+        "status": "needs_confirmation",
+        "evidence": [
+          {
+            "source_event": "m1",
+            "relation": "supports",
+            "exact_quote": "I probably prefer jazz.",
+            "char_start": 0,
+            "char_end": 23
+          }
+        ]
+      }
+    ],
+    "forbidden_candidates": [
+      {
+        "kind": "preference",
+        "schema_name": "likes_music",
+        "polarity": "positive"
+      },
+      {
+        "kind": "preference",
+        "schema_name": "likes_music",
+        "polarity": "negative"
+      }
+    ],
+    "expect_abstention": false,
+    "forbidden_sources": [],
+    "forbidden_segments": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "Awaiting human gold-corpus sign-off."
+    ]
+  }
+}

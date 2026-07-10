@@ -1,0 +1,207 @@
+{
+  "schema_version": "1",
+  "fixture_id": "ru_correction_018",
+  "title": "Residence correction",
+  "tier": "full",
+  "language": "ru",
+  "criticality": "normal",
+  "slice_tags": [
+    "correction_followup",
+    "direct_attribute_relation",
+    "multi_turn"
+  ],
+  "reference_time": "2026-07-10T12:00:00+05:00",
+  "timezone": "Asia/Tashkent",
+  "users": [
+    {
+      "user_alias": "u1",
+      "user_id": 1018,
+      "display_name": "Synthetic User",
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "m1",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Я живу в Москве.",
+      "content_type": "text",
+      "occurred_at": "2026-07-10T09:00:00+05:00",
+      "metadata": {}
+    },
+    {
+      "event_id": "m2",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Нет, теперь я живу в Ташкенте.",
+      "content_type": "text",
+      "occurred_at": "2026-07-10T09:01:00+05:00",
+      "metadata": {}
+    }
+  ],
+  "expected": {
+    "sources": [
+      {
+        "source_event": "m1",
+        "source_type": "chat_message",
+        "source_ref_alias": "m1",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m1"
+        },
+        "normalization_job_status": "done"
+      },
+      {
+        "source_event": "m2",
+        "source_type": "chat_message",
+        "source_ref_alias": "m2",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m2"
+        },
+        "normalization_job_status": "done"
+      }
+    ],
+    "segments": [
+      {
+        "source_event": "m1",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Я живу в Москве.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m1"
+        }
+      },
+      {
+        "source_event": "m2",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Нет, теперь я живу в Ташкенте.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m2"
+        }
+      }
+    ],
+    "mentions": [
+      {
+        "mention_id": "moscow",
+        "source_event": "m1",
+        "mention_type": "place",
+        "surface_text": "Москве",
+        "char_start": 9,
+        "char_end": 15,
+        "normalized_hint": "Москва",
+        "pointer": {
+          "source_event": "m1",
+          "char_start": 9,
+          "char_end": 15
+        }
+      },
+      {
+        "mention_id": "tashkent",
+        "source_event": "m2",
+        "mention_type": "place",
+        "surface_text": "Ташкенте",
+        "char_start": 21,
+        "char_end": 29,
+        "normalized_hint": "Ташкент",
+        "pointer": {
+          "source_event": "m2",
+          "char_start": 21,
+          "char_end": 29
+        }
+      }
+    ],
+    "candidates": [
+      {
+        "candidate_ref": "c1",
+        "kind": "correction",
+        "schema_name": "corrects_residence",
+        "schema_version": "1",
+        "arguments": [
+          {
+            "role": "subject",
+            "literal": "self"
+          },
+          {
+            "role": "old",
+            "mention_ref": "moscow"
+          },
+          {
+            "role": "new",
+            "mention_ref": "tashkent"
+          }
+        ],
+        "attributes": {},
+        "polarity": "positive",
+        "epistemic": {
+          "mode": "asserted",
+          "speaker_commitment": "certain",
+          "scope": "proposition",
+          "alternatives": [],
+          "needs_confirmation": false
+        },
+        "temporal": {
+          "original_text": "теперь",
+          "valid_from": "2026-07-10T09:01:00+05:00",
+          "valid_to": null,
+          "event_time": null,
+          "precision": "second",
+          "timezone": "Asia/Tashkent"
+        },
+        "status": "proposed",
+        "evidence": [
+          {
+            "source_event": "m1",
+            "relation": "supports",
+            "exact_quote": "Я живу в Москве.",
+            "char_start": 0,
+            "char_end": 16
+          },
+          {
+            "source_event": "m2",
+            "relation": "corrects",
+            "exact_quote": "Нет, теперь я живу в Ташкенте.",
+            "char_start": 0,
+            "char_end": 30
+          }
+        ]
+      }
+    ],
+    "forbidden_candidates": [
+      {
+        "kind": "relation",
+        "schema_name": "lives_in",
+        "polarity": "positive",
+        "arguments": [
+          {
+            "role": "place",
+            "literal": "Moscow"
+          }
+        ]
+      }
+    ],
+    "expect_abstention": false,
+    "forbidden_sources": [],
+    "forbidden_segments": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "Awaiting human gold-corpus sign-off."
+    ]
+  }
+}

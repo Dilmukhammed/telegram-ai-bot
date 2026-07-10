@@ -48,6 +48,7 @@ Load once per run: `skills.load` → `skill_id: "google.calendar"`.
 |-------------|------|
 | Simple NL: «обед завтра в 13:00» | `quick_add_event` (`text`) |
 | Full control: attendees, recurrence, reminders | `create_event` |
+| Video call with Google Meet link | `create_meet_event` |
 | Small edit (time, title, location) | `patch_event` — only pass changed fields |
 | Replace entire event | `update_event` — **omitted fields are cleared** |
 | Cancel meeting | `delete_event` |
@@ -143,7 +144,7 @@ When the user should open an event or calendar:
 | «Что у меня сегодня?» | `list_today` |
 | «Ближайшие встречи» | `list_upcoming` |
 | «Найди встречу с Алексом» | `search_events` |
-| «Создай созвон завтра в 15:00» | `quick_add_event` or `create_event` |
+| «Создай созвон завтра в 15:00» | `create_meet_event` (video) or `quick_add_event` / `create_event` |
 | «Перенеси на час позже» | `search_events` or prior `event_id` → `patch_event` |
 | «Отмени встречу» | find event → `delete_event` |
 | «Когда свободен во вторник?» | `find_free_slots` |
@@ -154,7 +155,7 @@ When the user should open an event or calendar:
 
 **Read:** `get_calendar`, `list_events`, `get_event`, `search_events`, `list_upcoming`, `list_today`, `list_colors`, `freebusy`
 
-**Write events:** `create_event`, `quick_add_event`, `patch_event`, `delete_event`, `update_event`, `move_event`, `import_event`
+**Write events:** `create_event`, `create_meet_event`, `quick_add_event`, `patch_event`, `delete_event`, `update_event`, `move_event`, `import_event`
 
 **Scheduling:** `find_free_slots`, `list_instances`
 

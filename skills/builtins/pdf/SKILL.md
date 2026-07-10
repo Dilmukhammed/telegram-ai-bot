@@ -1,16 +1,16 @@
 ---
 skill_id: pdf
-description: PDF tools — extract text, tables, images, metadata, search, forms from PDF documents
-tags: pdf, read
+description: PDF tools — read, OCR, render, edit pages, forms, security, create PDFs
+tags: pdf, read, write
 ---
 
 # PDF skill
 
-Use when the user works with **PDF documents** — reading content, extracting tables, images, searching text, checking metadata, or inspecting forms.
+Use when the user works with **PDF documents** — reading, searching, OCR, rendering, editing pages, forms, encryption, or creating new PDFs.
 
-**Input:** all PDF tools accept either `file_ref` (from `google.drive.download_file`, `google.drive.export_file`, `google.gmail.get_attachment`) or `path` (workspace relative path like `uploads/report.pdf`).
+**Input:** all PDF tools accept either `file_ref` (from `google.drive.download_file`, `google.drive.export_file`, `google.gmail.get_attachment`, or a previous PDF tool) or `path` (workspace relative path like `uploads/report.pdf`).
 
-**Output:** extract tools return text/data inline. Tools that produce new PDFs return `file_ref` for `telegram.send_file`.
+**Output:** read tools return text/data inline. Write/create tools return `file_ref` → `telegram.send_file`.
 
 ## Discovery
 
@@ -22,41 +22,123 @@ Load once per run: `skills.load` → `skill_id: "pdf"`.
 |------|----------------|
 | Full PDF catalog | `{"mode":"catalog","tags":["pdf"]}` |
 | Read tools only | `{"mode":"catalog","tags":["pdf","read"]}` |
-| Rank by task | `{"mode":"rank","query":"extract text from pdf","tags":["pdf","read"]}` |
+| Write tools only | `{"mode":"catalog","tags":["pdf","write"]}` |
+| Rank by task | `{"mode":"rank","query":"merge pdf pages","tags":["pdf","write"]}` |
 
-## Read tools (Category 1)
+## Read — extract content (9 tools)
 
 | Tool | When to use |
 |------|-------------|
-| `pdf.extract_text` | Get text content from PDF (all pages or specific pages) |
-| `pdf.extract_tables` | Extract tables as rows of cells |
-| `pdf.extract_images` | Get embedded images — `output: "vision"` loads into agent context, `output: "file_ref"` for sending |
-| `pdf.read_metadata` | Title, author, dates, page count, encryption status |
-| `pdf.get_outline` | Table of contents / bookmarks |
-| `pdf.search_text` | Find specific text in PDF with context snippets |
-| `pdf.get_page_info` | Page dimensions, rotation, has_text, has_images |
-| `pdf.extract_links` | Hyperlinks (internal and external URLs) |
+| `pdf.extract_text` | Text from all pages or `pages: "1-5,8"`; `preserve_layout` for columns |
+| `pdf.extract_tables` | Tables as rows; `strategy`: lines/strings/text |
+| `pdf.extract_images` | Embedded images — `output: "vision"` (agent sees them), `"file_ref"`, or `"both"` |
+| `pdf.read_metadata` | Title, author, dates, page count, encryption |
+| `pdf.get_outline` | Table of contents / bookmarks tree |
+| `pdf.search_text` | Find text with page + snippet context |
+| `pdf.get_page_info` | Width, height, rotation, has_text, has_images |
+| `pdf.extract_links` | Hyperlinks (internal + external) |
 | `pdf.extract_forms` | AcroForm fields — names, types, values, options |
+
+## OCR (2 tools)
+
+Uses **Mistral OCR 4** (`POST /v1/ocr`, model `mistral-ocr-latest`). Configure `OCR_API_KEY` + `OCR_MODEL` in `.env`.
+
+| Tool | When to use |
+|------|-------------|
+| `pdf.is_scanned` | Check if PDF is image-based before OCR |
+| `pdf.ocr` | Mistral OCR for scanned PDFs; `pages` optional (1-indexed) |
+
+## Render (1 tool)
+
+| Tool | When to use |
+|------|-------------|
+| `pdf.render` | Pages → PNG; `dpi`, `scale` for thumbnails; `output: vision/file_ref/both` |
+
+## Pages — manipulate (6 tools)
+
+All return `file_ref` (new PDF).
+
+| Tool | When to use |
+|------|-------------|
+| `pdf.split` | Split by `pages: "1-5,6-10"` or `every_n_pages` |
+| `pdf.extract_pages` | Keep only `pages: "1-3,7"` |
+| `pdf.merge` | Combine `file_refs: [ref1, ref2, ...]` |
+| `pdf.rotate_pages` | `pages: {"1-3": 90, "5": 180}` |
+| `pdf.delete_pages` | Remove `pages: "5,8-10"` |
+| `pdf.reorder_pages` | `order: [3,1,2]` or `swap: [2,5]` |
+
+## Edit content (4 tools)
+
+| Tool | When to use |
+|------|-------------|
+| `pdf.overlay` | Watermark, header, footer, page numbers, custom text |
+| `pdf.redact_text` | Black out text by `query` (irreversible) |
+| `pdf.add_image` | Insert image via `image_file_ref` on a page |
+| `pdf.add_annotations` | Highlight/strikethrough/underline/squiggly by text query |
+
+## Forms — AcroForm (4 tools)
+
+| Tool | When to use |
+|------|-------------|
+| `pdf.extract_forms` | List fields first |
+| `pdf.fill_form` | `fields: {name: value}`; optional `flatten` |
+| `pdf.flatten_form` | Make form read-only |
+| `pdf.create_form` | Add fields to existing PDF |
+| `pdf.reset_form` | Clear field values |
+
+## Security (3 tools)
+
+| Tool | When to use |
+|------|-------------|
+| `pdf.encrypt` | Password + optional permissions |
+| `pdf.decrypt` | Remove encryption with password |
+| `pdf.get_permissions` | Check encryption and permissions |
+
+## Optimize (2 tools)
+
+| Tool | When to use |
+|------|-------------|
+| `pdf.optimize` | `level`: light/medium/aggressive; optional `linearize` |
+| `pdf.repair` | Fix corrupted PDF structure |
+
+## Metadata & structure (3 tools)
+
+| Tool | When to use |
+|------|-------------|
+| `pdf.set_metadata` | Title, author, subject, keywords, etc. |
+| `pdf.set_outline` | Replace full bookmark tree |
+| `pdf.add_bookmark` | Add single bookmark |
+
+## Create (3 tools)
+
+| Tool | When to use |
+|------|-------------|
+| `pdf.create` | Text or markdown → PDF |
+| `pdf.create_from_images` | Images → multi-page PDF |
+| `pdf.create_blank` | Empty PDF with N pages |
 
 ## Common workflows
 
-### Read a PDF from Google Drive
-1. `google.drive.download_file` or `google.drive.export_file` → get `file_ref`
-2. `pdf.extract_text` with `file_ref` → read content
-3. If tables needed: `pdf.extract_tables` with same `file_ref`
+### Read PDF from Google Drive
+1. `google.drive.download_file` or `google.drive.export_file` → `file_ref`
+2. `pdf.extract_text` with `file_ref`
+3. Tables: `pdf.extract_tables`; scanned: `pdf.is_scanned` → `pdf.ocr`
 
-### Read a PDF uploaded to Telegram
-1. User sends document → saved to `uploads/` in workspace
+### Read PDF from Telegram upload
+1. User sends document → `uploads/filename.pdf` in workspace
 2. `pdf.extract_text` with `path: "uploads/filename.pdf"`
 
-### Search in a PDF
-1. `pdf.search_text` with `query` → find matches with page numbers and context
-2. `pdf.extract_text` with `pages` to read specific pages around matches
+### Merge and send
+1. Download/export PDFs → `file_ref`s
+2. `pdf.merge` → `file_ref`
+3. `telegram.send_file` with that `file_ref`
 
-### Extract images from PDF
-1. `pdf.extract_images` with `output: "vision"` → images loaded into agent context
-2. Or `output: "file_ref"` → use `telegram.send_file` to send to user
+### Fill a form
+1. `pdf.extract_forms` → field names
+2. `pdf.fill_form` with `fields: {"Name": "Alice", ...}`
+3. `telegram.send_file` or `pdf.flatten_form` then send
 
-### Check PDF forms
-1. `pdf.extract_forms` → list all fields, types, current values
-2. `pdf.fill_form` (Category 6) → fill the fields
+### Redact sensitive data
+1. `pdf.search_text` to locate
+2. `pdf.redact_text` with `query`
+3. `pdf.render` to verify visually

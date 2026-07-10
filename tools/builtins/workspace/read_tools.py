@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from tools.builtins.workspace.workspace_checker import WORKSPACE_CHECKER_QUESTIONS_BY_TOOL
 from tools.schema import ToolSpec
 from tools.workspace.errors import WorkspaceError
 from tools.workspace.store import (
@@ -15,7 +16,7 @@ from tools.workspace.store import (
     usage,
 )
 
-_READ_RATE_LIMIT = (60, 60)
+_READ_RATE_LIMIT = (120, 60)
 _PATH = {
     "type": "string",
     "description": "Path relative to user workspace root (e.g. uploads/doc.pdf, agent/notes.md).",
@@ -148,6 +149,7 @@ WORKSPACE_LIST_DIR = ToolSpec(
     tags=("workspace", "read", "filesystem"),
     rate_limit=_READ_RATE_LIMIT,
     examples=("list workspace files", "ls uploads folder"),
+    verification_questions=WORKSPACE_CHECKER_QUESTIONS_BY_TOOL["workspace.list_dir"],
 )
 
 WORKSPACE_STAT = ToolSpec(
@@ -165,6 +167,7 @@ WORKSPACE_STAT = ToolSpec(
     tags=("workspace", "read", "filesystem"),
     rate_limit=_READ_RATE_LIMIT,
     examples=("check file size", "file metadata", "does path exist"),
+    verification_questions=WORKSPACE_CHECKER_QUESTIONS_BY_TOOL["workspace.stat"],
 )
 
 WORKSPACE_READ_FILE = ToolSpec(
@@ -190,6 +193,7 @@ WORKSPACE_READ_FILE = ToolSpec(
     rate_limit=_READ_RATE_LIMIT,
     parallel_safe=False,
     examples=("preview text file", "view saved image", "peek at log"),
+    verification_questions=WORKSPACE_CHECKER_QUESTIONS_BY_TOOL["workspace.read_file"],
 )
 
 WORKSPACE_READ_LINES = ToolSpec(
@@ -221,6 +225,7 @@ WORKSPACE_READ_LINES = ToolSpec(
     tags=("workspace", "read", "filesystem"),
     rate_limit=_READ_RATE_LIMIT,
     examples=("read lines 20-145", "read chunk of csv"),
+    verification_questions=WORKSPACE_CHECKER_QUESTIONS_BY_TOOL["workspace.read_lines"],
 )
 
 WORKSPACE_USAGE = ToolSpec(
@@ -231,6 +236,7 @@ WORKSPACE_USAGE = ToolSpec(
     tags=("workspace", "read", "filesystem"),
     rate_limit=_READ_RATE_LIMIT,
     examples=("workspace quota", "disk usage sandbox"),
+    verification_questions=WORKSPACE_CHECKER_QUESTIONS_BY_TOOL["workspace.usage"],
 )
 
 WORKSPACE_FIND = ToolSpec(
@@ -251,6 +257,7 @@ WORKSPACE_FIND = ToolSpec(
     tags=("workspace", "read", "filesystem"),
     rate_limit=_READ_RATE_LIMIT,
     examples=("find all markdown files", "locate pdf in uploads"),
+    verification_questions=WORKSPACE_CHECKER_QUESTIONS_BY_TOOL["workspace.find"],
 )
 
 WORKSPACE_GREP = ToolSpec(
@@ -282,6 +289,7 @@ WORKSPACE_GREP = ToolSpec(
     tags=("workspace", "read", "filesystem"),
     rate_limit=_READ_RATE_LIMIT,
     examples=("grep error in logs", "search csv column value"),
+    verification_questions=WORKSPACE_CHECKER_QUESTIONS_BY_TOOL["workspace.grep"],
 )
 
 WORKSPACE_READ_TOOLS: tuple[ToolSpec, ...] = (

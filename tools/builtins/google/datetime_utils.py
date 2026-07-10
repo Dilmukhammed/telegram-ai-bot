@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta, timezone
+import uuid
+from datetime import date, datetime, time, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -15,17 +16,19 @@ def resolve_timezone(time_zone: str | None = None) -> ZoneInfo:
         return ZoneInfo("UTC")
 
 
-def parse_iso_datetime(value: str) -> datetime:
+def parse_iso_datetime(value: str, *, time_zone: str | None = None) -> datetime:
     normalized = value.replace("Z", "+00:00")
     parsed = datetime.fromisoformat(normalized)
     if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=timezone.utc)
+        # Naive datetime is wall-clock time in the target/bot timezone — same
+        # semantics as build_event_time, so create vs list/freebusy agree.
+        return parsed.replace(tzinfo=resolve_timezone(time_zone))
     return parsed
 
 
 def to_rfc3339(value: datetime) -> str:
     if value.tzinfo is None:
-        value = value.replace(tzinfo=timezone.utc)
+        value = value.replace(tzinfo=resolve_timezone(None))
     return value.isoformat()
 
 
@@ -53,7 +56,7 @@ def compact_event(event: dict[str, Any]) -> dict[str, Any]:
     start = event.get("start") or {}
     end = event.get("end") or {}
     attendees = event.get("attendees") or []
-    return {
+    payload: dict[str, Any] = {
         "id": event.get("id"),
         "summary": event.get("summary"),
         "description": event.get("description"),
@@ -74,6 +77,44 @@ def compact_event(event: dict[str, Any]) -> dict[str, Any]:
             for attendee in attendees
         ],
     }
+    meet_link = extract_meet_link(event)
+    if meet_link:
+        payload["meet_link"] = meet_link
+    return payload
+
+
+def extract_meet_link(event: dict[str, Any]) -> str | None:
+    hangout = event.get("hangoutLink")
+    if isinstance(hangout, str) and hangout.strip():
+        return hangout.strip()
+
+    conference = event.get("conferenceData")
+    if not isinstance(conference, dict):
+        return None
+    for entry in conference.get("entryPoints") or []:
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("entryPointType") != "video":
+            continue
+        uri = entry.get("uri")
+        if isinstance(uri, str) and uri.strip():
+            return uri.strip()
+    return None
+
+
+def build_google_meet_conference_data(*, request_id: str | None = None) -> dict[str, Any]:
+    return {
+        "createRequest": {
+            "requestId": request_id or uuid.uuid4().hex,
+            "conferenceSolutionKey": {"type": "hangoutsMeet"},
+        }
+    }
+
+
+def build_create_meet_event_body(arguments: dict[str, Any]) -> dict[str, Any]:
+    body = build_create_event_body(arguments)
+    body["conferenceData"] = build_google_meet_conference_data()
+    return body
 
 
 def compact_calendar(calendar: dict[str, Any]) -> dict[str, Any]:
@@ -140,10 +181,12 @@ def build_event_time(value: dict[str, Any], *, default_time_zone: str | None = N
         return {"date": value["date"]}
 
     if "datetime" in value and value["datetime"]:
-        dt = parse_iso_datetime(value["datetime"])
+        raw = str(value["datetime"]).replace("Z", "+00:00")
+        dt = datetime.fromisoformat(raw)
         tz_name = (value.get("time_zone") or default_time_zone or get_settings().bot_timezone or "UTC").strip()
         tz = resolve_timezone(tz_name)
         if dt.tzinfo is None:
+            # Naive datetime is wall-clock time in the target timezone, not UTC.
             dt = dt.replace(tzinfo=tz)
         else:
             dt = dt.astimezone(tz)

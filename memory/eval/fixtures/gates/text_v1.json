@@ -1,0 +1,195 @@
+{
+  "schema_version": "1",
+  "gate_id": "text_v1",
+  "gate_version": "1",
+  "pack_id": "text_v1",
+  "pack_version": "1",
+  "pack_hash": "3b16f1902997f5975f3555f3e35b873d33dbc9796ee96d000e1c7018e2a3ce09",
+  "subject_type": "all",
+  "gates": [
+    {
+      "metric": "fixture_schema_validity",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": true
+    },
+    {
+      "metric": "corpus_coverage",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": true
+    },
+    {
+      "metric": "release_fixtures_reviewed",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": true
+    },
+    {
+      "metric": "source_exactness",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": true,
+      "subjects": ["ingestion"]
+    },
+    {
+      "metric": "source_version_exactness",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": true,
+      "subjects": ["ingestion"]
+    },
+    {
+      "metric": "segment_exactness",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": true,
+      "subjects": ["ingestion"]
+    },
+    {
+      "metric": "pointer_ownership_accuracy",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": true,
+      "subjects": ["ingestion"]
+    },
+    {
+      "metric": "pointer_dereference_accuracy",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": true,
+      "subjects": ["ingestion"]
+    },
+    {
+      "metric": "cross_user_leakage_count",
+      "comparison": "lte",
+      "threshold": 0,
+      "active": true
+    },
+    {
+      "metric": "matching_metrics_golden",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": true
+    },
+    {
+      "metric": "deterministic_replay",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": true
+    },
+    {
+      "metric": "mention_precision",
+      "comparison": "gte",
+      "threshold": 0.98,
+      "active": false,
+      "subjects": ["extraction"]
+    },
+    {
+      "metric": "mention_recall",
+      "comparison": "gte",
+      "threshold": 0.9,
+      "active": false,
+      "subjects": ["extraction"]
+    },
+    {
+      "metric": "candidate_precision",
+      "comparison": "gte",
+      "threshold": 0.97,
+      "active": false,
+      "subjects": ["extraction"]
+    },
+    {
+      "metric": "candidate_recall",
+      "comparison": "gte",
+      "threshold": 0.85,
+      "active": false,
+      "subjects": ["extraction"]
+    },
+    {
+      "metric": "unsupported_candidate_rate",
+      "comparison": "lte",
+      "threshold": 0.01,
+      "active": false,
+      "subjects": ["extraction"]
+    },
+    {
+      "metric": "evidence_pointer_accuracy",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": false,
+      "subjects": ["extraction"]
+    },
+    {
+      "metric": "exact_quote_accuracy",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": false,
+      "subjects": ["extraction"]
+    },
+    {
+      "metric": "negation_scope_accuracy",
+      "comparison": "gte",
+      "threshold": 0.98,
+      "active": false,
+      "subjects": ["extraction"]
+    },
+    {
+      "metric": "uncertainty_scope_accuracy",
+      "comparison": "gte",
+      "threshold": 0.98,
+      "active": false,
+      "subjects": ["extraction"]
+    },
+    {
+      "metric": "wrong_speaker_count",
+      "comparison": "lte",
+      "threshold": 0,
+      "active": false,
+      "subjects": ["extraction"]
+    },
+    {
+      "metric": "forbidden_candidate_count",
+      "comparison": "lte",
+      "threshold": 0,
+      "active": false,
+      "subjects": ["extraction"]
+    },
+    {
+      "metric": "irrelevant_false_positive_rate",
+      "comparison": "lte",
+      "threshold": 0.02,
+      "active": false,
+      "subjects": ["extraction"]
+    },
+    {
+      "metric": "malformed_accepted_output_count",
+      "comparison": "lte",
+      "threshold": 0,
+      "active": false,
+      "subjects": ["extraction"]
+    }
+  ],
+  "hard_zero_failure_codes": [
+    "fixture_invalid",
+    "pointer_owner_mismatch",
+    "pointer_dereference_failed"
+  ],
+  "minimum_slice_counts": {
+    "critical_slice:correction_followup": 8,
+    "critical_slice:direct_attribute_relation": 8,
+    "critical_slice:exact_tool_result": 6,
+    "critical_slice:goal_task_deadline": 6,
+    "critical_slice:irrelevant_abstention": 8,
+    "critical_slice:negation": 8,
+    "critical_slice:preference_constraint": 8,
+    "critical_slice:temporal_precision": 6,
+    "critical_slice:uncertainty_alternative": 8,
+    "critical_slice:wrong_speaker_hearsay": 8,
+    "language:en": 28,
+    "language:mixed": 4,
+    "language:ru": 32,
+    "tier:smoke": 16,
+    "total": 64
+  }
+}

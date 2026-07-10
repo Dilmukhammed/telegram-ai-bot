@@ -51,7 +51,12 @@ class RunTraceCollectorTests(unittest.TestCase):
         self.assertEqual(trace.search_history[0]["mode"], "catalog")
         self.assertIn("google.maps.places_text_search", trace.successful_tools)
         self.assertIn("places_text_search OK", trace.progress_summary)
-        self.assertIn("Turn 2: use_tool google.maps.places_text_search ok", trace.to_supervisor_text())
+
+        from agent.run_cycle_log import build_run_cycle_log
+        from config import get_settings
+
+        log = build_run_cycle_log(trace, settings=get_settings())
+        self.assertIn("google.maps.places_text_search OK", log)
 
     def test_shows_raw_vs_normalized_mistake(self) -> None:
         collector = RunTraceCollector(

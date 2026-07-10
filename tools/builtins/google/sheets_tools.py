@@ -15,14 +15,15 @@ from tools.builtins.google.sheets_values import (
     read_sheet_handler,
     update_values_handler,
 )
+from tools.builtins.google.sheets_checker import SHEETS_CHECKER_QUESTIONS_BY_TOOL
 from tools.builtins.google.sheets_tools_wave2 import GOOGLE_SHEETS_WAVE2_TOOLS, SHEETS_WAVE2_TOOL_NAMES
 from tools.builtins.google.sheets_tools_wave3 import GOOGLE_SHEETS_WAVE3_TOOLS, SHEETS_WAVE3_TOOL_NAMES
 from tools.builtins.google.sheets_tools_wave4 import GOOGLE_SHEETS_WAVE4_TOOLS, SHEETS_WAVE4_TOOL_NAMES
 from tools.builtins.google.tool_hints import GOOGLE_SHEETS_OAUTH_HINT
 from tools.schema import ToolSpec
 
-_READ_RATE_LIMIT = (60, 60)
-_WRITE_RATE_LIMIT = (30, 60)
+_READ_RATE_LIMIT = (120, 60)
+_WRITE_RATE_LIMIT = (60, 60)
 
 _SPREADSHEET_ID = {
     "type": "string",
@@ -62,6 +63,7 @@ GOOGLE_SHEETS_GET_SPREADSHEET = ToolSpec(
     cache_ttl_seconds=30,
     rate_limit=_READ_RATE_LIMIT,
     examples=("list sheet tabs", "sheet ids for workbook", "spreadsheet metadata"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.get_spreadsheet"],
 )
 
 GOOGLE_SHEETS_CREATE_SPREADSHEET = ToolSpec(
@@ -87,6 +89,7 @@ GOOGLE_SHEETS_CREATE_SPREADSHEET = ToolSpec(
     tags=("google", "sheets", "write", "structure"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("create new spreadsheet", "new google sheet budget 2026"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.create_spreadsheet"],
 )
 
 GOOGLE_SHEETS_UPDATE_SPREADSHEET_PROPERTIES = ToolSpec(
@@ -110,6 +113,7 @@ GOOGLE_SHEETS_UPDATE_SPREADSHEET_PROPERTIES = ToolSpec(
     tags=("google", "sheets", "write", "structure"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("rename spreadsheet file", "set spreadsheet timezone"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.update_spreadsheet_properties"],
 )
 
 GOOGLE_SHEETS_GET_VALUES = ToolSpec(
@@ -135,6 +139,7 @@ GOOGLE_SHEETS_GET_VALUES = ToolSpec(
     cache_ttl_seconds=15,
     rate_limit=_READ_RATE_LIMIT,
     examples=("read cells A1 to D10", "get values from sheet range", "read spreadsheet column B"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.get_values"],
 )
 
 GOOGLE_SHEETS_READ_SHEET = ToolSpec(
@@ -164,6 +169,7 @@ GOOGLE_SHEETS_READ_SHEET = ToolSpec(
     cache_ttl_seconds=15,
     rate_limit=_READ_RATE_LIMIT,
     examples=("read entire sheet", "dump worksheet data", "show all rows in Sheet1"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.read_sheet"],
 )
 
 GOOGLE_SHEETS_BATCH_GET_VALUES = ToolSpec(
@@ -188,6 +194,7 @@ GOOGLE_SHEETS_BATCH_GET_VALUES = ToolSpec(
     cache_ttl_seconds=15,
     rate_limit=_READ_RATE_LIMIT,
     examples=("read multiple ranges", "get headers and totals from different sheets"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.batch_get_values"],
 )
 
 GOOGLE_SHEETS_UPDATE_VALUES = ToolSpec(
@@ -215,6 +222,7 @@ GOOGLE_SHEETS_UPDATE_VALUES = ToolSpec(
     tags=("google", "sheets", "write", "values"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("write to cells", "update spreadsheet range", "set cell B5 to 100", "put formula in C1"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.update_values"],
 )
 
 GOOGLE_SHEETS_APPEND_VALUES = ToolSpec(
@@ -246,6 +254,7 @@ GOOGLE_SHEETS_APPEND_VALUES = ToolSpec(
     tags=("google", "sheets", "write", "values"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("append row to sheet", "add new entry to spreadsheet", "log data to google sheet"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.append_values"],
 )
 
 GOOGLE_SHEETS_CLEAR_VALUES = ToolSpec(
@@ -264,6 +273,7 @@ GOOGLE_SHEETS_CLEAR_VALUES = ToolSpec(
     tags=("google", "sheets", "write", "values"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("clear cells", "erase range A2:D100"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.clear_values"],
 )
 
 GOOGLE_SHEETS_BATCH_UPDATE_VALUES = ToolSpec(
@@ -295,6 +305,7 @@ GOOGLE_SHEETS_BATCH_UPDATE_VALUES = ToolSpec(
     tags=("google", "sheets", "write", "values"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("batch update cells", "write headers and footer in one call"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.batch_update_values"],
 )
 
 GOOGLE_SHEETS_BATCH_CLEAR_VALUES = ToolSpec(
@@ -315,6 +326,7 @@ GOOGLE_SHEETS_BATCH_CLEAR_VALUES = ToolSpec(
     tags=("google", "sheets", "write", "values"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("clear multiple ranges", "reset several sections"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.batch_clear_values"],
 )
 
 SHEETS_WAVE1_TOOL_NAMES: tuple[str, ...] = tuple(

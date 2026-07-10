@@ -1,0 +1,199 @@
+phase_plan:
+  planner_id: unit
+  summary: Создать Google-таблицу «Ташкент — кофейни для работы», найти 5 подходящих заведений, заполнить строки данными и дать краткий вердикт.
+  phase_count: 7
+  phases:
+    - id: p1
+      name: Создание таблицы и заголовков
+      goal: Создать новый Google Sheet с названием «Ташкент — кофейни для работы», добавить заголовки в первую строку.
+      logical_blocks:
+        - Создать таблицу
+        - Установить заголовки: Название, Район/Адрес, Часы работы, Wi-Fi, Розетки, Цена эспрессо, Источник
+        - Получить и сохранить ID/URL таблицы
+      entry_condition: Нет таблицы
+      exit_condition: Таблица создана, заголовки заполнены, ID таблицы известен
+      collapse_risk: low
+      must_persist_before_exit:
+        - ID таблицы
+        - URL таблицы
+      context_notes: ID таблицы потребуется во всех последующих фазах записи.
+
+    - id: p2
+      name: Кофейня 1
+      goal: Найти первую кофейню/коворкинг в Ташкенте для работы с ноутбуком, собрать требуемые поля и записать в строку 2.
+      logical_blocks:
+        - Веб-поиск заведения
+        - Извлечь название, адрес, часы, наличие Wi-Fi и розеток, цену эспрессо, ссылку
+        - Записать данные в строку 2 таблицы
+      entry_condition: Таблица с заголовками существует
+      exit_condition: Строка 2 заполнена данными первой кофейни
+      collapse_risk: medium
+      must_persist_before_exit:
+        - Данные строки 2 в таблице
+      context_notes: Не начинать следующую кофейню до записи этой.
+
+    - id: p3
+      name: Кофейня 2
+      goal: Найти вторую кофейню/коворкинг в Ташкенте для работы с ноутбуком, собрать требуемые поля и записать в строку 3.
+      logical_blocks:
+        - Веб-поиск заведения
+        - Извлечь поля
+        - Записать в строку 3
+      entry_condition: Строка 2 заполнена
+      exit_condition: Строка 3 заполнена данными второй кофейни
+      collapse_risk: medium
+      must_persist_before_exit:
+        - Данные строки 3 в таблице
+      context_notes: ""
+
+    - id: p4
+      name: Кофейня 3
+      goal: Найти третью кофейню/коворкинг в Ташкенте для работы с ноутбуком, собрать требуемые поля и записать в строку 4.
+      logical_blocks:
+        - Веб-поиск заведения
+        - Извлечь поля
+        - Записать в строку 4
+      entry_condition: Строка 3 заполнена
+      exit_condition: Строка 4 заполнена данными третьей кофейни
+      collapse_risk: medium
+      must_persist_before_exit:
+        - Данные строки 4 в таблице
+      context_notes: ""
+
+    - id: p5
+      name: Кофейня 4
+      goal: Найти четвертую кофейню/коворкинг в Ташкенте для работы с ноутбуком, собрать требуемые поля и записать в строку 5.
+      logical_blocks:
+        - Веб-поиск заведения
+        - Извлечь поля
+        - Записать в строку 5
+      entry_condition: Строка 4 заполнена
+      exit_condition: Строка 5 заполнена данными четвертой кофейни
+      collapse_risk: medium
+      must_persist_before_exit:
+        - Данные строки 5 в таблице
+      context_notes: ""
+
+    - id: p6
+      name: Кофейня 5
+      goal: Найти пятую кофейню/коворкинг в Ташкенте для работы с ноутбуком, собрать требуемые поля и записать в строку 6.
+      logical_blocks:
+        - Веб-поиск заведения
+        - Извлечь поля
+        - Записать в строку 6
+      entry_condition: Строка 5 заполнена
+      exit_condition: Строка 6 заполнена данными пятой кофейни
+      collapse_risk: medium
+      must_persist_before_exit:
+        - Данные строки 6 в таблице
+      context_notes: ""
+
+    - id: p7
+      name: Вердикт и доставка
+      goal: Сравнить 5 записанных кофеен и выдать короткий вердикт, какая лучше для длинной работы.
+      logical_blocks:
+        - Прочитать все 5 строк из таблицы
+        - Сравнить по Wi-Fi, розеткам, ценам, часы
+        - Сформировать 2-3 предложения с рекомендацией
+        - Выдать сообщение пользователю
+      entry_condition: Все 5 строк заполнены
+      exit_condition: Пользователь получил короткое сообщение с вердиктом
+      collapse_risk: low
+      must_persist_before_exit:
+        - Сообщение с вердиктом (доставлено или записано)
+      context_notes: Если чтение из таблицы невозможно, использовать ID таблицы для доступа.
+
+Wait, does the user want the message delivered to Telegram? The prompt says "В конце — короткое сообщение". Since it's a chat interaction, just returning it in the response is fine. But the planner can say "deliver to user". I should not mention Telegram unless necessary. The output should just be the YAML.
+
+Also, I need to make sure the YAML is valid and doesn't contain any markdown code fences. The first line must be `phase_plan:`.
+
+Let me double check the constraints:
+- Only valid YAML
+- No thinking text
+- No markdown code fences
+- First line starts with `phase_plan:` or `master_phase_plan:`
+- Top-level keys: phase_plan with planner_id, summary, phase_count, phases
+- Each phase: id, name, goal, logical_blocks, entry_condition, exit_condition, collapse_risk, must_persist_before_exit, context_notes
+
+I should ensure no special characters break YAML. Use quotes if needed.
+
+Also, the planner is "P1 — Unit / Substance". So planner_id should be "unit".
+
+Let me refine the content. The user asked in Russian, so the plan should be in Russian.
+
+One thing: the user wants "Один таб". So in phase 1, make sure there is only one tab/sheet. Default is fine, but maybe rename it or ensure it's just one.
+
+Let me write the final YAML.
+
+phase_plan:
+  planner_id: unit
+  summary: Создать Google-таблицу «Ташкент — кофейни для работы», найти 5 подходящих кофеен/коворкингов, заполнить строки данными и дать краткий вердикт.
+  phase_count: 7
+  phases:
+    - id: p1
+      name: Создание таблицы и заголовков
+      goal: Создать новый Google Sheet с названием «Ташкент — кофейни для работы», оставить один таб, установить заголовки в первой строке.
+      logical_blocks:
+        - Создать таблицу
+        - Установить один таб
+        - Записать заголовки в строку 1 (Название, Район/Адрес, Часы работы, Wi-Fi, Розетки, Цена эспрессо, Источник)
+        - Зафиксировать ID и URL таблицы
+      entry_condition: Нет существующей таблицы для этой задачи
+      exit_condition: Таблица создана, заголовки в строке 1, ID таблицы доступен
+      collapse_risk: low
+      must_persist_before_exit:
+        - ID таблицы
+        - URL таблицы
+      context_notes: ID таблицы необходим для всех последующих записей.
+
+    - id: p2
+      name: Кофейня 1
+      goal: Найти первую кофейню/коворкинг в Ташкенте для работы с ноутбуком, извлечь требуемые поля и записать в строку 2.
+      logical_blocks:
+        - Поиск в интернете заведения в Ташкенте с возможностью работы с ноутбуком
+        - Извлечь название, район/адрес, часы, Wi-Fi, розетки, цену эспрессо, ссылку
+        - Записать данные в строку 2 таблицы
+      entry_condition: Таблица с заголовками существует
+      exit_condition: Строка 2 таблицы содержит данные первой кофейни
+      collapse_risk: medium
+      must_persist_before_exit:
+        - Данные строки 2 в таблице
+      context_notes: Данные должны быть сохранены в таблице до перехода к следующей фазе.
+
+    - id: p3
+      name: Кофейня 2
+      goal: Найти вторую кофейню/коворкинг в Ташкенте для работы с ноутбуком, извлечь требуемые поля и записать в строку 3.
+      logical_blocks:
+        - Поиск в интернете заведения
+        - Извлечь поля
+        - Записать в строку 3 таблицы
+      entry_condition: Строка 2 заполнена
+      exit_condition: Строка 3 таблицы содержит данные второй кофейни
+      collapse_risk: medium
+      must_persist_before_exit:
+        - Данные строки 3 в таблице
+      context_notes: ""
+
+    - id: p4
+      name: Кофейня 3
+      goal: Найти третью кофейню/коворкинг в Ташкенте для работы с ноутбуком, извлечь требуемые поля и записать в строку 4.
+      logical_blocks:
+        - Поиск в интернете заведения
+        - Извлечь поля
+        - Записать в строку 4 таблицы
+      entry_condition: Строка 3 заполнена
+      exit_condition: Строка 4 таблицы содержит данные третьей кофейни
+      collapse_risk: medium
+      must_persist_before_exit:
+        - Данные строки 4 в таблице
+      context_notes: ""
+
+    - id: p5
+      name: Кофейня 4
+      goal: Найти четвертую кофейню/коворкинг в Ташкенте для работы с ноутбуком, извлечь требуемые поля и записать в строку 5.
+      logical_blocks:
+        - Поиск в интернете заведения
+        - Извлечь поля
+        - Записать в строку 5 таблицы
+      entry_condition: Строка 4 заполнена
+      exit_condition: Строка 5 таблицы содержит дан

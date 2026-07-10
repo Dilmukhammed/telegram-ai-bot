@@ -5,7 +5,7 @@ import logging
 
 from config import Settings
 from llm import LLMClient
-from tools.tool_results.families import summarize_system_prompt, tool_family
+from tools.tool_results.families import summarize_arguments_system_prompt, summarize_system_prompt, tool_family
 from tools.tool_results.store import ToolResultStore
 
 logger = logging.getLogger(__name__)
@@ -15,6 +15,24 @@ SUMMARIZE_STATUS_OK = "ok"
 SUMMARIZE_STATUS_UNAVAILABLE = "unavailable"
 SUMMARIZE_STATUS_FAILED = "failed"
 SUMMARIZE_STATUS_PENDING = "pending"
+
+
+def _maybe_index_tool_result(store: ToolResultStore, ref: str) -> None:
+    record = store.get_by_ref(ref)
+    if record is None or not record.summary:
+        return
+    from bot.chat_store import get_chat_store
+    from bot.chat_index.sync import enqueue_index_tool_result
+
+    enqueue_index_tool_result(
+        get_chat_store(),
+        user_id=record.user_id,
+        display_ref=record.display_ref,
+        tool_name=record.tool_name,
+        summary=record.summary,
+        payload_json=record.payload_json,
+        run_id=record.run_id,
+    )
 
 
 def summary_ready_for_collapse(status: str, summary: str | None) -> bool:
@@ -65,16 +83,25 @@ async def summarize_tool_result(
     tool_name: str,
     args_json: str | None,
     payload_json: str,
+    payload_kind: str = "result",
 ) -> None:
     family = tool_family(tool_name)
-    system = summarize_system_prompt(family)
-    user_parts = [f"Tool: {tool_name}"]
-    if args_json:
-        user_parts.append(f"Arguments: {args_json}")
-    user_parts.append(
-        "Result JSON:\n"
-        + _truncate_for_summarize(payload_json, settings.tool_result_summarize_max_input_chars)
-    )
+    if payload_kind == "arguments":
+        system = summarize_arguments_system_prompt(family)
+        user_parts = [f"Tool call: {tool_name}"]
+        user_parts.append(
+            "Arguments JSON:\n"
+            + _truncate_for_summarize(payload_json, settings.tool_result_summarize_max_input_chars)
+        )
+    else:
+        system = summarize_system_prompt(family)
+        user_parts = [f"Tool: {tool_name}"]
+        if args_json:
+            user_parts.append(f"Arguments: {args_json}")
+        user_parts.append(
+            "Result JSON:\n"
+            + _truncate_for_summarize(payload_json, settings.tool_result_summarize_max_input_chars)
+        )
     messages = [
         {"role": "system", "content": system},
         {"role": "user", "content": "\n\n".join(user_parts)},
@@ -96,6 +123,7 @@ async def summarize_tool_result(
                     summarize_status=SUMMARIZE_STATUS_OK,
                     summarize_attempts=attempt,
                 )
+                _maybe_index_tool_result(store, ref)
                 logger.info(
                     "tool_result_summarize ok ref=%s tool=%s attempt=%s chars=%s",
                     ref,

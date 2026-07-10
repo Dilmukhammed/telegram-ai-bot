@@ -1,4 +1,3 @@
-from collections import defaultdict
 from datetime import datetime, timezone
 import logging
 from typing import Any
@@ -7,6 +6,9 @@ from agent.context_collapse import collapse_duplicate_use_tool_calls
 from agent.loop import Agent
 from agent.reply_markup import build_reply_markup
 from bot.chat_response import ChatResponse
+from bot.chat_store import ChatStore, get_chat_store
+from bot.chat_store.sessions import ArchiveReason
+from bot.chat_store.summary import enqueue_session_summary
 from bot.history_persist import trim_history_to_turns
 from bot.message_gap import prefix_message_if_gap
 from bot.vision import history_text_for_image_turn
@@ -64,9 +66,15 @@ def _count_turns(messages: list[dict[str, Any]]) -> int:
 
 
 class ChatService:
-    def __init__(self, agent: Agent) -> None:
+    def __init__(
+        self,
+        agent: Agent,
+        *,
+        chat_store: ChatStore | None = None,
+    ) -> None:
         self._agent = agent
-        self._histories: dict[int, list[dict[str, Any]]] = defaultdict(list)
+        self._chat_store = chat_store or get_chat_store()
+        self._histories: dict[int, list[dict[str, Any]]] = {}
         self._last_message_at: dict[int, datetime] = {}
 
     def stats_report(self, runtime: ToolRuntime) -> str:
@@ -90,26 +98,77 @@ class ChatService:
     def trace_last_report(self, user_id: int) -> str:
         return self._agent.trace_last_report(user_id)
 
-    def reset_history(self, user_id: int) -> int:
-        had_history = user_id in self._histories
+    def coach_last_report(self, user_id: int) -> str:
+        return self._agent.coach_last_report(user_id)
+
+    def checker_last_report(self, user_id: int) -> str:
+        return self._agent.checker_last_report(user_id)
+
+    def reset_history(
+        self,
+        user_id: int,
+        *,
+        closed_by: ArchiveReason = "reset",
+    ) -> int:
+        active = self._chat_store.get_active_session(user_id)
         previous_count = len(self._histories.get(user_id, []))
+        if active is None and previous_count == 0:
+            had_history = False
+        else:
+            had_history = previous_count > 0 or (active is not None and active.message_count > 0)
+
+        if active is not None and active.message_count > 0:
+            archived, _created = self._chat_store.archive_and_create_active(
+                user_id,
+                closed_by=closed_by,
+            )
+            if archived is not None:
+                logger.info(
+                    "chat_session_archived user_id=%s session_id=%s messages=%s closed_by=%s",
+                    user_id,
+                    archived.session_id,
+                    archived.message_count,
+                    closed_by,
+                )
+                enqueue_session_summary(self._chat_store, archived.session_id)
+
         self._histories.pop(user_id, None)
         self._last_message_at.pop(user_id, None)
         SkillSessionStore.reset(user_id)
         from tools.tool_results.store import get_tool_result_store
+        from bot.chat_index.sync import delete_tool_result_chunks_for_user
 
         deleted = get_tool_result_store().delete_for_user(user_id)
+        delete_tool_result_chunks_for_user(self._chat_store, user_id)
         if deleted:
             logger.info("tool_result_archive_reset user_id=%s deleted=%s", user_id, deleted)
         if had_history:
             logger.info(
-                "chat_history_reset user_id=%s cleared_messages=%s",
+                "chat_history_reset user_id=%s cleared_messages=%s closed_by=%s",
                 user_id,
-                previous_count,
+                previous_count or (active.message_count if active else 0),
+                closed_by,
             )
         return deleted
 
     def get_history(self, user_id: int) -> list[dict[str, Any]]:
+        if user_id not in self._histories:
+            settings = get_settings()
+            session, history, last_user_at = self._chat_store.load_active_history_for_prompt(
+                user_id,
+                max_turns=settings.chat_max_history,
+            )
+            self._histories[user_id] = history
+            if last_user_at is not None:
+                self._last_message_at[user_id] = last_user_at
+            if history:
+                logger.info(
+                    "chat_history_loaded user_id=%s session_id=%s messages=%s turns=%s",
+                    user_id,
+                    session.session_id if session else None,
+                    len(history),
+                    _count_turns(history),
+                )
         return self._histories[user_id]
 
     def _log_history_snapshot(self, *, user_id: int, stage: str, history: list[dict[str, Any]]) -> None:
@@ -144,11 +203,53 @@ class ChatService:
         self._last_message_at[user_id] = message_at
         return prepared
 
-    def append_turn_messages(self, user_id: int, turn_messages: list[dict[str, Any]]) -> None:
+    def append_turn_messages(
+        self,
+        user_id: int,
+        turn_messages: list[dict[str, Any]],
+        *,
+        user_message_at: datetime | None = None,
+        user_message_metadata: dict[str, Any] | None = None,
+    ) -> None:
         if not turn_messages:
             return
 
-        history = self._histories[user_id]
+        session = self._chat_store.get_or_create_active_session(user_id)
+        turn_finished_at = datetime.now(timezone.utc)
+        user_at = user_message_at or self._last_message_at.get(user_id) or turn_finished_at
+        if user_at.tzinfo is None:
+            user_at = user_at.replace(tzinfo=timezone.utc)
+
+        source_at_for_message: list[datetime | None] = []
+        metadata_for_message: list[dict[str, Any] | None] = []
+        for index, message in enumerate(turn_messages):
+            if index == 0 and message.get("role") == "user":
+                source_at_for_message.append(user_at)
+                metadata_for_message.append(user_message_metadata)
+            else:
+                source_at_for_message.append(turn_finished_at)
+                metadata_for_message.append(None)
+
+        inserted_ids = self._chat_store.append_messages(
+            session.session_id,
+            user_id,
+            turn_messages,
+            source_at_for_message=source_at_for_message,
+            metadata_for_message=metadata_for_message,
+        )
+
+        from bot.memory_chat_adapter import notify_chat_ingested
+
+        notify_chat_ingested(user_id=user_id, message_ids=inserted_ids)
+
+        from bot.chat_index.sync import enqueue_index_session
+
+        enqueue_index_session(self._chat_store, session.session_id)
+
+        history = self._histories.get(user_id)
+        if history is None:
+            history = []
+            self._histories[user_id] = history
         history.extend(turn_messages)
         collapse_duplicate_use_tool_calls(history)
 
@@ -189,6 +290,8 @@ class ChatService:
         message_at: datetime | None = None,
         *,
         image_data_urls: list[str] | None = None,
+        telegram_message_id: int | None = None,
+        telegram_chat_id: int | None = None,
     ) -> ChatResponse:
         if message_at is None:
             message_at = datetime.now(timezone.utc)
@@ -213,10 +316,28 @@ class ChatService:
             if image_data_urls
             else prepared_text
         )
+        user_metadata: dict[str, Any] = {}
+        if telegram_message_id is not None:
+            user_metadata["telegram_message_id"] = telegram_message_id
+        if telegram_chat_id is not None:
+            user_metadata["telegram_chat_id"] = telegram_chat_id
         self.append_turn_messages(
             user_id,
             [{"role": "user", "content": history_text}, *result.worker_history],
+            user_message_at=message_at,
+            user_message_metadata=user_metadata or None,
         )
+        trace = self._agent.last_trace(user_id)
+        if trace is not None:
+            session = self._chat_store.get_active_session(user_id)
+            if session is not None:
+                self._chat_store.append_session_trace(
+                    session.session_id,
+                    user_id,
+                    trace=trace,
+                    assistant_reply=result.reply,
+                    source_at=message_at,
+                )
         apply_skill_run_snapshot(user_id, result.skill_snapshot)
         self._log_history_snapshot(user_id=user_id, stage="after_agent", history=self.get_history(user_id))
         return ChatResponse(

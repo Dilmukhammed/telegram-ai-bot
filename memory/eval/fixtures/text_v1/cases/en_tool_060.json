@@ -1,0 +1,100 @@
+{
+  "schema_version": "1",
+  "fixture_id": "en_tool_060",
+  "title": "Tool arguments are not user preference",
+  "tier": "full",
+  "language": "en",
+  "criticality": "normal",
+  "slice_tags": [
+    "exact_tool_result",
+    "wrong_speaker_hearsay",
+    "hard_negative"
+  ],
+  "reference_time": "2026-07-10T12:00:00+05:00",
+  "timezone": "Asia/Tashkent",
+  "users": [
+    {
+      "user_alias": "u1",
+      "user_id": 1060,
+      "display_name": "Synthetic User",
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "t1",
+      "kind": "tool_result",
+      "user_alias": "u1",
+      "tool_name": "google.maps.search",
+      "payload_kind": "arguments",
+      "payload_json": "{\"query\":\"vegan restaurants\",\"location\":\"Boston\"}",
+      "ok": true,
+      "cached": false,
+      "occurred_at": "2026-07-10T09:00:00+05:00"
+    }
+  ],
+  "expected": {
+    "sources": [
+      {
+        "source_event": "t1",
+        "source_type": "tool_result",
+        "source_ref_alias": "t1",
+        "authority_class": "assistant_tool_arguments",
+        "content_hash_rule": "sha256_raw_payload",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "t1"
+        },
+        "normalization_job_status": "done"
+      }
+    ],
+    "segments": [
+      {
+        "source_event": "t1",
+        "segment_type": "tool_payload",
+        "ordinal": 0,
+        "text": "{\"query\":\"vegan restaurants\",\"location\":\"Boston\"}",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "t1"
+        }
+      }
+    ],
+    "mentions": [],
+    "candidates": [],
+    "forbidden_candidates": [
+      {
+        "kind": "preference"
+      },
+      {
+        "kind": "relation",
+        "schema_name": "lives_in"
+      },
+      {
+        "kind": "state",
+        "schema_name": "located_at"
+      }
+    ],
+    "expect_abstention": true,
+    "forbidden_sources": [
+      {
+        "source_type": "tool_summary"
+      }
+    ],
+    "forbidden_segments": [
+      {
+        "segment_type": "tool_summary"
+      }
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "Awaiting human gold-corpus sign-off."
+    ]
+  }
+}

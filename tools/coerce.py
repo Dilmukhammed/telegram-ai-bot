@@ -35,7 +35,9 @@ def normalize_use_tool_call(raw: dict[str, Any]) -> tuple[str, dict[str, Any]]:
             _raw_args = json.loads(_raw_args)
         except json.JSONDecodeError:
             _raw_args = {}
-    inner = dict(_raw_args or {})
+    if not isinstance(_raw_args, dict):
+        _raw_args = {}
+    inner = dict(_raw_args)
 
     if not tool_name and inner.get("tool_name") is not None:
         tool_name = _coerce_str(inner.pop("tool_name"))
@@ -74,6 +76,8 @@ def normalize_use_tool_call(raw: dict[str, Any]) -> tuple[str, dict[str, Any]]:
 
     if tool_name == "exa.web_fetch":
         urls = inner.get("urls")
+        if urls is None and inner.get("url") is not None:
+            urls = inner.get("url")
         if isinstance(urls, str):
             inner = {"urls": [urls]}
         elif isinstance(urls, list):

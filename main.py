@@ -3,10 +3,15 @@ import logging
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandStart
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, Message
 
 from agent.loop import Agent
+from bot.access_control import AccessControlMiddleware
+from bot.access_service import get_access_service
 from bot.chat_service import ChatService
+from bot.chat_store.migrate_v1 import run_v1_migration_if_needed
+from bot.google_connect_flow import start_google_connect, try_handle_google_email
+from bot.instance_lock import BotInstanceLockError, acquire_instance_lock
 from bot.inbound_files import save_telegram_document, save_telegram_photo
 from bot.yandex_connect import begin_yandex_connect, yandex_status_text
 from bot.reply import reply_to_user_text, reset_user_queue, send_transcription_to_chat
@@ -22,15 +27,12 @@ from tools.bootstrap import get_tool_runtime
 from tools.tool_results.maintenance import run_tool_result_maintenance, tool_result_cleanup_loop
 from tools.builtins.google.auth import (
     auth_status_payload,
-    build_authorization_url,
     complete_oauth,
     extract_oauth_code_from_text,
     extract_oauth_state_from_text,
     looks_like_manual_oauth_callback,
-    missing_oauth_scopes,
     revoke_and_delete,
 )
-from tools.builtins.google.token_store import get_token_store
 from tools.builtins.yandex.auth import revoke_and_delete as revoke_yandex
 from tools.phase4_config import admin_user_ids
 
@@ -40,8 +42,29 @@ logger = logging.getLogger(__name__)
 
 async def main() -> None:
     settings = get_settings(require_telegram_token=True)
+    instance_lock = None
+    if settings.instance_lock_enabled:
+        try:
+            instance_lock = acquire_instance_lock(settings.instance_lock_path)
+        except BotInstanceLockError as exc:
+            logger.error("%s", exc)
+            raise SystemExit(1) from exc
+
     runtime = await get_tool_runtime()
+    migration = run_v1_migration_if_needed()
+    if migration.applied:
+        logger.info(
+            "chat_v1_migration startup users=%s messages=%s backup=%s",
+            migration.users_migrated,
+            migration.messages_migrated,
+            migration.backup_path,
+        )
+    elif migration.reason not in {"disabled", "already migrated"}:
+        logger.info("chat_v1_migration skipped reason=%s", migration.reason)
+
     chat_service = ChatService(Agent(settings, runtime))
+    memory_service = None
+    memory_ingest_runtime = None
 
     oauth_runner = None
     if google_oauth_configured() and not google_oauth_manual_mode():
@@ -56,6 +79,7 @@ async def main() -> None:
 
     bot = Bot(token=settings.telegram_bot_token)
     dp = Dispatcher()
+    dp.message.middleware(AccessControlMiddleware())
 
     def oauth_start_url(user_id: int) -> str:
         settings = get_settings()
@@ -68,16 +92,20 @@ async def main() -> None:
 
     @dp.message(CommandStart())
     async def on_start(message: Message) -> None:
-        chat_service.reset_history(message.from_user.id)
+        chat_service.reset_history(message.from_user.id, closed_by="start")
         reset_user_queue(message.from_user.id)
         await message.answer(
             "Привет. Я AI-чат бот с доступом в интернет.\n\n"
             "Пиши текст, отправляй голосовое, фото или 📍 геолокацию — отвечу.\n"
             "/reset — очистить историю\n"
+            "/sessions — список сохранённых сессий\n"
+            "/session &lt;id&gt; — summary сессии\n"
             "/demo — пример форматирования\n"
             "/demo_rich — multi-block POC (текст + фото + collage + …)\n"
             "/stats — контекст: модель, токены (admin)\n"
             "/trace_last — последний RunTrace (admin)\n"
+            "/coach_last — что именно получил trajectory coach (admin)\n"
+            "/checker_last — последний tool checker review (admin)\n"
             "/dump_context — сохранить историю в data/context_dump.json (admin)\n"
             "/connect_google — подключить Google (Calendar, Gmail, Drive, Sheets, Tasks)\n"
             "/google_callback — вставить URL после OAuth\n"
@@ -98,6 +126,33 @@ async def main() -> None:
             )
         else:
             await message.answer("История диалога очищена.")
+
+    @dp.message(Command("sessions"))
+    async def on_sessions(message: Message) -> None:
+        from bot.chat_commands import format_sessions_list
+        from bot.chat_store import get_chat_store
+
+        store = get_chat_store()
+        sessions = store.list_sessions(message.from_user.id, limit=20)
+        await message.answer(format_sessions_list(sessions))
+
+    @dp.message(Command("session"))
+    async def on_session(message: Message) -> None:
+        from bot.chat_commands import format_session_detail
+        from bot.chat_store import get_chat_store
+
+        parts = (message.text or "").split(maxsplit=1)
+        if len(parts) < 2 or not parts[1].strip():
+            await message.answer("Usage: /session <session_id>")
+            return
+        session_id = parts[1].strip()
+        store = get_chat_store()
+        session = store.get_session_for_user(session_id, message.from_user.id)
+        if session is None:
+            await message.answer("Session not found.")
+            return
+        trace_count = store.count_session_traces(session_id)
+        await message.answer(format_session_detail(session, trace_count=trace_count))
 
     @dp.message(Command("demo"))
     async def on_demo(message: Message) -> None:
@@ -135,6 +190,40 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
         )
         await streamer.stream_status("Собираю multi-block POC…")
         await streamer.finalize(build_rich_blocks_demo_markdown())
+
+    @dp.message(Command("memory_status"))
+    async def on_memory_status(message: Message) -> None:
+        admins = admin_user_ids()
+        if not admins or message.from_user.id not in admins:
+            await message.answer("Нет доступа. Добавь свой Telegram user id в ADMIN_USER_IDS.")
+            return
+        if memory_service is None:
+            await message.answer(
+                "Graph memory не активна (MEMORY_INGEST_ENABLED=0, MEMORY_WORKER_ENABLED=0)."
+            )
+            return
+        from bot.memory_commands import format_memory_status
+
+        text = format_memory_status(
+            service=memory_service,
+            ingest_runtime=memory_ingest_runtime,
+            ingest_enabled=settings.memory_ingest_enabled,
+            worker_enabled=settings.memory_worker_enabled,
+            extraction_enabled=settings.memory_extraction_enabled,
+        )
+        await message.answer(text[:4000])
+
+    @dp.message(Command("memory_scan_once"))
+    async def on_memory_scan_once(message: Message) -> None:
+        admins = admin_user_ids()
+        if not admins or message.from_user.id not in admins:
+            await message.answer("Нет доступа. Добавь свой Telegram user id в ADMIN_USER_IDS.")
+            return
+        if memory_ingest_runtime is None:
+            await message.answer("Ingestion выключен (MEMORY_INGEST_ENABLED=0).")
+            return
+        memory_ingest_runtime.wake_scanner()
+        await message.answer("Scanner wake queued.")
 
     @dp.message(Command("stats"))
     async def on_stats(message: Message) -> None:
@@ -202,21 +291,35 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
         )
         await streamer.finalize(chat_service.trace_last_report(message.from_user.id))
 
-    def connect_google_instructions(url: str) -> str:
-        if google_oauth_manual_mode():
-            return (
-                "Подключение Google Calendar, Gmail, Drive, Sheets и Tasks:\n\n"
-                f"1. Открой ссылку (телефон или комп):\n{url}\n\n"
-                "2. Войди в Google и разреши доступ к календарю, почте и Drive.\n\n"
-                "3. Браузер перейдёт на localhost и покажет ошибку — это нормально.\n\n"
-                "4. Скопируй **весь URL** из адресной строки и пришли сюда "
-                "(или `/google_callback <url>`)."
-            )
-        return (
-            "Подключение Google Calendar, Gmail, Drive, Sheets и Tasks:\n"
-            f"Открой ссылку с любого устройства:\n{url}\n\n"
-            "После логина Google пришлю подтверждение сюда в Telegram."
+    @dp.message(Command("coach_last"))
+    async def on_coach_last(message: Message) -> None:
+        admins = admin_user_ids()
+        if not admins or message.from_user.id not in admins:
+            await message.answer("Нет доступа. Добавь свой Telegram user id в ADMIN_USER_IDS.")
+            return
+
+        streamer = TelegramDraftStreamer(
+            bot=bot,
+            chat_id=message.chat.id,
+            draft_id=message.message_id,
+            message_thread_id=message.message_thread_id,
         )
+        await streamer.finalize(chat_service.coach_last_report(message.from_user.id))
+
+    @dp.message(Command("checker_last"))
+    async def on_checker_last(message: Message) -> None:
+        admins = admin_user_ids()
+        if not admins or message.from_user.id not in admins:
+            await message.answer("Нет доступа. Добавь свой Telegram user id в ADMIN_USER_IDS.")
+            return
+
+        streamer = TelegramDraftStreamer(
+            bot=bot,
+            chat_id=message.chat.id,
+            draft_id=message.message_id,
+            message_thread_id=message.message_thread_id,
+        )
+        await streamer.finalize(chat_service.checker_last_report(message.from_user.id))
 
     async def finish_google_connect(message: Message, code: str, *, source_text: str = "") -> None:
         if source_text:
@@ -242,25 +345,7 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
 
     @dp.message(Command("connect_google"))
     async def on_connect_google(message: Message) -> None:
-        if not google_oauth_configured():
-            await message.answer("Google OAuth не настроен. Добавь GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET в .env")
-            return
-        user_id = message.from_user.id
-        stored = get_token_store().get(user_id)
-        missing = missing_oauth_scopes(stored)
-        prefix = ""
-        if missing:
-            await revoke_and_delete(user_id)
-            short = ", ".join(scope.rsplit("/", 1)[-1] for scope in missing)
-            prefix = (
-                f"Старый токен без: {short}. Сбросил подключение — "
-                "Google покажет полный consent заново.\n\n"
-            )
-        if google_oauth_manual_mode():
-            url = build_authorization_url(user_id)
-        else:
-            url = oauth_start_url(user_id)
-        await message.answer(prefix + connect_google_instructions(url))
+        await start_google_connect(message, oauth_start_url=oauth_start_url)
 
     @dp.message(Command("google_callback"))
     async def on_google_callback(message: Message) -> None:
@@ -447,10 +532,78 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
             user_text=user_text,
         )
 
+    @dp.callback_query(F.data.startswith("gacc:"))
+    async def on_google_access_callback(callback: CallbackQuery) -> None:
+        admins = admin_user_ids()
+        if not admins or callback.from_user.id not in admins:
+            await callback.answer("Нет доступа", show_alert=True)
+            return
+
+        user_id = get_access_service().parse_google_access_callback(callback.data or "")
+        if user_id is None:
+            await callback.answer("Неизвестная команда")
+            return
+
+        note = await get_access_service().verify_google_test_user(
+            callback.bot,
+            user_id,
+            admin_id=callback.from_user.id,
+            oauth_start_url=oauth_start_url,
+        )
+        await callback.answer(note[:200], show_alert=len(note) > 200)
+        if callback.message is not None:
+            try:
+                await callback.message.edit_reply_markup(reply_markup=None)
+            except Exception:
+                logger.debug("could not remove google verify buttons", exc_info=True)
+            await callback.message.answer(note)
+
+    @dp.callback_query(F.data.startswith("acc:"))
+    async def on_access_callback(callback: CallbackQuery) -> None:
+        admins = admin_user_ids()
+        if not admins or callback.from_user.id not in admins:
+            await callback.answer("Нет доступа", show_alert=True)
+            return
+
+        parsed = get_access_service().parse_access_callback(callback.data or "")
+        if parsed is None:
+            await callback.answer("Неизвестная команда")
+            return
+
+        action, user_id = parsed
+        access = get_access_service()
+        if action == "approve":
+            note = await access.approve_user(
+                callback.bot,
+                user_id,
+                admin_id=callback.from_user.id,
+            )
+        else:
+            note = await access.deny_user(
+                callback.bot,
+                user_id,
+                admin_id=callback.from_user.id,
+            )
+
+        await callback.answer(note[:200])
+        if callback.message is not None:
+            try:
+                await callback.message.edit_reply_markup(reply_markup=None)
+            except Exception:
+                logger.debug("could not remove access request buttons", exc_info=True)
+            await callback.message.answer(note)
+
     @dp.message(F.text & ~F.text.startswith("/"))
     async def on_text(message: Message) -> None:
         user_text = message.text.strip()
         if not user_text:
+            return
+
+        if await try_handle_google_email(
+            message,
+            bot,
+            oauth_start_url=oauth_start_url,
+        ):
             return
 
         if google_oauth_configured() and google_oauth_manual_mode():
@@ -476,12 +629,94 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
         if startup_deleted:
             logger.info("tool_result_archive startup purge deleted=%s", startup_deleted)
         asyncio.create_task(tool_result_cleanup_loop())
+    from bot.chat_index.startup import enqueue_chat_index_startup
+    from bot.chat_store.period_boundary import enqueue_period_boundary_loop
+
+    index_task = enqueue_chat_index_startup()
+    if index_task is not None:
+        logger.info("chat_index startup queued")
+    boundary_task = enqueue_period_boundary_loop()
+    if boundary_task is not None:
+        logger.info(
+            "chat_period_boundary loop queued tz=%s poll=%ss",
+            settings.bot_timezone,
+            settings.chat_period_summary_boundary_poll_seconds,
+        )
+    if (
+        settings.memory_ingest_enabled
+        or settings.memory_worker_enabled
+        or settings.memory_extraction_enabled
+    ):
+        from memory.service import create_memory_runtime
+
+        memory_service = create_memory_runtime()
+
+    if settings.memory_ingest_enabled:
+        from bot.chat_store import get_chat_store
+        from bot.memory_chat_adapter import ChatEvidenceAdapter, set_text_ingest_sink
+        from memory.config import memory_config_from_settings
+        from memory.ingestion.runtime import TextIngestionRuntime
+        from tools.tool_results.memory_adapter import ToolEvidenceAdapter, ToolMemoryLifecycleObserver
+        from tools.tool_results.store import get_tool_result_store
+
+        tool_store = get_tool_result_store()
+        memory_ingest_runtime = TextIngestionRuntime(
+            service=memory_service,
+            config=memory_config_from_settings(),
+            chat_reader=ChatEvidenceAdapter(get_chat_store()),
+            tool_reader=ToolEvidenceAdapter(tool_store),
+        )
+        set_text_ingest_sink(memory_ingest_runtime.sink)
+        tool_store.set_lifecycle_observer(
+            ToolMemoryLifecycleObserver(memory_ingest_runtime.sink)
+        )
+        await memory_ingest_runtime.start()
+        logger.info("memory ingest runtime started")
+
+    if settings.memory_extraction_enabled and memory_service is not None:
+        from memory.extraction.pipeline import LLMExtractionModel, register_text_extractor
+        from llm import LLMClient
+
+        extraction_client = LLMClient(
+            settings,
+            profile=settings.memory_extraction_model_profile,
+        )
+        register_text_extractor(
+            memory_service.registry,
+            service=memory_service,
+            model=LLMExtractionModel(
+                extraction_client,
+                model_profile=settings.memory_extraction_model_profile,
+                max_tokens=settings.memory_extraction_max_tokens,
+            ),
+            timezone=settings.bot_timezone,
+        )
+        logger.info("memory text extraction registered (shadow-only)")
+
+    if settings.memory_worker_enabled and memory_service is not None:
+        await memory_service.start_worker()
+        logger.info("memory worker started")
     logger.info(
         "Bot started with agent + rich streaming + %s + vision. Model: %s",
         voice_note,
         settings.openai_model,
     )
-    await dp.start_polling(bot)
+    try:
+        await dp.start_polling(bot)
+    finally:
+        if memory_ingest_runtime is not None:
+            from bot.memory_chat_adapter import set_text_ingest_sink
+            from tools.tool_results.store import get_tool_result_store
+
+            get_tool_result_store().set_lifecycle_observer(None)
+            set_text_ingest_sink(None)
+            await memory_ingest_runtime.stop(
+                grace_seconds=settings.memory_ingest_shutdown_grace_seconds
+            )
+        if memory_service is not None and settings.memory_worker_enabled:
+            await memory_service.stop_worker()
+        if instance_lock is not None:
+            instance_lock.release()
 
 
 if __name__ == "__main__":

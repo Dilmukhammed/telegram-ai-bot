@@ -8,11 +8,11 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from tools.coerce import normalize_use_tool_call
+from agent.coach_dialog import get_coach_worker_replies
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_RESULT_PREVIEW_CHARS = 400
-DEFAULT_SUPERVISOR_TEXT_CHARS = 12_000
 
 
 @dataclass
@@ -46,31 +46,39 @@ class RunTrace:
     failed_tools: list[str] = field(default_factory=list)
     repeated_patterns: list[str] = field(default_factory=list)
     progress_summary: str = ""
-
-    def to_supervisor_text(self, max_chars: int = DEFAULT_SUPERVISOR_TEXT_CHARS) -> str:
-        lines = [
-            f"Goal: {self.user_message}",
-            "",
-            f"Progress: {self.progress_summary or 'unknown'}",
-            f"Budget: {self.worker_turns_used}/{self.worker_turns_budget} worker turns used",
-        ]
-        if self.final_outcome:
-            lines.append(f"Outcome: {self.final_outcome}")
-        if self.repeated_patterns:
-            lines.append(f"Patterns: {'; '.join(self.repeated_patterns)}")
-        lines.append("")
-        for step in self.steps:
-            lines.append(_format_step_line(step))
-        text = "\n".join(lines)
-        if len(text) <= max_chars:
-            return text
-        truncated = text[: max_chars - 20].rstrip()
-        return f"{truncated}\n… [trace truncated]"
+    coach_reviews: list[dict[str, Any]] = field(default_factory=list)
+    worker_coach_replies: list[dict[str, Any]] = field(default_factory=list)
+    checker_reviews: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
         payload["steps"] = [asdict(step) for step in self.steps]
         return payload
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> RunTrace:
+        steps = [
+            ToolStep(**step)
+            for step in payload.get("steps") or []
+            if isinstance(step, dict)
+        ]
+        return cls(
+            user_id=payload.get("user_id"),
+            user_message=str(payload.get("user_message") or ""),
+            started_at=float(payload.get("started_at") or 0.0),
+            steps=steps,
+            worker_turns_used=int(payload.get("worker_turns_used") or 0),
+            worker_turns_budget=int(payload.get("worker_turns_budget") or 0),
+            final_outcome=payload.get("final_outcome"),
+            search_history=list(payload.get("search_history") or []),
+            successful_tools=list(payload.get("successful_tools") or []),
+            failed_tools=list(payload.get("failed_tools") or []),
+            repeated_patterns=list(payload.get("repeated_patterns") or []),
+            progress_summary=str(payload.get("progress_summary") or ""),
+            coach_reviews=list(payload.get("coach_reviews") or []),
+            worker_coach_replies=list(payload.get("worker_coach_replies") or []),
+            checker_reviews=list(payload.get("checker_reviews") or []),
+        )
 
 
 def _preview_result(result_json: str, max_chars: int = DEFAULT_RESULT_PREVIEW_CHARS) -> str:
@@ -135,30 +143,6 @@ def _search_summary(result_json: str) -> dict[str, Any]:
         "top_tools": tool_names[:5],
         "error": payload.get("error"),
     }
-
-
-def _format_step_line(step: ToolStep) -> str:
-    if step.meta_tool == "search_tools":
-        args = step.arguments_normalized
-        tags = args.get("tags") or []
-        tag_text = f" tags={tags}" if tags else ""
-        query = str(args.get("query", "")).strip()
-        query_text = f' query="{query}"' if query else ""
-        summary = _search_summary(step.result_json)
-        if summary.get("top_tools"):
-            result_text = f" → {summary['top_tools'][:3]}"
-        else:
-            result_text = f" → count={summary.get('count', 0)}"
-        if summary.get("error"):
-            result_text = f" → FAIL {summary['error']}"
-        return f"Turn {step.turn}: search_tools mode={args.get('mode')}{tag_text}{query_text}{result_text}"
-
-    target = step.target_tool or "use_tool"
-    ok_text = "ok" if step.result_ok else "FAIL"
-    if step.result_ok is None:
-        ok_text = "?"
-    err_text = f" — {step.result_error}" if step.result_error else ""
-    return f"Turn {step.turn}: use_tool {target} {ok_text}{err_text}"
 
 
 def _detect_repeated_patterns(steps: list[ToolStep]) -> list[str]:
@@ -241,10 +225,66 @@ class RunTraceCollector:
         self._worker_turns_used = 0
         self._final_outcome: str | None = None
         self._open_steps: dict[tuple[int, str], ToolStep] = {}
+        self._coach_reviews: list[dict[str, Any]] = []
+        self._checker_reviews: list[dict[str, Any]] = []
+        self._checker_dedup: set[str] = set()
 
     @property
     def user_id(self) -> int | None:
         return self._user_id
+
+    @property
+    def worker_turns_used(self) -> int:
+        return self._worker_turns_used
+
+    @property
+    def worker_turns_budget(self) -> int:
+        return self._worker_turns_budget
+
+    def checker_reviews_snapshot(self) -> tuple[dict[str, Any], ...]:
+        return tuple(dict(item) for item in self._checker_reviews)
+
+    @property
+    def checker_review_count(self) -> int:
+        return len(self._checker_reviews)
+
+    def record_coach_review(
+        self,
+        *,
+        turn: int,
+        tool_calls: int,
+        trace_input: str,
+        decision: Any,
+    ) -> None:
+        payload = decision.to_dict() if hasattr(decision, "to_dict") else dict(decision)
+        entry = {
+            "turn": turn,
+            "tool_calls": tool_calls,
+            "trace_input": trace_input,
+            **payload,
+        }
+        self._coach_reviews.append(entry)
+        logger.info(
+            "run_trace_coach turn=%s tool_calls=%s trace_chars=%s intervene=%s on_track=%s focus=%s",
+            turn,
+            tool_calls,
+            len(trace_input),
+            payload.get("intervene"),
+            payload.get("on_track"),
+            payload.get("focus_now") or "-",
+        )
+
+    def record_checker_review(self, review: Any) -> None:
+        payload = review.to_dict() if hasattr(review, "to_dict") else dict(review)
+        self._checker_reviews.append(payload)
+        logger.info(
+            "run_trace_checker turn=%s tool=%s overall=%s rule_based_only=%s verdicts=%s",
+            payload.get("turn"),
+            payload.get("tool_name"),
+            payload.get("overall"),
+            payload.get("rule_based_only"),
+            len(payload.get("verdicts") or []),
+        )
 
     def begin_worker_turn(self, turn: int) -> None:
         self._worker_turns_used = max(self._worker_turns_used, turn + 1)
@@ -284,13 +324,13 @@ class RunTraceCollector:
         call_id: str,
         result_json: str,
         duration_ms: int,
-    ) -> None:
+    ) -> ToolStep | None:
         step = self._open_steps.pop((turn + 1, call_id), None)
         if step is None and self._steps:
             step = self._steps[-1]
 
         if step is None:
-            return
+            return None
 
         ok, cached, error = _parse_result_fields(result_json)
         step.result_ok = ok
@@ -310,6 +350,23 @@ class RunTraceCollector:
             duration_ms,
             error,
         )
+        return step
+
+    def steps_before(self, step: ToolStep) -> tuple[ToolStep, ...]:
+        """Steps recorded before ``step`` (by identity), for evidence resolution."""
+        prior: list[ToolStep] = []
+        for candidate in self._steps:
+            if candidate is step:
+                break
+            prior.append(candidate)
+        return tuple(prior)
+
+    def register_checker_dedup(self, key: str) -> bool:
+        """Return True the first time ``key`` is seen this run (else False)."""
+        if key in self._checker_dedup:
+            return False
+        self._checker_dedup.add(key)
+        return True
 
     def mark_last_search_collapsed(self) -> None:
         for step in reversed(self._steps):
@@ -387,4 +444,7 @@ class RunTraceCollector:
             failed_tools=failed_tools,
             repeated_patterns=_detect_repeated_patterns(self._steps),
             progress_summary=_build_progress_summary(successful_tools),
+            coach_reviews=list(self._coach_reviews),
+            worker_coach_replies=[reply.to_dict() for reply in get_coach_worker_replies()],
+            checker_reviews=list(self._checker_reviews),
         )

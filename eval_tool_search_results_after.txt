@@ -1,0 +1,56 @@
+﻿## Provider: api
+
+- Cases: **37**
+- Hit@1: **70.3%**
+- Hit@3: **100.0%**
+- Hit@5: **100.0%**
+- MRR: **0.847**
+- Misses: **0**
+
+### Failures
+_none_
+
+### Found but not rank 1
+- #2 `Google Calendar upcoming events` -> `google.calendar.list_events` (want one of `('google.calendar.list_upcoming',)`)
+- #2 `search Google Calendar events` -> `exa.web_search` (want one of `('google.calendar.search_events',)`)
+- #2 `search Gmail messages` -> `exa.web_search` (want one of `('google.gmail.search_messages',)`)
+- #2 `Google Drive search files` -> `exa.web_search` (want one of `('google.drive.search_files',)`)
+- #2 `export Google Doc from Drive` -> `google.auth.connect_url` (want one of `('google.drive.export_file',)`)
+- #2 `Google Maps nearby places search` -> `exa.web_search` (want one of `('google.maps.places_nearby_search',)`)
+- #2 `reverse geocode coordinates to address` -> `google.maps.geocode` (want one of `('google.maps.reverse_geocode',)`)
+- #2 `Yandex OAuth connection status` -> `google.auth.status` (want one of `('yandex.auth.status',)`)
+- #2 `grep search workspace files` -> `exa.web_search` (want one of `('workspace.grep',)`)
+- #2 `send file to Telegram user` -> `google.gmail.send_message` (want one of `('telegram.send_file',)`)
+- #3 `list calendar events` -> `google.calendar.create_event` (want one of `('google.calendar.list_events',)`)
+
+## Provider: keyword
+
+- Cases: **37**
+- Hit@1: **48.6%**
+- Hit@3: **70.3%**
+- Hit@5: **73.0%**
+- MRR: **0.591**
+- Misses: **10**
+
+### Failures
+- `Google Calendar events today` -> expected `('google.calendar.list_today',)`; got `('google.auth.status', 'google.auth.connect_url', 'google.auth.disconnect', 'google.calendar.get_calendar', 'google.calendar.list_events')`
+- `Google Calendar upcoming events` -> expected `('google.calendar.list_upcoming',)`; got `('google.auth.status', 'google.auth.connect_url', 'google.auth.disconnect', 'google.calendar.get_calendar', 'google.calendar.list_events')`
+- `create Google Calendar event` -> expected `('google.calendar.create_event', 'google.calendar.quick_add_event')`; got `('google.auth.status', 'google.auth.connect_url', 'google.auth.disconnect', 'google.calendar.get_calendar', 'google.calendar.list_events')`
+- `Google Calendar free busy availability` -> expected `('google.calendar.freebusy', 'google.calendar.find_free_slots')`; got `('google.auth.status', 'google.auth.connect_url', 'google.auth.disconnect', 'google.calendar.get_calendar', 'google.calendar.list_events')`
+- `search Gmail messages` -> expected `('google.gmail.search_messages',)`; got `('exa.web_search', 'google.maps.places_text_search', 'google.maps.places_nearby_search', 'yandex.music.search', 'google.calendar.search_events')`
+- `Google Drive search files` -> expected `('google.drive.search_files',)`; got `('exa.web_search', 'google.maps.places_text_search', 'google.maps.places_nearby_search', 'yandex.music.search', 'google.calendar.search_events')`
+- `export Google Doc from Drive` -> expected `('google.drive.export_file',)`; got `('google.auth.status', 'google.auth.connect_url', 'google.auth.disconnect', 'google.calendar.get_calendar', 'google.calendar.list_events')`
+- `append rows Google Sheets` -> expected `('google.sheets.append_values',)`; got `('google.auth.status', 'google.auth.connect_url', 'google.auth.disconnect', 'google.calendar.get_calendar', 'google.calendar.list_events')`
+- `Google Tasks list tasks` -> expected `('google.tasks.list_tasks', 'google.tasks.list_default_tasks')`; got `('google.tasks.list_tasklists', 'google.tasks.get_tasklist', 'google.tasks.create_tasklist', 'google.tasks.update_tasklist', 'google.tasks.patch_tasklist')`
+- `Yandex Music user playlists` tags=['yandex', 'music'] -> expected `('yandex.music.users_playlists_list',)`; got `('yandex.music.metatag_playlists', 'yandex.music.new_playlists', 'yandex.music.playlists', 'yandex.music.playlists_collective_join', 'yandex.music.playlists_list')`
+
+### Found but not rank 1
+- #2 `reverse geocode coordinates to address` -> `google.maps.geocode` (want one of `('google.maps.reverse_geocode',)`)
+- #2 `download Yandex Music track mp3` -> `yandex.music.tracks_download_info` (want one of `('yandex.music.track_download',)`)
+- #2 `Yandex OAuth connection status` -> `google.auth.status` (want one of `('yandex.auth.status',)`)
+- #2 `grep search workspace files` -> `exa.web_search` (want one of `('workspace.grep',)`)
+- #2 `send file to Telegram user` -> `google.gmail.send_message` (want one of `('telegram.send_file',)`)
+- #2 `list calendar events` -> `google.calendar.get_calendar` (want one of `('google.calendar.list_events',)`)
+- #3 `Google Maps nearby places search` -> `exa.web_search` (want one of `('google.maps.places_nearby_search',)`)
+- #3 `Google Sheets read cell values` -> `workspace.read_file` (want one of `('google.sheets.get_values', 'google.sheets.read_sheet')`)
+- #5 `search Google Calendar events` -> `exa.web_search` (want one of `('google.calendar.search_events',)`)

@@ -15,9 +15,10 @@ from tools.builtins.google.sheets_structure import (
     unmerge_cells_handler,
 )
 from tools.builtins.google.tool_hints import GOOGLE_SHEETS_OAUTH_HINT
+from tools.builtins.google.sheets_checker import SHEETS_CHECKER_QUESTIONS_BY_TOOL
 from tools.schema import ToolSpec
 
-_WRITE_RATE_LIMIT = (30, 60)
+_WRITE_RATE_LIMIT = (60, 60)
 
 _SPREADSHEET_ID = {
     "type": "string",
@@ -70,6 +71,7 @@ GOOGLE_SHEETS_MERGE_CELLS = ToolSpec(
     tags=("google", "sheets", "write", "format"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("merge header cells", "merge cells A1:D1"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.merge_cells"],
 )
 
 GOOGLE_SHEETS_UNMERGE_CELLS = ToolSpec(
@@ -88,6 +90,7 @@ GOOGLE_SHEETS_UNMERGE_CELLS = ToolSpec(
     tags=("google", "sheets", "write", "format"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("unmerge cells", "split merged header"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.unmerge_cells"],
 )
 
 GOOGLE_SHEETS_FORMAT_CELLS = ToolSpec(
@@ -118,6 +121,7 @@ GOOGLE_SHEETS_FORMAT_CELLS = ToolSpec(
     tags=("google", "sheets", "write", "format"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("bold header row", "format as currency", "highlight cells yellow"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.format_cells"],
 )
 
 GOOGLE_SHEETS_SET_BORDERS = ToolSpec(
@@ -148,6 +152,7 @@ GOOGLE_SHEETS_SET_BORDERS = ToolSpec(
     tags=("google", "sheets", "write", "format"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("add borders to table", "grid lines around range"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.set_borders"],
 )
 
 GOOGLE_SHEETS_AUTO_RESIZE_COLUMNS = ToolSpec(
@@ -171,6 +176,7 @@ GOOGLE_SHEETS_AUTO_RESIZE_COLUMNS = ToolSpec(
     tags=("google", "sheets", "write", "format"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("auto fit columns", "resize columns to content"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.auto_resize_columns"],
 )
 
 GOOGLE_SHEETS_AUTO_RESIZE_ROWS = ToolSpec(
@@ -193,6 +199,7 @@ GOOGLE_SHEETS_AUTO_RESIZE_ROWS = ToolSpec(
     tags=("google", "sheets", "write", "format"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("auto fit row height", "resize rows to content"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.auto_resize_rows"],
 )
 
 _COPY_PASTE_GRID = {
@@ -234,6 +241,7 @@ GOOGLE_SHEETS_COPY_PASTE_RANGE = ToolSpec(
     tags=("google", "sheets", "write", "format", "data"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("copy range to another place", "duplicate table block", "copy format only"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.copy_paste_range"],
 )
 
 GOOGLE_SHEETS_CUT_PASTE_RANGE = ToolSpec(
@@ -263,6 +271,7 @@ GOOGLE_SHEETS_CUT_PASTE_RANGE = ToolSpec(
     tags=("google", "sheets", "write", "data"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("move cell block", "cut and paste range", "relocate table section"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.cut_paste_range"],
 )
 
 GOOGLE_SHEETS_SORT_RANGE = ToolSpec(
@@ -298,6 +307,7 @@ GOOGLE_SHEETS_SORT_RANGE = ToolSpec(
     tags=("google", "sheets", "write", "data"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("sort by column B descending", "sort table alphabetically"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.sort_range"],
 )
 
 GOOGLE_SHEETS_FIND_REPLACE = ToolSpec(
@@ -324,6 +334,7 @@ GOOGLE_SHEETS_FIND_REPLACE = ToolSpec(
     tags=("google", "sheets", "write", "data"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("replace all USD with UZS", "find and replace in sheet"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.find_replace"],
 )
 
 GOOGLE_SHEETS_ADD_NAMED_RANGE = ToolSpec(
@@ -346,6 +357,7 @@ GOOGLE_SHEETS_ADD_NAMED_RANGE = ToolSpec(
     tags=("google", "sheets", "write", "data"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("create named range", "define range name Totals"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.add_named_range"],
 )
 
 GOOGLE_SHEETS_DELETE_NAMED_RANGE = ToolSpec(
@@ -369,6 +381,7 @@ GOOGLE_SHEETS_DELETE_NAMED_RANGE = ToolSpec(
     tags=("google", "sheets", "write", "data"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("delete named range", "remove range name Totals"),
+    verification_questions=SHEETS_CHECKER_QUESTIONS_BY_TOOL["google.sheets.delete_named_range"],
 )
 
 SHEETS_WAVE3_TOOL_NAMES: tuple[str, ...] = tuple(

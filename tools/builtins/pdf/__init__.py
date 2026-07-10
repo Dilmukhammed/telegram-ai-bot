@@ -61,6 +61,7 @@ from tools.builtins.pdf.create import (
     _create_from_images_handler,
     _create_blank_handler,
 )
+from tools.builtins.pdf.pdf_checker import PDF_CHECKER_QUESTIONS_BY_TOOL
 from tools.schema import ToolSpec
 
 _FILE_REF_PARAM = {
@@ -76,7 +77,7 @@ _PAGES_PARAM = {
     "description": "Page range, 1-indexed. Examples: '1-5', '1,3,7', '1-3,7-10'. Omit for all pages.",
 }
 
-_PDF_RATE_LIMIT = (30, 60)
+_PDF_RATE_LIMIT = (60, 60)
 
 PDF_EXTRACT_TEXT = ToolSpec(
     name="pdf.extract_text",
@@ -113,6 +114,7 @@ PDF_EXTRACT_TEXT = ToolSpec(
         "get text from page 3 of pdf",
         "read specific pages of pdf document",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.extract_text"],
 )
 
 PDF_EXTRACT_TABLES = ToolSpec(
@@ -156,6 +158,7 @@ PDF_EXTRACT_TABLES = ToolSpec(
         "find tables in pdf document",
         "get table data from pdf",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.extract_tables"],
 )
 
 PDF_EXTRACT_IMAGES = ToolSpec(
@@ -195,6 +198,7 @@ PDF_EXTRACT_IMAGES = ToolSpec(
         "get pictures from pdf",
         "view images embedded in pdf",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.extract_images"],
 )
 
 PDF_READ_METADATA = ToolSpec(
@@ -222,6 +226,7 @@ PDF_READ_METADATA = ToolSpec(
         "is pdf encrypted",
         "how many pages in pdf",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.read_metadata"],
 )
 
 PDF_GET_OUTLINE = ToolSpec(
@@ -247,6 +252,7 @@ PDF_GET_OUTLINE = ToolSpec(
         "list bookmarks in pdf",
         "show pdf outline",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.get_outline"],
 )
 
 PDF_SEARCH_TEXT = ToolSpec(
@@ -294,6 +300,7 @@ PDF_SEARCH_TEXT = ToolSpec(
         "find word in pdf document",
         "look for specific text in pdf",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.search_text"],
 )
 
 PDF_GET_PAGE_INFO = ToolSpec(
@@ -321,6 +328,7 @@ PDF_GET_PAGE_INFO = ToolSpec(
         "check page dimensions in pdf",
         "which pages have images in pdf",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.get_page_info"],
 )
 
 PDF_EXTRACT_LINKS = ToolSpec(
@@ -348,6 +356,7 @@ PDF_EXTRACT_LINKS = ToolSpec(
         "find urls in pdf",
         "get hyperlinks from pdf document",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.extract_links"],
 )
 
 PDF_EXTRACT_FORMS = ToolSpec(
@@ -376,6 +385,7 @@ PDF_EXTRACT_FORMS = ToolSpec(
         "what fields are in pdf form",
         "get acroform fields from pdf",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.extract_forms"],
 )
 
 PDF_OCR = ToolSpec(
@@ -408,7 +418,7 @@ PDF_OCR = ToolSpec(
     handler=_ocr_handler,
     tags=("pdf", "read", "ocr"),
     cache_ttl_seconds=None,
-    rate_limit=(10, 60),
+    rate_limit=(20, 60),
     parallel_safe=False,
     examples=(
         "ocr scanned pdf",
@@ -416,6 +426,7 @@ PDF_OCR = ToolSpec(
         "read text from image pdf",
         "ocr specific pages of pdf",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.ocr"],
 )
 
 PDF_IS_SCANNED = ToolSpec(
@@ -445,6 +456,7 @@ PDF_IS_SCANNED = ToolSpec(
         "does pdf need ocr",
         "check specific pages for scan",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.is_scanned"],
 )
 
 PDF_RENDER = ToolSpec(
@@ -500,6 +512,7 @@ PDF_RENDER = ToolSpec(
         "render pdf thumbnail",
         "see what pdf page looks like",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.render"],
 )
 
 PDF_SPLIT = ToolSpec(
@@ -534,6 +547,7 @@ PDF_SPLIT = ToolSpec(
         "divide pdf by pages",
         "split pdf every 5 pages",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.split"],
 )
 
 PDF_EXTRACT_PAGES = ToolSpec(
@@ -565,6 +579,7 @@ PDF_EXTRACT_PAGES = ToolSpec(
         "get specific pages as new pdf",
         "pull pages 1-5 from pdf",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.extract_pages"],
 )
 
 PDF_MERGE = ToolSpec(
@@ -595,6 +610,7 @@ PDF_MERGE = ToolSpec(
         "combine multiple pdf files",
         "join pdf documents",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.merge"],
 )
 
 PDF_ROTATE_PAGES = ToolSpec(
@@ -626,6 +642,7 @@ PDF_ROTATE_PAGES = ToolSpec(
         "turn page 90 degrees",
         "rotate pages 1-5 by 180",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.rotate_pages"],
 )
 
 PDF_DELETE_PAGES = ToolSpec(
@@ -656,6 +673,7 @@ PDF_DELETE_PAGES = ToolSpec(
         "remove page 5 from pdf",
         "delete pages 8-10",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.delete_pages"],
 )
 
 PDF_REORDER_PAGES = ToolSpec(
@@ -694,6 +712,7 @@ PDF_REORDER_PAGES = ToolSpec(
         "reverse page order in pdf",
         "move page 5 to position 1",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.reorder_pages"],
 )
 
 PDF_OVERLAY = ToolSpec(
@@ -769,6 +788,7 @@ PDF_OVERLAY = ToolSpec(
         "add footer text to pdf",
         "stamp text on pdf pages",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.overlay"],
 )
 
 PDF_REDACT_TEXT = ToolSpec(
@@ -806,6 +826,7 @@ PDF_REDACT_TEXT = ToolSpec(
         "black out sensitive text in pdf",
         "censor text in pdf document",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.redact_text"],
 )
 
 PDF_ADD_IMAGE = ToolSpec(
@@ -861,6 +882,7 @@ PDF_ADD_IMAGE = ToolSpec(
         "stamp image on pdf",
         "put picture on pdf page",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.add_image"],
 )
 
 PDF_ADD_ANNOTATIONS = ToolSpec(
@@ -912,6 +934,7 @@ PDF_ADD_ANNOTATIONS = ToolSpec(
         "strikethrough text in pdf",
         "add highlight annotation to pdf",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.add_annotations"],
 )
 
 PDF_FILL_FORM = ToolSpec(
@@ -949,6 +972,7 @@ PDF_FILL_FORM = ToolSpec(
         "complete pdf application form",
         "set form field values in pdf",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.fill_form"],
 )
 
 PDF_FLATTEN_FORM = ToolSpec(
@@ -975,6 +999,7 @@ PDF_FLATTEN_FORM = ToolSpec(
         "make pdf form read-only",
         "lock pdf form fields",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.flatten_form"],
 )
 
 PDF_CREATE_FORM = ToolSpec(
@@ -1034,6 +1059,7 @@ PDF_CREATE_FORM = ToolSpec(
         "add checkbox to pdf",
         "create dropdown in pdf",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.create_form"],
 )
 
 PDF_RESET_FORM = ToolSpec(
@@ -1065,6 +1091,7 @@ PDF_RESET_FORM = ToolSpec(
         "clear form fields in pdf",
         "blank out pdf form values",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.reset_form"],
 )
 
 PDF_ENCRYPT = ToolSpec(
@@ -1105,6 +1132,7 @@ PDF_ENCRYPT = ToolSpec(
         "add password to pdf",
         "restrict pdf permissions",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.encrypt"],
 )
 
 PDF_DECRYPT = ToolSpec(
@@ -1135,6 +1163,7 @@ PDF_DECRYPT = ToolSpec(
         "remove password from pdf",
         "unlock pdf",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.decrypt"],
 )
 
 PDF_GET_PERMISSIONS = ToolSpec(
@@ -1166,6 +1195,7 @@ PDF_GET_PERMISSIONS = ToolSpec(
         "what permissions does pdf have",
         "check pdf password protection",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.get_permissions"],
 )
 
 PDF_OPTIMIZE = ToolSpec(
@@ -1205,6 +1235,7 @@ PDF_OPTIMIZE = ToolSpec(
         "optimize pdf for web",
         "shrink pdf",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.optimize"],
 )
 
 PDF_REPAIR = ToolSpec(
@@ -1231,6 +1262,7 @@ PDF_REPAIR = ToolSpec(
         "fix corrupted pdf",
         "recover broken pdf file",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.repair"],
 )
 
 PDF_SET_METADATA = ToolSpec(
@@ -1264,6 +1296,7 @@ PDF_SET_METADATA = ToolSpec(
         "change pdf document title",
         "set pdf keywords",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.set_metadata"],
 )
 
 PDF_SET_OUTLINE = ToolSpec(
@@ -1306,6 +1339,7 @@ PDF_SET_OUTLINE = ToolSpec(
         "add outline to pdf",
         "build pdf toc",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.set_outline"],
 )
 
 PDF_ADD_BOOKMARK = ToolSpec(
@@ -1336,6 +1370,7 @@ PDF_ADD_BOOKMARK = ToolSpec(
         "add single bookmark to pdf page",
         "bookmark page 5 in pdf",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.add_bookmark"],
 )
 
 PDF_CREATE = ToolSpec(
@@ -1394,6 +1429,7 @@ PDF_CREATE = ToolSpec(
         "generate pdf document",
         "make pdf report",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.create"],
 )
 
 PDF_CREATE_FROM_IMAGES = ToolSpec(
@@ -1435,6 +1471,7 @@ PDF_CREATE_FROM_IMAGES = ToolSpec(
         "make pdf from photos",
         "combine pictures into pdf",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.create_from_images"],
 )
 
 PDF_CREATE_BLANK = ToolSpec(
@@ -1469,6 +1506,7 @@ PDF_CREATE_BLANK = ToolSpec(
         "create empty pdf template",
         "make blank pdf with 5 pages",
     ),
+    verification_questions=PDF_CHECKER_QUESTIONS_BY_TOOL["pdf.create_blank"],
 )
 
 PDF_TOOLS: tuple[ToolSpec, ...] = (

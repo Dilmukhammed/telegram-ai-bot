@@ -72,6 +72,9 @@ class ToolRuntime:
             recent_limit=recent_limit,
         )
 
+    def get_tool_spec(self, name: str) -> ToolSpec | None:
+        return self._registry.get(name)
+
     async def search_tools(
         self,
         query: str,
@@ -112,7 +115,6 @@ class ToolRuntime:
 
         spec = self._registry.get(tool_name)
         if spec is None:
-            available = [tool.name for tool in self._registry.all()]
             self._record_call(
                 ctx=ctx,
                 tool_name=tool_name,
@@ -123,7 +125,8 @@ class ToolRuntime:
                 error=f"Unknown tool: {tool_name}",
             )
             raise ToolValidationError(
-                f"Unknown tool: {tool_name}. Available tools: {', '.join(available)}"
+                f"Unknown tool: {tool_name}. "
+                "Use search_tools to find the correct tool name."
             )
 
         rate_decision = self._check_rate_limits(ctx, tool_name, spec)
@@ -150,7 +153,7 @@ class ToolRuntime:
         filtered = filter_known_arguments(properties, arguments)
 
         ttl = cache_ttl_for_tool(tool_name, spec.cache_ttl_seconds)
-        key = cache_key(tool_name, filtered) if ttl else None
+        key = cache_key(ctx.user_id, tool_name, filtered) if ttl else None
         if key is not None:
             cached = self._cache.get(key)
             if cached is not None:

@@ -1,0 +1,19 @@
+planner_id: hot_window
+summary: Research and select the top 2-3 smart home devices across 7 specific categories (smart speakers, smart displays, Zigbee hubs, Wi-Fi devices by tier, Zigbee devices by tier, smart controllers, and smart home kits) based on reviews and specifications. Data will be persisted to external storage after each logical grouping to prevent context collapse.
+phase_count: 4
+assumptions:
+  - The user requires exactly 2-3 models per category.
+  - Wi-Fi and Zigbee categories require segmentation into cheap, expensive, and premium tiers.
+  - External storage (spreadsheet or document) will be used as the durable memory layer to survive context collapse.
+non_goals:
+  - Providing deep technical teardowns of individual devices; focus is on comparative selection based on reviews.
+  - Holding all 7 categories of raw search data in active worker context simultaneously.
+phases:
+  - id: phase_1
+    name: Audio and Visual Interfaces
+    goal: Identify and select the top 2-3 smart speakers and top 2-3 smart displays based on current reviews and specifications.
+    logical_blocks:
+      - Fetch and analyze top smart speaker models and user reviews
+      - Fetch and analyze top smart display models and user reviews
+      - Persist selected models, key specs, and review consensus to external storage
+    entry_condition: Task initialized

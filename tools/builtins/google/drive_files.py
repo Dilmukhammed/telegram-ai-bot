@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import io
+from pathlib import Path
 from typing import Any
 
 from googleapiclient.http import MediaIoBaseDownload
@@ -29,6 +30,8 @@ from tools.builtins.google.drive_upload import (
 )
 from tools.context import get_run_context
 from tools.run_files import require_run_file_store
+from tools.workspace.errors import WorkspaceError
+from tools.workspace.store import read_workspace_bytes
 
 _MAX_PAGE_SIZE = 100
 _TEXT_MIME_PREFIXES = ("text/",)
@@ -434,18 +437,43 @@ def _parent_ids(parent_id: str | None) -> list[str]:
     return [parent]
 
 
-def _decode_upload_content(arguments: dict[str, Any]) -> tuple[bytes, str]:
-    if "content_text" in arguments and arguments["content_text"] is not None:
+def _decode_upload_content(
+    arguments: dict[str, Any],
+    *,
+    user_id: int | None = None,
+) -> tuple[bytes, str, str | None]:
+    """Return (content, mime_type, source_path).
+
+    Exactly one of: workspace ``path``, ``content_text``, ``content_base64``.
+    """
+    path = str(arguments.get("path") or "").strip()
+    has_text = "content_text" in arguments and arguments["content_text"] is not None
+    has_b64 = "content_base64" in arguments and arguments["content_base64"] is not None
+    sources = sum(bool(x) for x in (path, has_text, has_b64))
+    if sources != 1:
+        raise ValueError("provide exactly one of path, content_text, or content_base64")
+
+    if path:
+        if user_id is None:
+            raise RuntimeError("Telegram user_id is missing in tool context")
+        try:
+            _target, content, guessed_mime = read_workspace_bytes(user_id, path)
+        except WorkspaceError as exc:
+            raise ValueError(f"workspace path error: {exc}") from exc
+        mime_override = str(arguments.get("mime_type") or "").strip()
+        mime_type = mime_override or guessed_mime or "application/octet-stream"
+        return content, mime_type, path
+
+    if has_text:
         text = str(arguments["content_text"])
         mime_type = str(arguments.get("mime_type") or "text/plain").strip() or "text/plain"
-        return text.encode("utf-8"), mime_type
-    if "content_base64" in arguments and arguments["content_base64"] is not None:
-        raw = str(arguments["content_base64"]).strip()
-        mime_type = str(arguments.get("mime_type") or "application/octet-stream").strip()
-        if not mime_type:
-            mime_type = "application/octet-stream"
-        return base64.b64decode(raw), mime_type
-    raise ValueError("content_text or content_base64 is required")
+        return text.encode("utf-8"), mime_type, None
+
+    raw = str(arguments["content_base64"]).strip()
+    mime_type = str(arguments.get("mime_type") or "application/octet-stream").strip()
+    if not mime_type:
+        mime_type = "application/octet-stream"
+    return base64.b64decode(raw), mime_type, None
 
 
 def _created_payload(file_obj: dict[str, Any], **extra: Any) -> dict[str, Any]:
@@ -505,10 +533,13 @@ async def create_file_handler(arguments: dict[str, Any]) -> dict[str, Any]:
 async def upload_file_handler(arguments: dict[str, Any]) -> dict[str, Any]:
     user_id = _require_user_id()
     settings = get_settings()
-    name = str(arguments.get("name", "")).strip()
+    content, mime_type, source_path = _decode_upload_content(arguments, user_id=user_id)
+    name = str(arguments.get("name") or "").strip()
     if not name:
-        raise ValueError("name is required")
-    content, mime_type = _decode_upload_content(arguments)
+        if source_path:
+            name = Path(source_path).name
+        else:
+            raise ValueError("name is required when uploading content_text/content_base64")
     if len(content) > settings.drive_max_upload_bytes:
         raise ValueError(
             f"Upload too large ({len(content)} bytes; max {settings.drive_max_upload_bytes})"
@@ -527,7 +558,10 @@ async def upload_file_handler(arguments: dict[str, Any]) -> dict[str, Any]:
         )
 
     file_obj = await run_drive_call(user_id, _call)
-    return _created_payload(file_obj, uploaded=True)
+    extra: dict[str, Any] = {"uploaded": True}
+    if source_path:
+        extra["source_path"] = source_path
+    return _created_payload(file_obj, **extra)
 
 
 async def update_file_metadata_handler(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -567,7 +601,7 @@ async def update_file_content_handler(arguments: dict[str, Any]) -> dict[str, An
     user_id = _require_user_id()
     settings = get_settings()
     file_id = str(arguments["file_id"]).strip()
-    content, mime_type = _decode_upload_content(arguments)
+    content, mime_type, source_path = _decode_upload_content(arguments, user_id=user_id)
 
     def _fetch_meta(service):
         return (
@@ -594,7 +628,10 @@ async def update_file_content_handler(arguments: dict[str, Any]) -> dict[str, An
         )
 
     file_obj = await run_drive_call(user_id, _call)
-    return {"updated": True, "file": compact_created_file(file_obj)}
+    result: dict[str, Any] = {"updated": True, "file": compact_created_file(file_obj)}
+    if source_path:
+        result["source_path"] = source_path
+    return result
 
 
 async def copy_file_handler(arguments: dict[str, Any]) -> dict[str, Any]:

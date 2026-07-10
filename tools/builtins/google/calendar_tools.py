@@ -3,15 +3,18 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from tools.builtins.google.calendar_checker import CALENDAR_CHECKER_QUESTIONS_BY_TOOL
 from tools.builtins.google.auth import get_calendar_service
 from tools.builtins.google.tool_hints import GOOGLE_CALENDAR_OAUTH_HINT
 from tools.builtins.google.datetime_utils import (
     build_create_calendar_body,
     build_create_event_body,
+    build_create_meet_event_body,
     build_patch_event_body,
     compact_calendar,
     compact_color_palette,
     compact_event,
+    extract_meet_link,
     find_free_slots,
     merge_calendar_for_update,
     merge_event_for_update,
@@ -209,6 +212,48 @@ async def _create_event_handler(arguments: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _ensure_timed_event_body(body: dict[str, Any]) -> None:
+    start = body.get("start") or {}
+    end = body.get("end") or {}
+    if "date" in start or "date" in end:
+        raise ValueError(
+            "Google Meet events require timed start/end (datetime), not all-day dates"
+        )
+    if "dateTime" not in start or "dateTime" not in end:
+        raise ValueError("Google Meet events require start/end datetime values")
+
+
+async def _create_meet_event_handler(arguments: dict[str, Any]) -> dict[str, Any]:
+    user_id = _require_user_id()
+    calendar_id = arguments.get("calendar_id", "primary")
+    body = build_create_meet_event_body(arguments)
+    _ensure_timed_event_body(body)
+    send_updates = _send_updates(arguments)
+
+    def _call(service):
+        return (
+            service.events()
+            .insert(
+                calendarId=calendar_id,
+                body=body,
+                sendUpdates=send_updates,
+                conferenceDataVersion=1,
+            )
+            .execute()
+        )
+
+    event = await _run_calendar_call(user_id, _call)
+    compact = compact_event(event)
+    meet_link = compact.get("meet_link") or extract_meet_link(event)
+    return {
+        "created": True,
+        "calendar_id": calendar_id,
+        "event": compact,
+        "meet_link": meet_link,
+        "htmlLink": event.get("htmlLink"),
+    }
+
+
 async def _quick_add_event_handler(arguments: dict[str, Any]) -> dict[str, Any]:
     user_id = _require_user_id()
     calendar_id = arguments.get("calendar_id", "primary")
@@ -376,14 +421,14 @@ async def _list_instances_handler(arguments: dict[str, Any]) -> dict[str, Any]:
 
 async def _find_free_slots_handler(arguments: dict[str, Any]) -> dict[str, Any]:
     user_id = _require_user_id()
-    time_min = parse_iso_datetime(arguments["time_min"])
-    time_max = parse_iso_datetime(arguments["time_max"])
+    time_zone = arguments.get("time_zone")
+    time_min = parse_iso_datetime(arguments["time_min"], time_zone=time_zone)
+    time_max = parse_iso_datetime(arguments["time_max"], time_zone=time_zone)
     calendar_ids = arguments.get("calendar_ids") or ["primary"]
     if isinstance(calendar_ids, str):
         calendar_ids = [calendar_ids]
     duration_minutes = int(arguments.get("duration_minutes", 60))
     max_slots = min(int(arguments.get("max_slots", 5)), 20)
-    time_zone = arguments.get("time_zone")
 
     def _call(service):
         body = {
@@ -626,6 +671,7 @@ GOOGLE_CALENDAR_GET_CALENDAR = ToolSpec(
     cache_ttl_seconds=60,
     parallel_safe=True,
     examples=("show my calendar settings", "calendar timezone"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.get_calendar"],
 )
 
 GOOGLE_CALENDAR_LIST_EVENTS = ToolSpec(
@@ -658,6 +704,7 @@ GOOGLE_CALENDAR_LIST_EVENTS = ToolSpec(
     cache_ttl_seconds=60,
     parallel_safe=True,
     examples=("list events this week", "calendar events between dates"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.list_events"],
 )
 
 GOOGLE_CALENDAR_GET_EVENT = ToolSpec(
@@ -679,6 +726,7 @@ GOOGLE_CALENDAR_GET_EVENT = ToolSpec(
     cache_ttl_seconds=60,
     parallel_safe=True,
     examples=("get calendar event details", "show event by id"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.get_event"],
 )
 
 GOOGLE_CALENDAR_SEARCH_EVENTS = ToolSpec(
@@ -706,6 +754,7 @@ GOOGLE_CALENDAR_SEARCH_EVENTS = ToolSpec(
     cache_ttl_seconds=60,
     parallel_safe=True,
     examples=("find meeting with Alex", "search calendar for dentist"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.search_events"],
 )
 
 GOOGLE_CALENDAR_LIST_UPCOMING = ToolSpec(
@@ -729,6 +778,7 @@ GOOGLE_CALENDAR_LIST_UPCOMING = ToolSpec(
     cache_ttl_seconds=30,
     parallel_safe=True,
     examples=("what is coming up on my calendar", "next calendar events"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.list_upcoming"],
 )
 
 GOOGLE_CALENDAR_LIST_TODAY = ToolSpec(
@@ -751,6 +801,7 @@ GOOGLE_CALENDAR_LIST_TODAY = ToolSpec(
     cache_ttl_seconds=30,
     parallel_safe=True,
     examples=("what is on my calendar today", "today schedule"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.list_today"],
 )
 
 GOOGLE_CALENDAR_LIST_COLORS = ToolSpec(
@@ -766,6 +817,7 @@ GOOGLE_CALENDAR_LIST_COLORS = ToolSpec(
     cache_ttl_seconds=3600,
     parallel_safe=True,
     examples=("show calendar color options", "what colors can I use for events"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.list_colors"],
 )
 
 GOOGLE_CALENDAR_FREEBUSY = ToolSpec(
@@ -793,6 +845,7 @@ GOOGLE_CALENDAR_FREEBUSY = ToolSpec(
     cache_ttl_seconds=60,
     parallel_safe=True,
     examples=("when am I busy tomorrow", "freebusy this week"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.freebusy"],
 )
 
 GOOGLE_CALENDAR_READ_TOOLS: tuple[ToolSpec, ...] = (
@@ -822,6 +875,32 @@ GOOGLE_CALENDAR_CREATE_EVENT = ToolSpec(
     tags=("google", "calendar", "write"),
     parallel_safe=False,
     examples=("create calendar meeting tomorrow at 15:00", "schedule dentist appointment"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.create_event"],
+)
+
+GOOGLE_CALENDAR_CREATE_MEET_EVENT = ToolSpec(
+    name="google.calendar.create_meet_event",
+    description=(
+        GOOGLE_CALENDAR_OAUTH_HINT
+        + "Create a timed calendar event with a Google Meet video conference link. "
+        "Use for video calls / online meetings. Requires start/end datetime (not all-day). "
+        "Returns meet_link. Prefer over create_event when the user wants Google Meet / video call."
+    ),
+    parameters={
+        "type": "object",
+        "properties": _CREATE_EVENT_FIELDS,
+        "required": ["summary", "start", "end"],
+    },
+    handler=_create_meet_event_handler,
+    tags=("google", "calendar", "write", "meet", "video"),
+    parallel_safe=False,
+    examples=(
+        "create google meet tomorrow 15:00",
+        "schedule video call with meet link",
+    ),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL[
+        "google.calendar.create_meet_event"
+    ],
 )
 
 GOOGLE_CALENDAR_QUICK_ADD_EVENT = ToolSpec(
@@ -847,6 +926,7 @@ GOOGLE_CALENDAR_QUICK_ADD_EVENT = ToolSpec(
     tags=("google", "calendar", "write"),
     parallel_safe=False,
     examples=("quick add lunch tomorrow 13:00", "add event from natural language"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.quick_add_event"],
 )
 
 GOOGLE_CALENDAR_PATCH_EVENT = ToolSpec(
@@ -892,6 +972,7 @@ GOOGLE_CALENDAR_PATCH_EVENT = ToolSpec(
     tags=("google", "calendar", "write"),
     parallel_safe=False,
     examples=("move meeting one hour later", "rename calendar event", "change event time"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.patch_event"],
 )
 
 GOOGLE_CALENDAR_DELETE_EVENT = ToolSpec(
@@ -910,10 +991,12 @@ GOOGLE_CALENDAR_DELETE_EVENT = ToolSpec(
     tags=("google", "calendar", "write"),
     parallel_safe=False,
     examples=("cancel calendar event", "delete meeting from calendar"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.delete_event"],
 )
 
 GOOGLE_CALENDAR_WRITE_TOOLS: tuple[ToolSpec, ...] = (
     GOOGLE_CALENDAR_CREATE_EVENT,
+    GOOGLE_CALENDAR_CREATE_MEET_EVENT,
     GOOGLE_CALENDAR_QUICK_ADD_EVENT,
     GOOGLE_CALENDAR_PATCH_EVENT,
     GOOGLE_CALENDAR_DELETE_EVENT,
@@ -938,6 +1021,7 @@ GOOGLE_CALENDAR_UPDATE_EVENT = ToolSpec(
     tags=("google", "calendar", "write"),
     parallel_safe=False,
     examples=("replace calendar event completely", "full update meeting details"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.update_event"],
 )
 
 GOOGLE_CALENDAR_MOVE_EVENT = ToolSpec(
@@ -963,6 +1047,7 @@ GOOGLE_CALENDAR_MOVE_EVENT = ToolSpec(
     tags=("google", "calendar", "write"),
     parallel_safe=False,
     examples=("move event to work calendar", "transfer meeting to another calendar"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.move_event"],
 )
 
 GOOGLE_CALENDAR_LIST_INSTANCES = ToolSpec(
@@ -987,6 +1072,7 @@ GOOGLE_CALENDAR_LIST_INSTANCES = ToolSpec(
     cache_ttl_seconds=60,
     parallel_safe=True,
     examples=("list weekly meeting instances", "recurring event occurrences"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.list_instances"],
 )
 
 GOOGLE_CALENDAR_FIND_FREE_SLOTS = ToolSpec(
@@ -1027,6 +1113,7 @@ GOOGLE_CALENDAR_FIND_FREE_SLOTS = ToolSpec(
     cache_ttl_seconds=60,
     parallel_safe=True,
     examples=("find 1 hour free slot tomorrow", "when can we meet this week"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.find_free_slots"],
 )
 
 GOOGLE_CALENDAR_CAL3_TOOLS: tuple[ToolSpec, ...] = (
@@ -1054,6 +1141,7 @@ GOOGLE_CALENDAR_LIST_CALENDARS = ToolSpec(
     cache_ttl_seconds=120,
     parallel_safe=True,
     examples=("list my calendars", "show all google calendars"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.list_calendars"],
 )
 
 GOOGLE_CALENDAR_CREATE_CALENDAR = ToolSpec(
@@ -1072,6 +1160,7 @@ GOOGLE_CALENDAR_CREATE_CALENDAR = ToolSpec(
     tags=("google", "calendar", "calendars", "write"),
     parallel_safe=False,
     examples=("create work calendar", "new project calendar"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.create_calendar"],
 )
 
 GOOGLE_CALENDAR_UPDATE_CALENDAR = ToolSpec(
@@ -1091,6 +1180,7 @@ GOOGLE_CALENDAR_UPDATE_CALENDAR = ToolSpec(
     tags=("google", "calendar", "calendars", "write"),
     parallel_safe=False,
     examples=("rename calendar", "change calendar timezone"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.update_calendar"],
 )
 
 GOOGLE_CALENDAR_DELETE_CALENDAR = ToolSpec(
@@ -1110,6 +1200,7 @@ GOOGLE_CALENDAR_DELETE_CALENDAR = ToolSpec(
     tags=("google", "calendar", "calendars", "write"),
     parallel_safe=False,
     examples=("delete secondary calendar", "remove project calendar"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.delete_calendar"],
 )
 
 GOOGLE_CALENDAR_CLEAR_CALENDAR = ToolSpec(
@@ -1133,6 +1224,7 @@ GOOGLE_CALENDAR_CLEAR_CALENDAR = ToolSpec(
     tags=("google", "calendar", "calendars", "write"),
     parallel_safe=False,
     examples=("clear all events from project calendar", "wipe secondary calendar"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.clear_calendar"],
 )
 
 GOOGLE_CALENDAR_IMPORT_EVENT = ToolSpec(
@@ -1151,6 +1243,7 @@ GOOGLE_CALENDAR_IMPORT_EVENT = ToolSpec(
     tags=("google", "calendar", "write"),
     parallel_safe=False,
     examples=("import event copy", "migrate event into calendar"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.import_event"],
 )
 
 GOOGLE_CALENDAR_SET_CALENDAR_COLOR = ToolSpec(
@@ -1174,6 +1267,7 @@ GOOGLE_CALENDAR_SET_CALENDAR_COLOR = ToolSpec(
     tags=("google", "calendar", "colors", "write"),
     parallel_safe=False,
     examples=("make work calendar green", "change calendar color"),
+    verification_questions=CALENDAR_CHECKER_QUESTIONS_BY_TOOL["google.calendar.set_calendar_color"],
 )
 
 GOOGLE_CALENDAR_CAL4_TOOLS: tuple[ToolSpec, ...] = (

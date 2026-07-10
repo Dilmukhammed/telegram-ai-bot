@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 from dataclasses import dataclass, field
-from typing import Any
 
+from agent.meta_reviewer import MetaReviewer, Messages
+from agent.run_cycle_log import CycleLogOptions, build_run_cycle_log
 from agent.run_trace import RunTrace
 from agent.supervisor_prompt import SUPERVISOR_SYSTEM_PROMPT
+from agent.verdict_json import as_string_list as _as_string_list
+from agent.verdict_json import extract_json_payload as _extract_json_payload
 from config import Settings
-from llm import LLMClient
 
 logger = logging.getLogger(__name__)
 
@@ -28,26 +29,11 @@ class SupervisorDecision:
     user_reply_brief: str = ""
 
 
-def _strip_json_fence(text: str) -> str:
-    stripped = text.strip()
-    if stripped.startswith("```"):
-        stripped = re.sub(r"^```(?:json)?\s*", "", stripped)
-        stripped = re.sub(r"\s*```$", "", stripped)
-    return stripped.strip()
-
-
-def _as_string_list(value: Any) -> list[str]:
-    if not isinstance(value, list):
-        return []
-    return [str(item).strip() for item in value if str(item).strip()]
-
-
 def parse_supervisor_response(text: str, *, default_bonus_turns: int) -> SupervisorDecision:
-    raw = _strip_json_fence(text)
-    try:
-        payload = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"invalid supervisor JSON: {exc}") from exc
+    raw = _extract_json_payload(text)
+    if not raw:
+        raise ValueError("supervisor response is empty")
+    payload = json.loads(raw)
 
     if not isinstance(payload, dict):
         raise ValueError("supervisor response must be a JSON object")
@@ -161,10 +147,22 @@ def format_supervisor_stop(decision: SupervisorDecision) -> str:
     )
 
 
-class AgentSupervisor:
-    def __init__(self, llm: LLMClient, settings: Settings) -> None:
-        self._llm = llm
-        self._settings = settings
+def _supervisor_trace_text(trace: RunTrace, *, settings: Settings) -> str:
+    header_extras: list[str] = [f"Progress: {trace.progress_summary or 'unknown'}"]
+    if trace.repeated_patterns:
+        header_extras.append(f"Repeated patterns: {'; '.join(trace.repeated_patterns)}")
+    options = CycleLogOptions(
+        step_limit=240,
+        max_chars=max(1000, settings.agent_supervisor_trace_max_chars),
+        include_checker_reviews=True,
+    )
+    return build_run_cycle_log(
+        trace, settings=settings, options=options, header_extras=header_extras
+    )
+
+
+class AgentSupervisor(MetaReviewer[SupervisorDecision]):
+    name = "supervisor"
 
     async def review(
         self,
@@ -173,14 +171,12 @@ class AgentSupervisor:
         trigger: str = "cap_hit",
         trigger_detail: str = "",
     ) -> SupervisorDecision:
-        trace_text = trace.to_supervisor_text(
-            max_chars=self._settings.agent_supervisor_trace_max_chars
-        )
+        trace_text = _supervisor_trace_text(trace, settings=self._settings)
         trigger_line = f"Trigger: {trigger}"
         if trigger_detail:
             trigger_line = f"{trigger_line} — {trigger_detail}"
 
-        messages = [
+        messages: Messages = [
             {"role": "system", "content": SUPERVISOR_SYSTEM_PROMPT},
             {
                 "role": "user",
@@ -191,16 +187,15 @@ class AgentSupervisor:
                 ),
             },
         ]
-        raw = await self._llm.chat(messages)
-        try:
-            decision = parse_supervisor_response(
-                raw,
-                default_bonus_turns=self._settings.agent_supervisor_bonus_turns,
-            )
-        except ValueError as exc:
-            logger.warning("Supervisor parse failed, fallback STOP_GRACEFUL: %s", exc)
-            return fallback_stop_decision(reason=str(exc))
-
+        decision = await self._review(
+            messages,
+            parse=lambda raw: parse_supervisor_response(
+                raw, default_bonus_turns=self._settings.agent_supervisor_bonus_turns
+            ),
+            fallback=lambda exc, _raw: fallback_stop_decision(reason=str(exc)),
+            reasoning=True,
+            json_object=False,
+        )
         logger.info(
             "supervisor_decision decision=%s trigger=%s confidence=%s bonus_turns=%s",
             decision.decision,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from tools.builtins.workspace.workspace_checker import WORKSPACE_CHECKER_QUESTIONS_BY_TOOL
 from tools.schema import ToolSpec
 from tools.workspace.errors import WorkspaceError
 from tools.workspace.store import (
@@ -13,8 +14,8 @@ from tools.workspace.store import (
     unzip_file,
 )
 
-_WRITE_RATE_LIMIT = (30, 60)
-_DELETE_RATE_LIMIT = (10, 60)
+_WRITE_RATE_LIMIT = (60, 60)
+_DELETE_RATE_LIMIT = (20, 60)
 _PATH = {
     "type": "string",
     "description": "Path relative to user workspace root.",
@@ -119,6 +120,7 @@ WORKSPACE_COPY = ToolSpec(
     tags=("workspace", "write", "filesystem"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("copy file to exports", "duplicate notes"),
+    verification_questions=WORKSPACE_CHECKER_QUESTIONS_BY_TOOL["workspace.copy"],
 )
 
 WORKSPACE_DELETE = ToolSpec(
@@ -146,6 +148,7 @@ WORKSPACE_DELETE = ToolSpec(
     rate_limit=_DELETE_RATE_LIMIT,
     parallel_safe=False,
     examples=("delete temp file", "remove empty folder"),
+    verification_questions=WORKSPACE_CHECKER_QUESTIONS_BY_TOOL["workspace.delete"],
 )
 
 WORKSPACE_CLEAR = ToolSpec(
@@ -170,6 +173,7 @@ WORKSPACE_CLEAR = ToolSpec(
     rate_limit=_DELETE_RATE_LIMIT,
     parallel_safe=False,
     examples=("clear agent folder", "wipe exports cache"),
+    verification_questions=WORKSPACE_CHECKER_QUESTIONS_BY_TOOL["workspace.clear"],
 )
 
 WORKSPACE_IMPORT_FROM_FILE_REF = ToolSpec(
@@ -191,6 +195,7 @@ WORKSPACE_IMPORT_FROM_FILE_REF = ToolSpec(
     tags=("workspace", "write", "filesystem"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("persist drive download", "save attachment to workspace"),
+    verification_questions=WORKSPACE_CHECKER_QUESTIONS_BY_TOOL["workspace.import_from_file_ref"],
 )
 
 WORKSPACE_UNZIP = ToolSpec(
@@ -218,6 +223,7 @@ WORKSPACE_UNZIP = ToolSpec(
     rate_limit=_WRITE_RATE_LIMIT,
     parallel_safe=False,
     examples=("extract uploaded zip", "unzip archive to agent"),
+    verification_questions=WORKSPACE_CHECKER_QUESTIONS_BY_TOOL["workspace.unzip"],
 )
 
 WORKSPACE_MAINTAIN_TOOLS: tuple[ToolSpec, ...] = (

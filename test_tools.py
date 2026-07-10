@@ -72,7 +72,26 @@ class ToolRuntimeTests(unittest.IsolatedAsyncioTestCase):
 
 
 class CoerceTests(unittest.TestCase):
-    def test_nested_tool_name_and_query(self) -> None:
+    def test_malformed_arguments_list_does_not_crash(self) -> None:
+        tool_name, args = normalize_use_tool_call(
+            {
+                "tool_name": "exa.web_search",
+                "arguments": ["bad", "shape"],
+            }
+        )
+        self.assertEqual(tool_name, "exa.web_search")
+        self.assertEqual(args, {})
+
+    def test_malformed_arguments_json_list_string(self) -> None:
+        tool_name, args = normalize_use_tool_call(
+            {
+                "tool_name": "exa.web_search",
+                "arguments": '["only-one-item"]',
+            }
+        )
+        self.assertEqual(tool_name, "exa.web_search")
+        self.assertEqual(args, {})
+
         tool_name, args = normalize_use_tool_call(
             {
                 "arguments": {
@@ -83,7 +102,17 @@ class CoerceTests(unittest.TestCase):
             }
         )
         self.assertEqual(tool_name, "exa.web_search")
-        self.assertEqual(args, {"query": "weather in Tashkent"})
+        self.assertEqual(args, {})
+
+    def test_web_fetch_url_alias(self) -> None:
+        tool_name, args = normalize_use_tool_call(
+            {
+                "tool_name": "exa.web_fetch",
+                "arguments": {"url": "https://example.com/page"},
+            }
+        )
+        self.assertEqual(tool_name, "exa.web_fetch")
+        self.assertEqual(args, {"urls": ["https://example.com/page"]})
 
     def test_reason_stripped_from_valid_call(self) -> None:
         tool_name, args = normalize_use_tool_call(
@@ -164,12 +193,42 @@ class Phase4Tests(unittest.IsolatedAsyncioTestCase):
         object.__setattr__(spec, "handler", counting_handler)
         object.__setattr__(spec, "cache_ttl_seconds", 60)
 
-        first = await runtime.use_tool("echo.test", {"message": "cached"})
-        second = await runtime.use_tool("echo.test", {"message": "cached"})
+        ctx = RunContext(user_id=42, turn=1, meta_tool="use_tool")
+        first = await runtime.use_tool("echo.test", {"message": "cached"}, ctx=ctx)
+        second = await runtime.use_tool("echo.test", {"message": "cached"}, ctx=ctx)
 
         self.assertFalse(first["cached"])
         self.assertTrue(second["cached"])
         self.assertEqual(calls["count"], 1)
+
+    async def test_cache_miss_for_different_users(self) -> None:
+        runtime = await self._runtime()
+        runtime._cache = ToolResultCache(86400)
+
+        calls = {"count": 0}
+
+        async def counting_handler(arguments: dict) -> dict:
+            calls["count"] += 1
+            return {"message": arguments["message"]}
+
+        spec = runtime._registry.get("echo.test")
+        object.__setattr__(spec, "handler", counting_handler)
+        object.__setattr__(spec, "cache_ttl_seconds", 60)
+
+        first = await runtime.use_tool(
+            "echo.test",
+            {"message": "shared"},
+            ctx=RunContext(user_id=1, turn=1, meta_tool="use_tool"),
+        )
+        second = await runtime.use_tool(
+            "echo.test",
+            {"message": "shared"},
+            ctx=RunContext(user_id=2, turn=1, meta_tool="use_tool"),
+        )
+
+        self.assertFalse(first["cached"])
+        self.assertFalse(second["cached"])
+        self.assertEqual(calls["count"], 2)
 
     async def test_rate_limit_blocks_after_threshold(self) -> None:
         runtime = await self._runtime()
@@ -197,9 +256,14 @@ class Phase4Tests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(cache_max_ttl_seconds(), 86400)
 
     def test_cache_key_stable(self) -> None:
-        left = cache_key("echo.test", {"message": "hello"})
-        right = cache_key("echo.test", {"message": "hello"})
+        left = cache_key(42, "echo.test", {"message": "hello"})
+        right = cache_key(42, "echo.test", {"message": "hello"})
         self.assertEqual(left, right)
+
+    def test_cache_key_scoped_by_user(self) -> None:
+        left = cache_key(1, "echo.test", {"message": "hello"})
+        right = cache_key(2, "echo.test", {"message": "hello"})
+        self.assertNotEqual(left, right)
 
     async def test_telemetry_records_calls(self) -> None:
         telemetry = ToolTelemetry()

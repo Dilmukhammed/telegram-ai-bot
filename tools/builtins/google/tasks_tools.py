@@ -27,6 +27,7 @@ from tools.builtins.google.tasks_serialize import (
     merge_task_for_update,
     merge_tasklist_for_update,
 )
+from tools.builtins.google.tasks_checker import TASKS_CHECKER_QUESTIONS_BY_TOOL
 from tools.builtins.google.tool_hints import GOOGLE_TASKS_OAUTH_HINT
 from tools.context import get_run_context
 from tools.schema import ToolSpec
@@ -670,6 +671,7 @@ GOOGLE_TASKS_LIST_TASKLISTS = ToolSpec(
     cache_ttl_seconds=60,
     parallel_safe=True,
     examples=("my task lists", "google tasks lists", "списки задач"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.list_tasklists"],
 )
 
 GOOGLE_TASKS_LIST_TASKS = ToolSpec(
@@ -695,6 +697,7 @@ GOOGLE_TASKS_LIST_TASKS = ToolSpec(
     cache_ttl_seconds=30,
     parallel_safe=True,
     examples=("list tasks in shopping list", "tasks with due dates"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.list_tasks"],
 )
 
 GOOGLE_TASKS_GET_TASK = ToolSpec(
@@ -713,6 +716,7 @@ GOOGLE_TASKS_GET_TASK = ToolSpec(
     cache_ttl_seconds=30,
     parallel_safe=True,
     examples=("get task details", "show task by id"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.get_task"],
 )
 
 GOOGLE_TASKS_CREATE_TASK = ToolSpec(
@@ -745,6 +749,7 @@ GOOGLE_TASKS_CREATE_TASK = ToolSpec(
     tags=("google", "tasks", "write"),
     parallel_safe=False,
     examples=("create task buy milk", "add todo with due date"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.create_task"],
 )
 
 GOOGLE_TASKS_LIST_DEFAULT_TASKS = ToolSpec(
@@ -765,6 +770,7 @@ GOOGLE_TASKS_LIST_DEFAULT_TASKS = ToolSpec(
     cache_ttl_seconds=30,
     parallel_safe=True,
     examples=("my todos", "what are my tasks", "мои задачи"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.list_default_tasks"],
 )
 
 GOOGLE_TASKS_LIST_TODAY = ToolSpec(
@@ -783,6 +789,7 @@ GOOGLE_TASKS_LIST_TODAY = ToolSpec(
     cache_ttl_seconds=30,
     parallel_safe=True,
     examples=("tasks due today", "what to do today", "задачи на сегодня"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.list_today"],
 )
 
 GOOGLE_TASKS_LIST_OVERDUE = ToolSpec(
@@ -801,6 +808,7 @@ GOOGLE_TASKS_LIST_OVERDUE = ToolSpec(
     cache_ttl_seconds=30,
     parallel_safe=True,
     examples=("overdue tasks", "просроченные задачи"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.list_overdue"],
 )
 
 GOOGLE_TASKS_LIST_UPCOMING = ToolSpec(
@@ -820,6 +828,7 @@ GOOGLE_TASKS_LIST_UPCOMING = ToolSpec(
     cache_ttl_seconds=30,
     parallel_safe=True,
     examples=("upcoming tasks this week", "tasks due soon"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.list_upcoming"],
 )
 
 GOOGLE_TASKS_QUICK_ADD_TASK = ToolSpec(
@@ -844,6 +853,7 @@ GOOGLE_TASKS_QUICK_ADD_TASK = ToolSpec(
     tags=("google", "tasks", "write"),
     parallel_safe=False,
     examples=("remind me to call mom", "add task buy bread tomorrow", "добавь задачу"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.quick_add_task"],
 )
 
 GOOGLE_TASKS_COMPLETE_TASK = ToolSpec(
@@ -861,6 +871,7 @@ GOOGLE_TASKS_COMPLETE_TASK = ToolSpec(
     tags=("google", "tasks", "write"),
     parallel_safe=False,
     examples=("mark task done", "complete todo", "отметить задачу выполненной"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.complete_task"],
 )
 
 GOOGLE_TASKS_GET_TASKLIST = ToolSpec(
@@ -881,6 +892,7 @@ GOOGLE_TASKS_GET_TASKLIST = ToolSpec(
     cache_ttl_seconds=60,
     parallel_safe=True,
     examples=("get task list details", "show shopping list metadata"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.get_tasklist"],
 )
 
 GOOGLE_TASKS_UPDATE_TASK = ToolSpec(
@@ -905,6 +917,7 @@ GOOGLE_TASKS_UPDATE_TASK = ToolSpec(
     tags=("google", "tasks", "write"),
     parallel_safe=False,
     examples=("replace task title and notes", "update todo fully"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.update_task"],
 )
 
 GOOGLE_TASKS_PATCH_TASK = ToolSpec(
@@ -926,6 +939,7 @@ GOOGLE_TASKS_PATCH_TASK = ToolSpec(
     tags=("google", "tasks", "write"),
     parallel_safe=False,
     examples=("rename task", "change due date", "mark task incomplete"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.patch_task"],
 )
 
 GOOGLE_TASKS_DELETE_TASK = ToolSpec(
@@ -940,6 +954,7 @@ GOOGLE_TASKS_DELETE_TASK = ToolSpec(
     tags=("google", "tasks", "write"),
     parallel_safe=False,
     examples=("delete todo", "remove task"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.delete_task"],
 )
 
 GOOGLE_TASKS_MOVE_TASK = ToolSpec(
@@ -966,6 +981,7 @@ GOOGLE_TASKS_MOVE_TASK = ToolSpec(
     tags=("google", "tasks", "write", "subtasks"),
     parallel_safe=False,
     examples=("move task to shopping list", "make subtask", "reorder tasks"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.move_task"],
 )
 
 GOOGLE_TASKS_SEARCH_TASKS = ToolSpec(
@@ -989,6 +1005,7 @@ GOOGLE_TASKS_SEARCH_TASKS = ToolSpec(
     cache_ttl_seconds=30,
     parallel_safe=True,
     examples=("find task milk", "search todos about report"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.search_tasks"],
 )
 
 GOOGLE_TASKS_LIST_SUBTASKS = ToolSpec(
@@ -1008,6 +1025,7 @@ GOOGLE_TASKS_LIST_SUBTASKS = ToolSpec(
     cache_ttl_seconds=30,
     parallel_safe=True,
     examples=("list subtasks", "show checklist items"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.list_subtasks"],
 )
 
 GOOGLE_TASKS_LIST_ALL_OPEN_TASKS = ToolSpec(
@@ -1025,6 +1043,7 @@ GOOGLE_TASKS_LIST_ALL_OPEN_TASKS = ToolSpec(
     cache_ttl_seconds=30,
     parallel_safe=True,
     examples=("all my open todos", "tasks everywhere"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.list_all_open_tasks"],
 )
 
 GOOGLE_TASKS_UNCOMPLETE_TASK = ToolSpec(
@@ -1039,6 +1058,7 @@ GOOGLE_TASKS_UNCOMPLETE_TASK = ToolSpec(
     tags=("google", "tasks", "write"),
     parallel_safe=False,
     examples=("reopen task", "mark todo not done", "uncomplete task"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.uncomplete_task"],
 )
 
 GOOGLE_TASKS_CREATE_TASKLIST = ToolSpec(
@@ -1055,6 +1075,7 @@ GOOGLE_TASKS_CREATE_TASKLIST = ToolSpec(
     tags=("google", "tasks", "write", "tasklists"),
     parallel_safe=False,
     examples=("create shopping list", "new tasks list", "создай список покупок"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.create_tasklist"],
 )
 
 GOOGLE_TASKS_UPDATE_TASKLIST = ToolSpec(
@@ -1075,6 +1096,7 @@ GOOGLE_TASKS_UPDATE_TASKLIST = ToolSpec(
     tags=("google", "tasks", "write", "tasklists"),
     parallel_safe=False,
     examples=("rename task list", "update list title"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.update_tasklist"],
 )
 
 GOOGLE_TASKS_PATCH_TASKLIST = ToolSpec(
@@ -1095,6 +1117,7 @@ GOOGLE_TASKS_PATCH_TASKLIST = ToolSpec(
     tags=("google", "tasks", "write", "tasklists"),
     parallel_safe=False,
     examples=("rename tasks list", "patch list title"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.patch_tasklist"],
 )
 
 GOOGLE_TASKS_DELETE_TASKLIST = ToolSpec(
@@ -1118,6 +1141,7 @@ GOOGLE_TASKS_DELETE_TASKLIST = ToolSpec(
     tags=("google", "tasks", "write", "tasklists"),
     parallel_safe=False,
     examples=("delete task list", "remove shopping list"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.delete_tasklist"],
 )
 
 GOOGLE_TASKS_CLEAR_COMPLETED = ToolSpec(
@@ -1138,6 +1162,7 @@ GOOGLE_TASKS_CLEAR_COMPLETED = ToolSpec(
     tags=("google", "tasks", "write"),
     parallel_safe=False,
     examples=("clear completed tasks", "hide done todos"),
+    verification_questions=TASKS_CHECKER_QUESTIONS_BY_TOOL["google.tasks.clear_completed"],
 )
 
 GOOGLE_TASKS_TOOLS: tuple[ToolSpec, ...] = (

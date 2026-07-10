@@ -4,9 +4,10 @@ import time
 from typing import Any
 
 
-def cache_key(tool_name: str, arguments: dict[str, Any]) -> str:
+def cache_key(user_id: int | None, tool_name: str, arguments: dict[str, Any]) -> str:
+    uid = "anon" if user_id is None else str(user_id)
     payload = json.dumps(arguments, sort_keys=True, ensure_ascii=False, default=str)
-    digest = hashlib.sha256(f"{tool_name}:{payload}".encode("utf-8")).hexdigest()
+    digest = hashlib.sha256(f"{uid}:{tool_name}:{payload}".encode("utf-8")).hexdigest()
     return digest
 
 

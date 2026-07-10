@@ -1,0 +1,186 @@
+{
+  "schema_version": "1",
+  "fixture_id": "ru_hearsay_023",
+  "title": "Hearsay employment event",
+  "tier": "smoke",
+  "language": "ru",
+  "criticality": "critical",
+  "slice_tags": [
+    "wrong_speaker_hearsay",
+    "uncertainty_alternative",
+    "hard_negative",
+    "multi_turn"
+  ],
+  "reference_time": "2026-07-10T12:00:00+05:00",
+  "timezone": "Asia/Tashkent",
+  "users": [
+    {
+      "user_alias": "u1",
+      "user_id": 1023,
+      "display_name": "Synthetic User",
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "m1",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "assistant",
+      "content": "Есть новости об Иване?",
+      "content_type": "text",
+      "occurred_at": "2026-07-10T09:00:00+05:00",
+      "metadata": {}
+    },
+    {
+      "event_id": "m2",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Коллега думает, что Иван уволился.",
+      "content_type": "text",
+      "occurred_at": "2026-07-10T09:01:00+05:00",
+      "metadata": {}
+    }
+  ],
+  "expected": {
+    "sources": [
+      {
+        "source_event": "m1",
+        "source_type": "chat_message",
+        "source_ref_alias": "m1",
+        "authority_class": "assistant_generated",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m1"
+        },
+        "normalization_job_status": "done"
+      },
+      {
+        "source_event": "m2",
+        "source_type": "chat_message",
+        "source_ref_alias": "m2",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m2"
+        },
+        "normalization_job_status": "done"
+      }
+    ],
+    "segments": [
+      {
+        "source_event": "m1",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Есть новости об Иване?",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m1"
+        }
+      },
+      {
+        "source_event": "m2",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Коллега думает, что Иван уволился.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m2"
+        }
+      }
+    ],
+    "mentions": [
+      {
+        "mention_id": "ivan",
+        "source_event": "m2",
+        "mention_type": "person",
+        "surface_text": "Иван",
+        "char_start": 20,
+        "char_end": 24,
+        "normalized_hint": "Иван",
+        "pointer": {
+          "source_event": "m2",
+          "char_start": 20,
+          "char_end": 24
+        }
+      },
+      {
+        "mention_id": "reporter",
+        "source_event": "m2",
+        "mention_type": "person",
+        "surface_text": "Коллега",
+        "char_start": 0,
+        "char_end": 7,
+        "normalized_hint": "коллега",
+        "pointer": {
+          "source_event": "m2",
+          "char_start": 0,
+          "char_end": 7
+        }
+      }
+    ],
+    "candidates": [
+      {
+        "candidate_ref": "c1",
+        "kind": "event",
+        "schema_name": "left_job",
+        "schema_version": "1",
+        "arguments": [
+          {
+            "role": "person",
+            "mention_ref": "ivan"
+          }
+        ],
+        "attributes": {},
+        "polarity": "unknown",
+        "epistemic": {
+          "mode": "reported",
+          "speaker_commitment": "possible",
+          "scope": "proposition",
+          "alternatives": [],
+          "needs_confirmation": true,
+          "speaker_ref": "reporter"
+        },
+        "temporal": null,
+        "status": "needs_confirmation",
+        "evidence": [
+          {
+            "source_event": "m2",
+            "relation": "supports",
+            "exact_quote": "Коллега думает, что Иван уволился.",
+            "char_start": 0,
+            "char_end": 34
+          }
+        ]
+      }
+    ],
+    "forbidden_candidates": [
+      {
+        "kind": "event",
+        "schema_name": "left_job",
+        "polarity": "positive"
+      },
+      {
+        "kind": "event",
+        "schema_name": "left_job",
+        "polarity": "negative"
+      }
+    ],
+    "expect_abstention": false,
+    "forbidden_sources": [],
+    "forbidden_segments": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "Awaiting human gold-corpus sign-off."
+    ]
+  }
+}

@@ -5,23 +5,25 @@ from dotenv import load_dotenv
 
 from prompts import DEFAULT_SYSTEM_PROMPT
 
-load_dotenv()
+# Local `.env` wins by default so a stale shell OPENAI_API_KEY does not override it.
+# In production (Docker/K8s), set DOTENV_OVERRIDE=0 so orchestrator secrets win.
+load_dotenv(override=os.getenv("DOTENV_OVERRIDE", "1") != "0")
 
 # --- Defaults (override via .env) ---
 
-DEFAULT_OPENAI_BASE_URL = "http://localhost:20128/v1"
-DEFAULT_OPENAI_MODEL = "ag/gemini-3.5-flash-low"
-DEFAULT_REASONING_EFFORT = "high"
+DEFAULT_OPENAI_BASE_URL = "https://api.fireworks.ai/inference/v1"
+DEFAULT_OPENAI_MODEL = "accounts/fireworks/models/glm-5p2"
+DEFAULT_REASONING_EFFORT = "medium"
 DEFAULT_LLM_CONTEXT_WINDOW_TOKENS = 1_000_000
 DEFAULT_LLM_REQUEST_TIMEOUTS = (30.0, 60.0, 90.0)
 REASONING_EFFORT_LEVELS = frozenset(
     {"minimal", "low", "medium", "high", "xhigh", "auto", "none"}
 )
 
-DEFAULT_AGENT_MAX_TOOL_TURNS = 100
+DEFAULT_AGENT_MAX_TOOL_TURNS = 200
 DEFAULT_AGENT_SUPERVISOR_ENABLED = True
-DEFAULT_AGENT_SUPERVISOR_BONUS_TURNS = 30
-DEFAULT_AGENT_SUPERVISOR_MAX_CYCLES = 10
+DEFAULT_AGENT_SUPERVISOR_BONUS_TURNS = 60
+DEFAULT_AGENT_SUPERVISOR_MAX_CYCLES = 20
 DEFAULT_AGENT_SUPERVISOR_TRACE_MAX_CHARS = 12_000
 DEFAULT_AGENT_SUPERVISOR_SOFT_TRIGGERS = True
 DEFAULT_AGENT_SUPERVISOR_PERIODIC_EVERY = 0
@@ -31,7 +33,56 @@ DEFAULT_SKILLS_AUTO_LOAD_DISTINCT_TOOLS = 3
 DEFAULT_SKILLS_COLLAPSE_IDLE_TURNS = 7
 DEFAULT_BOT_TIMEZONE = "Asia/Tashkent"
 DEFAULT_MESSAGE_GAP_MINUTES = 20
-DEFAULT_CHAT_MAX_HISTORY = 20
+DEFAULT_CHAT_MAX_HISTORY = 50
+DEFAULT_CHAT_MIGRATE_V1_SOURCE_PATH = "data/chat_history.sqlite"
+DEFAULT_CHAT_DB_PATH = "data/chat.sqlite"
+DEFAULT_CHAT_SESSION_SUMMARY_ON_ARCHIVE = True
+DEFAULT_CHAT_SESSION_SUMMARY_MAX_INPUT_CHARS = 80_000
+DEFAULT_CHAT_SESSION_SUMMARY_PER_TURN_MAX_CHARS = 12_000
+DEFAULT_CHAT_PERIOD_SUMMARY_ENABLED = True
+DEFAULT_CHAT_PERIOD_SUMMARY_ON_SESSION_ARCHIVE = True
+DEFAULT_CHAT_PERIOD_SUMMARY_MAX_INPUT_CHARS = 120_000
+DEFAULT_CHAT_PERIOD_SUMMARY_BOUNDARY_ENABLED = True
+DEFAULT_CHAT_PERIOD_SUMMARY_BOUNDARY_POLL_SECONDS = 60
+DEFAULT_CHAT_MIGRATE_V1_ON_STARTUP = True
+DEFAULT_CHAT_MIGRATE_V1_TARGET = "active"
+DEFAULT_CHAT_MIGRATE_V1_BACKUP = True
+DEFAULT_CHAT_SEARCH_CHUNK_CHARS = 800
+DEFAULT_CHAT_SEARCH_CHUNK_OVERLAP = 100
+DEFAULT_CHAT_SEARCH_TOP_K = 5
+DEFAULT_CHAT_SEARCH_KEYWORD_CANDIDATES = 80
+DEFAULT_CHAT_SEARCH_VECTOR_SCAN_LIMIT = 2000
+DEFAULT_CHAT_SEARCH_MAX_PER_SESSION = 5
+DEFAULT_CHAT_INDEX_ON_STARTUP = True
+DEFAULT_CHAT_INDEX_PAYLOAD_MAX_CHARS = 4000
+DEFAULT_INSTANCE_LOCK_PATH = "data/bot.instance.lock"
+DEFAULT_INSTANCE_LOCK_ENABLED = True
+DEFAULT_ACCESS_APPROVAL_ENABLED = True
+DEFAULT_ACCESS_DB_PATH = "data/access.sqlite"
+
+DEFAULT_MEMORY_INGEST_ENABLED = False
+DEFAULT_MEMORY_DB_PATH = "data/memory.sqlite"
+DEFAULT_MEMORY_WORKER_ENABLED = False
+DEFAULT_MEMORY_WORKER_CONCURRENCY = 2
+DEFAULT_MEMORY_WORKER_POLL_SECONDS = 1.0
+DEFAULT_MEMORY_JOB_LEASE_SECONDS = 300
+DEFAULT_MEMORY_JOB_MAX_ATTEMPTS = 5
+DEFAULT_MEMORY_JOB_RETRY_BASE_SECONDS = 5.0
+DEFAULT_MEMORY_JOB_RETRY_MAX_SECONDS = 900.0
+DEFAULT_MEMORY_JOB_CLAIM_BATCH_SIZE = 10
+DEFAULT_MEMORY_INGEST_QUEUE_MAXSIZE = 1000
+DEFAULT_MEMORY_INGEST_SCAN_INTERVAL_SECONDS = 30.0
+DEFAULT_MEMORY_INGEST_SCAN_BATCH_SIZE = 100
+DEFAULT_MEMORY_INGEST_FAILURE_MAX_ATTEMPTS = 10
+DEFAULT_MEMORY_INGEST_RETRY_BASE_SECONDS = 5.0
+DEFAULT_MEMORY_INGEST_RETRY_MAX_SECONDS = 900.0
+DEFAULT_MEMORY_TEXT_SEGMENT_CHARS = 4000
+DEFAULT_MEMORY_TEXT_SEGMENT_OVERLAP = 200
+DEFAULT_MEMORY_TOOL_RECONCILE_BATCH_SIZE = 100
+DEFAULT_MEMORY_INGEST_SHUTDOWN_GRACE_SECONDS = 10.0
+DEFAULT_MEMORY_EXTRACTION_ENABLED = False
+DEFAULT_MEMORY_EXTRACTION_MODEL_PROFILE = "summarize"
+DEFAULT_MEMORY_EXTRACTION_MAX_TOKENS = 4096
 
 DEFAULT_QUEUE_MAX_PENDING = 10
 DEFAULT_MESSAGE_BURST_QUIET_MS = 150
@@ -54,12 +105,16 @@ DEFAULT_LOCAL_EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 DEFAULT_TOOL_EMBEDDING_PROVIDER = "api"
 
 DEFAULT_TOOL_CACHE_MAX_TTL = 86400
-DEFAULT_MAX_TOOL_CALLS_PER_USER_HOUR = 100
+DEFAULT_MAX_TOOL_CALLS_PER_USER_HOUR = 200
 
 DEFAULT_GOOGLE_REDIRECT_URI = "http://localhost:1"
 DEFAULT_GOOGLE_OAUTH_HOST = "127.0.0.1"
 DEFAULT_GOOGLE_OAUTH_PORT = 8787
 DEFAULT_GOOGLE_TOKEN_DB_PATH = "data/google_tokens.sqlite"
+DEFAULT_GOOGLE_CLOUD_TEST_USERS_URL = ""
+DEFAULT_GOOGLE_CLOUD_PROJECT_ID = ""
+DEFAULT_GOOGLE_TEST_USERS_VERIFY_SA_PATH = ""
+DEFAULT_GOOGLE_TEST_USER_VERIFY_TRUST_ADMIN = True
 DEFAULT_GOOGLE_OAUTH_SCOPES = (
     "https://www.googleapis.com/auth/calendar,"
     "https://www.googleapis.com/auth/gmail.modify,"
@@ -73,46 +128,71 @@ DEFAULT_GOOGLE_MAPS_DEFAULT_LANGUAGE = "ru"
 DEFAULT_GOOGLE_MAPS_DEFAULT_REGION = "uz"
 DEFAULT_GOOGLE_MAPS_DEFAULT_LAT = 41.2995
 DEFAULT_GOOGLE_MAPS_DEFAULT_LNG = 69.2401
-DEFAULT_MAPS_RATE_LIMIT_GEOCODE = "30/60"
-DEFAULT_MAPS_RATE_LIMIT_DEFAULT = "60/3600"
-DEFAULT_MAPS_RATE_LIMIT_PLACES = "15/60"
-DEFAULT_MAPS_RATE_LIMIT_DETAILS = "20/60"
-DEFAULT_MAPS_RATE_LIMIT_ROUTES = "10/60"
-DEFAULT_MAPS_RATE_LIMIT_STATIC = "5/60"
+DEFAULT_MAPS_RATE_LIMIT_GEOCODE = "60/60"
+DEFAULT_MAPS_RATE_LIMIT_DEFAULT = "120/3600"
+DEFAULT_MAPS_RATE_LIMIT_PLACES = "30/60"
+DEFAULT_MAPS_RATE_LIMIT_DETAILS = "40/60"
+DEFAULT_MAPS_RATE_LIMIT_ROUTES = "20/60"
+DEFAULT_MAPS_RATE_LIMIT_STATIC = "10/60"
 DEFAULT_MAPS_TRANSIT_LINK_PROVIDER = "yandex"
 
 # Yandex Music (device OAuth via yandex-music library)
 DEFAULT_YANDEX_TOKEN_DB_PATH = "data/yandex_tokens.sqlite"
 DEFAULT_YANDEX_MUSIC_LANGUAGE = "ru"
-DEFAULT_YANDEX_MUSIC_RATE_LIMIT_READ = "60/60"
-DEFAULT_YANDEX_MUSIC_RATE_LIMIT_WRITE = "30/60"
+DEFAULT_YANDEX_MUSIC_RATE_LIMIT_READ = "120/60"
+DEFAULT_YANDEX_MUSIC_RATE_LIMIT_WRITE = "60/60"
 
 DEFAULT_TOOL_RESULT_DB_PATH = "data/tool_results.sqlite"
 DEFAULT_TOOL_RESULT_ARCHIVE_MIN_CHARS = 150
 DEFAULT_TOOL_RESULT_COLLAPSE_STALE_STEPS = 10
-DEFAULT_TOOL_RESULT_TTL_HOURS = 72
+DEFAULT_TOOL_RESULT_TTL_HOURS = 0
 DEFAULT_TOOL_RESULT_SUMMARIZE_MAX_INPUT_CHARS = 12_000
 DEFAULT_TOOL_RESULT_SUMMARIZE_MAX_RETRIES = 3
 DEFAULT_TOOL_RESULT_SUMMARIZE_MIN_CHARS = 80
 DEFAULT_TOOL_RESULT_SUMMARIZE_MAX_CONCURRENT = 3
+DEFAULT_SUMMARIZE_MODEL = "accounts/fireworks/models/deepseek-v4-flash"
 DEFAULT_WORKER_CONTENT_SUMMARIZE_MAX_CHARS = 200
+
+DEFAULT_AGENT_COACH_ENABLED = True
+DEFAULT_COACH_EVERY_N_TOOL_CALLS = 5
+DEFAULT_COACH_MAX_FIELD_CHARS = 700
+DEFAULT_COACH_MAX_TRACE_CHARS = 60000
+DEFAULT_COACH_INJECT_HINTS = True
+DEFAULT_COACH_MAX_OUTPUT_TOKENS = 8192
+
+DEFAULT_AGENT_CHECKER_ENABLED = True
+DEFAULT_CHECKER_TOOLS_ALLOWLIST = "*"
+DEFAULT_CHECKER_MAX_OUTPUT_TOKENS = 1024
+DEFAULT_CHECKER_SKIP_CACHED = True
+DEFAULT_CHECKER_EVIDENCE_MAX_CHARS = 8000
+DEFAULT_AGENT_CHECKER_DEBUG = False
+
+# Thorough multi-agent system (phase 1 planners + phase 2 merger) — not wired to bot yet
+DEFAULT_THOROUGH_ENABLED = False
+DEFAULT_THOROUGH_PLANNER_UNIT_MODEL = "accounts/fireworks/models/kimi-k2p6"
+DEFAULT_THOROUGH_PLANNER_SURFACE_MODEL = "accounts/fireworks/models/glm-5p2"
+DEFAULT_THOROUGH_PLANNER_HOT_MODEL = "accounts/fireworks/models/qwen3p7-plus"
+DEFAULT_THOROUGH_MERGER_MODEL = "accounts/fireworks/models/glm-5p2"
+DEFAULT_THOROUGH_PLANNER_MAX_OUTPUT_TOKENS = 4096
+DEFAULT_THOROUGH_MERGER_MAX_OUTPUT_TOKENS = 8192
+
 DEFAULT_TOOL_RESULT_ARCHIVE_ENABLED = True
 DEFAULT_TOOL_RESULT_COLLAPSE_WAIT_SECONDS = 30.0
 DEFAULT_TOOL_RESULT_CLEANUP_INTERVAL_SECONDS = 3600
 DEFAULT_TOOL_RESULT_MAX_ROWS_PER_USER = 0
 
-DEFAULT_PDF_RATE_LIMIT_READ = "30/60"
+DEFAULT_PDF_RATE_LIMIT_READ = "60/60"
 DEFAULT_PDF_MAX_TEXT_CHARS_PER_PAGE = 8000
 DEFAULT_PDF_MAX_TABLES = 20
 DEFAULT_PDF_MAX_IMAGES = 20
 DEFAULT_PDF_MAX_SEARCH_RESULTS = 50
 
-DEFAULT_OCR_BASE_URL = ""
+DEFAULT_OCR_BASE_URL = "https://api.mistral.ai/v1"
 DEFAULT_OCR_API_KEY = ""
-DEFAULT_OCR_MODEL = ""
+DEFAULT_OCR_MODEL = "mistral-ocr-latest"  # Mistral OCR 4 (mistral-ocr-4-0)
 DEFAULT_OCR_MAX_PAGES = 50
 DEFAULT_OCR_DPI = 200
-DEFAULT_OCR_RATE_LIMIT = "10/60"
+DEFAULT_OCR_RATE_LIMIT = "20/60"
 
 DEFAULT_GOOGLE_OAUTH_CLIENT_TYPE = "installed"
 DEFAULT_GOOGLE_OAUTH_BIND_HOST = "127.0.0.1"
@@ -140,16 +220,16 @@ TELEGRAM_BOT_MAX_AUDIO_BYTES = 50 * _MB
 DEFAULT_GMAIL_MAX_BODY_CHARS = 4000
 DEFAULT_GMAIL_MAX_ATTACHMENT_BYTES = GOOGLE_GMAIL_MAX_ATTACHMENT_BYTES
 DEFAULT_GMAIL_DEFAULT_MAX_RESULTS = 10
-DEFAULT_GMAIL_RATE_LIMIT_READ = "60/60"
-DEFAULT_GMAIL_RATE_LIMIT_WRITE = "30/60"
+DEFAULT_GMAIL_RATE_LIMIT_READ = "120/60"
+DEFAULT_GMAIL_RATE_LIMIT_WRITE = "60/60"
 
 DEFAULT_DRIVE_MAX_DOWNLOAD_BYTES = GOOGLE_DRIVE_MAX_BLOB_BYTES
 DEFAULT_DRIVE_MAX_EXPORT_BYTES = GOOGLE_DRIVE_MAX_EXPORT_BYTES
 DEFAULT_DRIVE_MAX_UPLOAD_BYTES = 10 * _MB
 DEFAULT_DRIVE_MAX_EXPORT_CHARS = 50_000
 DEFAULT_DRIVE_DEFAULT_MAX_RESULTS = 10
-DEFAULT_DRIVE_RATE_LIMIT_READ = "60/60"
-DEFAULT_DRIVE_RATE_LIMIT_WRITE = "30/60"
+DEFAULT_DRIVE_RATE_LIMIT_READ = "120/60"
+DEFAULT_DRIVE_RATE_LIMIT_WRITE = "60/60"
 
 DEFAULT_RUN_FILE_MAX_BYTES = GOOGLE_DRIVE_MAX_BLOB_BYTES
 
@@ -161,9 +241,9 @@ DEFAULT_WORKSPACE_READ_PREVIEW_LINES = 30
 DEFAULT_WORKSPACE_READ_PREVIEW_LINES_MAX = 50
 DEFAULT_WORKSPACE_READ_LINES_MAX = 500
 DEFAULT_WORKSPACE_UPLOAD_MAX_BYTES = 20 * _MB
-DEFAULT_WORKSPACE_RATE_LIMIT_READ = "60/60"
-DEFAULT_WORKSPACE_RATE_LIMIT_WRITE = "30/60"
-DEFAULT_WORKSPACE_RATE_LIMIT_DELETE = "10/60"
+DEFAULT_WORKSPACE_RATE_LIMIT_READ = "120/60"
+DEFAULT_WORKSPACE_RATE_LIMIT_WRITE = "60/60"
+DEFAULT_WORKSPACE_RATE_LIMIT_DELETE = "20/60"
 DEFAULT_WORKSPACE_GREP_MAX_MATCHES = 200
 DEFAULT_WORKSPACE_GREP_MAX_FILES = 100
 DEFAULT_WORKSPACE_UNZIP_MAX_FILES = 500
@@ -174,8 +254,8 @@ DEFAULT_TELEGRAM_MAX_PHOTO_BYTES = TELEGRAM_BOT_MAX_PHOTO_BYTES
 DEFAULT_TELEGRAM_MAX_AUDIO_BYTES = TELEGRAM_BOT_MAX_AUDIO_BYTES
 
 DEFAULT_SHEETS_MAX_CELLS = 10_000
-DEFAULT_SHEETS_RATE_LIMIT_READ = "60/60"
-DEFAULT_SHEETS_RATE_LIMIT_WRITE = "30/60"
+DEFAULT_SHEETS_RATE_LIMIT_READ = "120/60"
+DEFAULT_SHEETS_RATE_LIMIT_WRITE = "60/60"
 
 
 def format_byte_size(num: int) -> str:
@@ -203,6 +283,20 @@ def telegram_limit_label(kind: str) -> str:
     if kind == "audio":
         return f"Telegram audio limit ({format_byte_size(TELEGRAM_BOT_MAX_AUDIO_BYTES)})"
     return f"Telegram document limit ({format_byte_size(TELEGRAM_BOT_MAX_DOCUMENT_BYTES)})"
+
+
+def _llm_triplet_env(
+    prefix: str,
+    *,
+    default_base_url: str,
+    default_api_key: str,
+    default_model: str,
+) -> tuple[str, str, str]:
+    return (
+        _str_env(f"{prefix}_BASE_URL", default_base_url),
+        _str_env(f"{prefix}_API_KEY", default_api_key),
+        _str_env(f"{prefix}_MODEL", default_model),
+    )
 
 
 def _normalize_base_url(value: str) -> str:
@@ -289,10 +383,14 @@ def _parse_rate_limit(raw: str | None) -> tuple[int, int] | None:
     raise ValueError(f"Invalid rate limit format: {raw!r}. Use max/window, e.g. 10/60")
 
 
-def _parse_admin_user_ids(raw: str) -> frozenset[int]:
+def _parse_user_ids(raw: str) -> frozenset[int]:
     if not raw:
         return frozenset()
     return frozenset(int(part.strip()) for part in raw.split(",") if part.strip())
+
+
+def _parse_admin_user_ids(raw: str) -> frozenset[int]:
+    return _parse_user_ids(raw)
 
 
 @dataclass(frozen=True)
@@ -300,6 +398,34 @@ class Settings:
     # Telegram bot
     telegram_bot_token: str
     admin_user_ids: frozenset[int]
+    allowed_user_ids: frozenset[int]
+    access_approval_enabled: bool
+    access_db_path: str
+
+    # Graph memory foundation (PR 0 — disabled by default, no user-visible behavior)
+    memory_ingest_enabled: bool
+    memory_db_path: str
+    memory_worker_enabled: bool
+    memory_worker_concurrency: int
+    memory_worker_poll_seconds: float
+    memory_job_lease_seconds: int
+    memory_job_max_attempts: int
+    memory_job_retry_base_seconds: float
+    memory_job_retry_max_seconds: float
+    memory_job_claim_batch_size: int
+    memory_ingest_queue_maxsize: int
+    memory_ingest_scan_interval_seconds: float
+    memory_ingest_scan_batch_size: int
+    memory_ingest_failure_max_attempts: int
+    memory_ingest_retry_base_seconds: float
+    memory_ingest_retry_max_seconds: float
+    memory_text_segment_chars: int
+    memory_text_segment_overlap: int
+    memory_tool_reconcile_batch_size: int
+    memory_ingest_shutdown_grace_seconds: float
+    memory_extraction_enabled: bool
+    memory_extraction_model_profile: str
+    memory_extraction_max_tokens: int
 
     # LLM / agent
     openai_base_url: str
@@ -326,7 +452,32 @@ class Settings:
 
     # Chat history & gaps
     chat_max_history: int
+    chat_db_path: str
+    chat_migrate_v1_source_path: str
+    chat_session_summary_on_archive: bool
+    chat_session_summary_max_input_chars: int
+    chat_session_summary_per_turn_max_chars: int
+    chat_period_summary_enabled: bool
+    chat_period_summary_on_session_archive: bool
+    chat_period_summary_max_input_chars: int
+    chat_period_summary_boundary_enabled: bool
+    chat_period_summary_boundary_poll_seconds: int
+    chat_migrate_v1_on_startup: bool
+    chat_migrate_v1_target: str
+    chat_migrate_v1_backup: bool
+    chat_search_chunk_chars: int
+    chat_search_chunk_overlap: int
+    chat_search_top_k: int
+    chat_search_keyword_candidates: int
+    chat_search_vector_scan_limit: int
+    chat_search_max_per_session: int
+    chat_index_on_startup: bool
+    chat_index_payload_max_chars: int
     message_gap_minutes: int
+
+    # Single-instance guard (Telegram polling)
+    instance_lock_enabled: bool
+    instance_lock_path: str
 
     # Message queue & burst grouping
     queue_max_pending: int
@@ -378,6 +529,10 @@ class Settings:
     google_oauth_scopes: tuple[str, ...]
     google_oauth_client_type: str
     google_public_base_url: str | None
+    google_cloud_project_id: str
+    google_cloud_test_users_url: str
+    google_test_users_verify_sa_path: str
+    google_test_user_verify_trust_admin: bool
 
     # Google Maps Platform (API key, not user OAuth)
     google_maps_api_key: str | None
@@ -457,8 +612,49 @@ class Settings:
     tool_result_cleanup_interval_seconds: int
     tool_result_max_rows_per_user: int
 
+    # Lightweight LLM for tool-result + worker-content summarization (not the agent model)
+    summarize_base_url: str
+    summarize_api_key: str
+    summarize_model: str
+
     # Worker content summarize (assistant planning text compression)
     worker_content_summarize_max_chars: int
+
+    # Trajectory coach (periodic strategy review, uses summarize model)
+    agent_coach_enabled: bool
+    coach_every_n_tool_calls: int
+    coach_max_field_chars: int
+    coach_max_trace_chars: int
+    coach_inject_hints: bool
+    coach_max_output_tokens: int
+
+    # Per-tool checker (uses checker/summarize model profile)
+    agent_checker_enabled: bool
+    checker_base_url: str
+    checker_api_key: str
+    checker_model: str
+    checker_max_output_tokens: int
+    checker_skip_cached: bool
+    checker_tools_allowlist: str
+    checker_evidence_max_chars: int
+    agent_checker_debug: bool
+
+    # Thorough multi-agent (phase planners P1/P2/P3 + merger M)
+    thorough_enabled: bool
+    thorough_planner_unit_base_url: str
+    thorough_planner_unit_api_key: str
+    thorough_planner_unit_model: str
+    thorough_planner_surface_base_url: str
+    thorough_planner_surface_api_key: str
+    thorough_planner_surface_model: str
+    thorough_planner_hot_base_url: str
+    thorough_planner_hot_api_key: str
+    thorough_planner_hot_model: str
+    thorough_merger_base_url: str
+    thorough_merger_api_key: str
+    thorough_merger_model: str
+    thorough_planner_max_output_tokens: int
+    thorough_merger_max_output_tokens: int
 
     # PDF tools
     pdf_rate_limit_read: tuple[int, int] | None
@@ -489,9 +685,9 @@ def get_settings(*, require_telegram_token: bool = False) -> Settings:
     if require_telegram_token and not telegram_bot_token:
         raise RuntimeError("TELEGRAM_BOT_TOKEN is not set")
 
-    openai_api_key = _str_env("OPENAI_API_KEY")
+    openai_api_key = _str_env("OPENAI_API_KEY") or _str_env("EMBEDDING_API_KEY")
     if not openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY is not set")
+        raise RuntimeError("OPENAI_API_KEY or EMBEDDING_API_KEY is not set")
 
     openai_base_url = _str_env("OPENAI_BASE_URL", DEFAULT_OPENAI_BASE_URL)
     google_public_base_url = _optional_str_env("GOOGLE_PUBLIC_BASE_URL")
@@ -504,9 +700,148 @@ def get_settings(*, require_telegram_token: bool = False) -> Settings:
         google_redirect_uri = _str_env("GOOGLE_REDIRECT_URI", DEFAULT_GOOGLE_REDIRECT_URI)
         google_oauth_host = _str_env("GOOGLE_OAUTH_HOST", DEFAULT_GOOGLE_OAUTH_BIND_HOST)
 
+    chat_migrate_v1_source_path = (
+        _optional_str_env("CHAT_MIGRATE_V1_SOURCE_PATH")
+        or _str_env("CHAT_HISTORY_DB_PATH", DEFAULT_CHAT_MIGRATE_V1_SOURCE_PATH)
+    )
+
+    summarize_base_url = _str_env("SUMMARIZE_BASE_URL", openai_base_url)
+    summarize_api_key = _str_env("SUMMARIZE_API_KEY", openai_api_key)
+    summarize_model = _str_env("SUMMARIZE_MODEL", DEFAULT_SUMMARIZE_MODEL)
+    checker_base_url = _str_env("CHECKER_BASE_URL", summarize_base_url)
+    checker_api_key = _str_env("CHECKER_API_KEY", summarize_api_key)
+    checker_model = _str_env("CHECKER_MODEL", summarize_model)
+
+    thorough_llm_defaults = {
+        "default_base_url": summarize_base_url,
+        "default_api_key": summarize_api_key,
+    }
+    (
+        thorough_planner_unit_base_url,
+        thorough_planner_unit_api_key,
+        thorough_planner_unit_model,
+    ) = _llm_triplet_env(
+        "THOROUGH_PLANNER_UNIT",
+        default_model=DEFAULT_THOROUGH_PLANNER_UNIT_MODEL,
+        **thorough_llm_defaults,
+    )
+    (
+        thorough_planner_surface_base_url,
+        thorough_planner_surface_api_key,
+        thorough_planner_surface_model,
+    ) = _llm_triplet_env(
+        "THOROUGH_PLANNER_SURFACE",
+        default_model=DEFAULT_THOROUGH_PLANNER_SURFACE_MODEL,
+        **thorough_llm_defaults,
+    )
+    (
+        thorough_planner_hot_base_url,
+        thorough_planner_hot_api_key,
+        thorough_planner_hot_model,
+    ) = _llm_triplet_env(
+        "THOROUGH_PLANNER_HOT",
+        default_model=DEFAULT_THOROUGH_PLANNER_HOT_MODEL,
+        **thorough_llm_defaults,
+    )
+    (
+        thorough_merger_base_url,
+        thorough_merger_api_key,
+        thorough_merger_model,
+    ) = _llm_triplet_env(
+        "THOROUGH_MERGER",
+        default_model=DEFAULT_THOROUGH_MERGER_MODEL,
+        **thorough_llm_defaults,
+    )
+
     return Settings(
         telegram_bot_token=telegram_bot_token,
         admin_user_ids=_parse_admin_user_ids(_str_env("ADMIN_USER_IDS")),
+        allowed_user_ids=_parse_user_ids(_str_env("ALLOWED_USER_IDS")),
+        access_approval_enabled=_bool_env("ACCESS_APPROVAL_ENABLED", DEFAULT_ACCESS_APPROVAL_ENABLED),
+        access_db_path=_str_env("ACCESS_DB_PATH", DEFAULT_ACCESS_DB_PATH),
+        memory_ingest_enabled=_bool_env("MEMORY_INGEST_ENABLED", DEFAULT_MEMORY_INGEST_ENABLED),
+        memory_db_path=_str_env("MEMORY_DB_PATH", DEFAULT_MEMORY_DB_PATH),
+        memory_worker_enabled=_bool_env("MEMORY_WORKER_ENABLED", DEFAULT_MEMORY_WORKER_ENABLED),
+        memory_worker_concurrency=_int_env(
+            "MEMORY_WORKER_CONCURRENCY",
+            DEFAULT_MEMORY_WORKER_CONCURRENCY,
+        ),
+        memory_worker_poll_seconds=_float_env(
+            "MEMORY_WORKER_POLL_SECONDS",
+            DEFAULT_MEMORY_WORKER_POLL_SECONDS,
+        ),
+        memory_job_lease_seconds=_int_env(
+            "MEMORY_JOB_LEASE_SECONDS",
+            DEFAULT_MEMORY_JOB_LEASE_SECONDS,
+        ),
+        memory_job_max_attempts=_int_env(
+            "MEMORY_JOB_MAX_ATTEMPTS",
+            DEFAULT_MEMORY_JOB_MAX_ATTEMPTS,
+        ),
+        memory_job_retry_base_seconds=_float_env(
+            "MEMORY_JOB_RETRY_BASE_SECONDS",
+            DEFAULT_MEMORY_JOB_RETRY_BASE_SECONDS,
+        ),
+        memory_job_retry_max_seconds=_float_env(
+            "MEMORY_JOB_RETRY_MAX_SECONDS",
+            DEFAULT_MEMORY_JOB_RETRY_MAX_SECONDS,
+        ),
+        memory_job_claim_batch_size=_int_env(
+            "MEMORY_JOB_CLAIM_BATCH_SIZE",
+            DEFAULT_MEMORY_JOB_CLAIM_BATCH_SIZE,
+        ),
+        memory_ingest_queue_maxsize=_int_env(
+            "MEMORY_INGEST_QUEUE_MAXSIZE",
+            DEFAULT_MEMORY_INGEST_QUEUE_MAXSIZE,
+        ),
+        memory_ingest_scan_interval_seconds=_float_env(
+            "MEMORY_INGEST_SCAN_INTERVAL_SECONDS",
+            DEFAULT_MEMORY_INGEST_SCAN_INTERVAL_SECONDS,
+        ),
+        memory_ingest_scan_batch_size=_int_env(
+            "MEMORY_INGEST_SCAN_BATCH_SIZE",
+            DEFAULT_MEMORY_INGEST_SCAN_BATCH_SIZE,
+        ),
+        memory_ingest_failure_max_attempts=_int_env(
+            "MEMORY_INGEST_FAILURE_MAX_ATTEMPTS",
+            DEFAULT_MEMORY_INGEST_FAILURE_MAX_ATTEMPTS,
+        ),
+        memory_ingest_retry_base_seconds=_float_env(
+            "MEMORY_INGEST_RETRY_BASE_SECONDS",
+            DEFAULT_MEMORY_INGEST_RETRY_BASE_SECONDS,
+        ),
+        memory_ingest_retry_max_seconds=_float_env(
+            "MEMORY_INGEST_RETRY_MAX_SECONDS",
+            DEFAULT_MEMORY_INGEST_RETRY_MAX_SECONDS,
+        ),
+        memory_text_segment_chars=_int_env(
+            "MEMORY_TEXT_SEGMENT_CHARS",
+            DEFAULT_MEMORY_TEXT_SEGMENT_CHARS,
+        ),
+        memory_text_segment_overlap=_int_env(
+            "MEMORY_TEXT_SEGMENT_OVERLAP",
+            DEFAULT_MEMORY_TEXT_SEGMENT_OVERLAP,
+        ),
+        memory_tool_reconcile_batch_size=_int_env(
+            "MEMORY_TOOL_RECONCILE_BATCH_SIZE",
+            DEFAULT_MEMORY_TOOL_RECONCILE_BATCH_SIZE,
+        ),
+        memory_ingest_shutdown_grace_seconds=_float_env(
+            "MEMORY_INGEST_SHUTDOWN_GRACE_SECONDS",
+            DEFAULT_MEMORY_INGEST_SHUTDOWN_GRACE_SECONDS,
+        ),
+        memory_extraction_enabled=_bool_env(
+            "MEMORY_EXTRACTION_ENABLED",
+            DEFAULT_MEMORY_EXTRACTION_ENABLED,
+        ),
+        memory_extraction_model_profile=_str_env(
+            "MEMORY_EXTRACTION_MODEL_PROFILE",
+            DEFAULT_MEMORY_EXTRACTION_MODEL_PROFILE,
+        ),
+        memory_extraction_max_tokens=_int_env(
+            "MEMORY_EXTRACTION_MAX_TOKENS",
+            DEFAULT_MEMORY_EXTRACTION_MAX_TOKENS,
+        ),
         openai_base_url=openai_base_url,
         openai_api_key=openai_api_key,
         openai_model=_str_env("OPENAI_MODEL", DEFAULT_OPENAI_MODEL),
@@ -563,7 +898,87 @@ def get_settings(*, require_telegram_token: bool = False) -> Settings:
         ),
         bot_timezone=_str_env("BOT_TIMEZONE", DEFAULT_BOT_TIMEZONE) or "UTC",
         chat_max_history=_int_env("CHAT_MAX_HISTORY", DEFAULT_CHAT_MAX_HISTORY),
+        chat_db_path=_str_env("CHAT_DB_PATH", DEFAULT_CHAT_DB_PATH),
+        chat_migrate_v1_source_path=chat_migrate_v1_source_path,
+        chat_session_summary_on_archive=_bool_env(
+            "CHAT_SESSION_SUMMARY_ON_ARCHIVE",
+            DEFAULT_CHAT_SESSION_SUMMARY_ON_ARCHIVE,
+        ),
+        chat_session_summary_max_input_chars=_int_env(
+            "CHAT_SESSION_SUMMARY_MAX_INPUT_CHARS",
+            DEFAULT_CHAT_SESSION_SUMMARY_MAX_INPUT_CHARS,
+        ),
+        chat_session_summary_per_turn_max_chars=_int_env(
+            "CHAT_SESSION_SUMMARY_PER_TURN_MAX_CHARS",
+            DEFAULT_CHAT_SESSION_SUMMARY_PER_TURN_MAX_CHARS,
+        ),
+        chat_period_summary_enabled=_bool_env(
+            "CHAT_PERIOD_SUMMARY_ENABLED",
+            DEFAULT_CHAT_PERIOD_SUMMARY_ENABLED,
+        ),
+        chat_period_summary_on_session_archive=_bool_env(
+            "CHAT_PERIOD_SUMMARY_ON_SESSION_ARCHIVE",
+            DEFAULT_CHAT_PERIOD_SUMMARY_ON_SESSION_ARCHIVE,
+        ),
+        chat_period_summary_max_input_chars=_int_env(
+            "CHAT_PERIOD_SUMMARY_MAX_INPUT_CHARS",
+            DEFAULT_CHAT_PERIOD_SUMMARY_MAX_INPUT_CHARS,
+        ),
+        chat_period_summary_boundary_enabled=_bool_env(
+            "CHAT_PERIOD_SUMMARY_BOUNDARY_ENABLED",
+            DEFAULT_CHAT_PERIOD_SUMMARY_BOUNDARY_ENABLED,
+        ),
+        chat_period_summary_boundary_poll_seconds=_int_env(
+            "CHAT_PERIOD_SUMMARY_BOUNDARY_POLL_SECONDS",
+            DEFAULT_CHAT_PERIOD_SUMMARY_BOUNDARY_POLL_SECONDS,
+        ),
+        chat_migrate_v1_on_startup=_bool_env(
+            "CHAT_MIGRATE_V1_ON_STARTUP",
+            DEFAULT_CHAT_MIGRATE_V1_ON_STARTUP,
+        ),
+        chat_migrate_v1_target=_str_env(
+            "CHAT_MIGRATE_V1_TARGET",
+            DEFAULT_CHAT_MIGRATE_V1_TARGET,
+        ).lower(),
+        chat_migrate_v1_backup=_bool_env(
+            "CHAT_MIGRATE_V1_BACKUP",
+            DEFAULT_CHAT_MIGRATE_V1_BACKUP,
+        ),
+        chat_search_chunk_chars=_int_env(
+            "CHAT_SEARCH_CHUNK_CHARS",
+            DEFAULT_CHAT_SEARCH_CHUNK_CHARS,
+        ),
+        chat_search_chunk_overlap=_int_env(
+            "CHAT_SEARCH_CHUNK_OVERLAP",
+            DEFAULT_CHAT_SEARCH_CHUNK_OVERLAP,
+        ),
+        chat_search_top_k=_int_env(
+            "CHAT_SEARCH_TOP_K",
+            DEFAULT_CHAT_SEARCH_TOP_K,
+        ),
+        chat_search_keyword_candidates=_int_env(
+            "CHAT_SEARCH_KEYWORD_CANDIDATES",
+            DEFAULT_CHAT_SEARCH_KEYWORD_CANDIDATES,
+        ),
+        chat_search_vector_scan_limit=_int_env(
+            "CHAT_SEARCH_VECTOR_SCAN_LIMIT",
+            DEFAULT_CHAT_SEARCH_VECTOR_SCAN_LIMIT,
+        ),
+        chat_search_max_per_session=_int_env(
+            "CHAT_SEARCH_MAX_PER_SESSION",
+            DEFAULT_CHAT_SEARCH_MAX_PER_SESSION,
+        ),
+        chat_index_on_startup=_bool_env(
+            "CHAT_INDEX_ON_STARTUP",
+            DEFAULT_CHAT_INDEX_ON_STARTUP,
+        ),
+        chat_index_payload_max_chars=_int_env(
+            "CHAT_INDEX_PAYLOAD_MAX_CHARS",
+            DEFAULT_CHAT_INDEX_PAYLOAD_MAX_CHARS,
+        ),
         message_gap_minutes=_int_env("MESSAGE_GAP_MINUTES", DEFAULT_MESSAGE_GAP_MINUTES),
+        instance_lock_enabled=_bool_env("INSTANCE_LOCK_ENABLED", DEFAULT_INSTANCE_LOCK_ENABLED),
+        instance_lock_path=_str_env("INSTANCE_LOCK_PATH", DEFAULT_INSTANCE_LOCK_PATH),
         queue_max_pending=_int_env("QUEUE_MAX_PENDING", DEFAULT_QUEUE_MAX_PENDING),
         message_burst_quiet_ms=_int_env("MESSAGE_BURST_QUIET_MS", DEFAULT_MESSAGE_BURST_QUIET_MS),
         message_burst_max_wait_ms=_int_env(
@@ -628,6 +1043,19 @@ def get_settings(*, require_telegram_token: bool = False) -> Settings:
             else _str_env("GOOGLE_OAUTH_CLIENT_TYPE", DEFAULT_GOOGLE_OAUTH_CLIENT_TYPE).lower()
         ),
         google_public_base_url=google_public_base_url,
+        google_cloud_project_id=_str_env("GOOGLE_CLOUD_PROJECT_ID", DEFAULT_GOOGLE_CLOUD_PROJECT_ID),
+        google_cloud_test_users_url=_str_env(
+            "GOOGLE_CLOUD_TEST_USERS_URL",
+            DEFAULT_GOOGLE_CLOUD_TEST_USERS_URL,
+        ),
+        google_test_users_verify_sa_path=_str_env(
+            "GOOGLE_TEST_USERS_VERIFY_SA_PATH",
+            DEFAULT_GOOGLE_TEST_USERS_VERIFY_SA_PATH,
+        ),
+        google_test_user_verify_trust_admin=_bool_env(
+            "GOOGLE_TEST_USER_VERIFY_TRUST_ADMIN",
+            DEFAULT_GOOGLE_TEST_USER_VERIFY_TRUST_ADMIN,
+        ),
         google_maps_api_key=_optional_str_env("GOOGLE_MAPS_API_KEY"),
         google_maps_default_language=_str_env(
             "GOOGLE_MAPS_DEFAULT_LANGUAGE",
@@ -827,9 +1255,63 @@ def get_settings(*, require_telegram_token: bool = False) -> Settings:
             "TOOL_RESULT_MAX_ROWS_PER_USER",
             DEFAULT_TOOL_RESULT_MAX_ROWS_PER_USER,
         ),
+        summarize_base_url=summarize_base_url,
+        summarize_api_key=summarize_api_key,
+        summarize_model=summarize_model,
         worker_content_summarize_max_chars=_int_env(
             "WORKER_CONTENT_SUMMARIZE_MAX_CHARS",
             DEFAULT_WORKER_CONTENT_SUMMARIZE_MAX_CHARS,
+        ),
+        agent_coach_enabled=_bool_env("AGENT_COACH_ENABLED", DEFAULT_AGENT_COACH_ENABLED),
+        coach_every_n_tool_calls=_int_env(
+            "COACH_EVERY_N_TOOL_CALLS",
+            DEFAULT_COACH_EVERY_N_TOOL_CALLS,
+        ),
+        coach_max_field_chars=_int_env("COACH_MAX_FIELD_CHARS", DEFAULT_COACH_MAX_FIELD_CHARS),
+        coach_max_trace_chars=_int_env("COACH_MAX_TRACE_CHARS", DEFAULT_COACH_MAX_TRACE_CHARS),
+        coach_inject_hints=_bool_env("COACH_INJECT_HINTS", DEFAULT_COACH_INJECT_HINTS),
+        coach_max_output_tokens=_int_env(
+            "COACH_MAX_OUTPUT_TOKENS",
+            DEFAULT_COACH_MAX_OUTPUT_TOKENS,
+        ),
+        agent_checker_enabled=_bool_env("AGENT_CHECKER_ENABLED", DEFAULT_AGENT_CHECKER_ENABLED),
+        checker_base_url=checker_base_url,
+        checker_api_key=checker_api_key,
+        checker_model=checker_model,
+        checker_max_output_tokens=_int_env(
+            "CHECKER_MAX_OUTPUT_TOKENS",
+            DEFAULT_CHECKER_MAX_OUTPUT_TOKENS,
+        ),
+        checker_skip_cached=_bool_env("CHECKER_SKIP_CACHED", DEFAULT_CHECKER_SKIP_CACHED),
+        checker_tools_allowlist=_str_env(
+            "CHECKER_TOOLS_ALLOWLIST",
+            DEFAULT_CHECKER_TOOLS_ALLOWLIST,
+        ),
+        checker_evidence_max_chars=_int_env(
+            "CHECKER_EVIDENCE_MAX_CHARS",
+            DEFAULT_CHECKER_EVIDENCE_MAX_CHARS,
+        ),
+        agent_checker_debug=_bool_env("AGENT_CHECKER_DEBUG", DEFAULT_AGENT_CHECKER_DEBUG),
+        thorough_enabled=_bool_env("THOROUGH_ENABLED", DEFAULT_THOROUGH_ENABLED),
+        thorough_planner_unit_base_url=thorough_planner_unit_base_url,
+        thorough_planner_unit_api_key=thorough_planner_unit_api_key,
+        thorough_planner_unit_model=thorough_planner_unit_model,
+        thorough_planner_surface_base_url=thorough_planner_surface_base_url,
+        thorough_planner_surface_api_key=thorough_planner_surface_api_key,
+        thorough_planner_surface_model=thorough_planner_surface_model,
+        thorough_planner_hot_base_url=thorough_planner_hot_base_url,
+        thorough_planner_hot_api_key=thorough_planner_hot_api_key,
+        thorough_planner_hot_model=thorough_planner_hot_model,
+        thorough_merger_base_url=thorough_merger_base_url,
+        thorough_merger_api_key=thorough_merger_api_key,
+        thorough_merger_model=thorough_merger_model,
+        thorough_planner_max_output_tokens=_int_env(
+            "THOROUGH_PLANNER_MAX_OUTPUT_TOKENS",
+            DEFAULT_THOROUGH_PLANNER_MAX_OUTPUT_TOKENS,
+        ),
+        thorough_merger_max_output_tokens=_int_env(
+            "THOROUGH_MERGER_MAX_OUTPUT_TOKENS",
+            DEFAULT_THOROUGH_MERGER_MAX_OUTPUT_TOKENS,
         ),
         pdf_rate_limit_read=_parse_rate_limit(
             _optional_str_env("PDF_RATE_LIMIT_READ") or DEFAULT_PDF_RATE_LIMIT_READ

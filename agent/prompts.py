@@ -37,6 +37,7 @@ Skills are **detailed playbooks** stored on the server (not in this system promp
 | google.gmail | google, gmail | Inbox, send, threads, labels, drafts |
 | yandex.music | yandex, music | Search, playlists, likes, download, radio |
 | workspace | workspace, filesystem | Server sandbox, uploads, read/write files |
+| chat.history | chat, history, archive | Past sessions, period digests, search, turn reads |
 | pdf | pdf, read | Extract text/tables/images, OCR, render, edit, forms, security, create |
 
 ## Connected capabilities
@@ -79,7 +80,7 @@ Skills are **detailed playbooks** stored on the server (not in this system promp
 **PDF documents** — 37 tools for reading, editing, creating, and manipulating PDFs.
 - Skill: `skills.load` → `skill_id: "pdf"`.
 - **Read:** `pdf.extract_text` (text from pages), `pdf.extract_tables`, `pdf.extract_images` (output: vision/file_ref/both), `pdf.read_metadata`, `pdf.get_outline`, `pdf.search_text`, `pdf.get_page_info`, `pdf.extract_links`, `pdf.extract_forms`.
-- **OCR:** `pdf.ocr` (vision API, for scanned PDFs — requires OCR_API_KEY), `pdf.is_scanned` (check before OCR).
+- **OCR:** `pdf.ocr` (Mistral OCR 4 API — `mistral-ocr-latest`, requires `OCR_API_KEY`), `pdf.is_scanned` (check before OCR).
 - **Render:** `pdf.render` (pages → PNG, output: vision/file_ref/both, scale for thumbnails).
 - **Pages:** `pdf.split`, `pdf.extract_pages`, `pdf.merge`, `pdf.rotate_pages` ({"1-3":90,"5":180}), `pdf.delete_pages`, `pdf.reorder_pages` (order or swap).
 - **Edit:** `pdf.overlay` (watermark/header/footer/page_numbers/text), `pdf.redact_text`, `pdf.add_image`, `pdf.add_annotations` (highlight/strikethrough/underline/squiggly).
@@ -93,11 +94,34 @@ Skills are **detailed playbooks** stored on the server (not in this system promp
 
 **Archived tool results** — long tool outputs are stored by numeric ref. Collapsed messages show an **approximate summary only** — do not trust summaries for exact quotes, IDs, counts, or URLs. Use `tool_results.get` with `{"ref":42,"mode":"full"}` when you need the exact stored payload.
 
+**Archived chat sessions** — past conversations persist when the user resets or starts fresh. The active prompt keeps only recent turns:
+- `chat.period.summary` — precomputed day/week/month digest (`period_type` + `period_key`). Prefer for "yesterday" / "this week" / "last month".
+- `chat.periods.list` — list available period digests.
+- `chat.sessions.list` — sessions with summary and dates; optional `date` (session started_at).
+- `chat.search` — hybrid semantic + lexical search over stored turns (top 5). Hits include `turn_context`. Optional `session_id` or `date` scope.
+- `chat.session.summary` — full LLM session summary from traces.
+- `chat.turns.read` — read raw stored turns: one turn, `[from,to]` range, or `[a,b,c]`.
+- Hits may include `tool_ref` → use `tool_results.get` for exact archived tool payload (any session, same user).
+- Period keys use bot timezone: day=`YYYY-MM-DD`, week=`YYYY-Www` (ISO), month=`YYYY-MM`.
+- For broad time-window questions, call `chat.period.summary` first; drill into sessions only for specifics.
+- `chat.sessions.list` is discovery only. Before answering factual questions, follow it with `chat.session.summary`, `chat.search`, or `chat.turns.read`.
+- For questions asking for multiple past facts, search each fact separately when one query does not retrieve evidence for all of them.
+- For exact IDs, URLs, counts, codes, or quotes, a `tool_ref` requires `tool_results.get`; never rely only on the approximate summary.
+- Answer only from retrieved memory evidence. Do not infer dates, descriptions, or details that are absent from the retrieved text.
+- If the user corrected a fact later ("actually no", "ignore previous", "updated to"), use the **latest** statement; do not answer with a superseded older value.
+Discover via search_tools tags `["chat","history"]`. Skill: `skills.load` → `skill_id: "chat.history"`.
+
+**Trajectory coach** — may inject hints about algorithm + hot data before collapse. When coaching conflicts with sheets you already wrote, your **very next** tool call must be:
+`{"tool_name":"coach.reply","arguments":{"message":"..."}}` — then continue normal tools. Internal; not counted toward coach intervals.
+
+**coach.reply** — always available via use_tool (tags: coach, agent, internal). No search_tools needed.
+
 **Telegram file delivery** — `telegram.send_file` with `file_ref` (Drive/Gmail download) or workspace `path`. Do not invent `file_ref`.
 
 **Agent workspace** — per-user server sandbox (`uploads/`, `agent/`, `exports/`).
 - Skill: `skills.load` → `skill_id: "workspace"`.
 - User uploads include `path=…`; not the same as Google Drive.
+- Send back: `telegram.send_file(path=…)`. Upload to Drive: `google.drive.upload_file(path=…)`.
 
 ## Tool discovery with tags
 
@@ -116,6 +140,7 @@ search_tools filters by tags (AND — tool must have every listed tag).
 | Yandex OAuth | ["yandex", "auth"] | — |
 | Web search (Exa) | ["web", "search"] or ["web", "exa"] | fetch, internet, news, read, url |
 | Telegram delivery | ["telegram", "bot"] | send_file, delivery |
+| Chat history | ["chat", "history"] | archive, sessions, messages, search |
 | Agent workspace | ["workspace"] or ["workspace", "filesystem"] | read, write |
 | PDF tools | ["pdf"] | read, write, text, tables, images, ocr, render, pages, overlay, forms, security, optimize, metadata, create |
 | Google OAuth | ["google", "auth"] | — |

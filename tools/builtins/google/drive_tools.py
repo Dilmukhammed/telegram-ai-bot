@@ -88,6 +88,7 @@ from tools.builtins.google.drive_workspace import (
     resolve_access_proposal_handler,
     start_approval_handler,
 )
+from tools.builtins.google.drive_checker import DRIVE_CHECKER_QUESTIONS_BY_TOOL
 from tools.builtins.google.tool_hints import GOOGLE_DRIVE_OAUTH_HINT
 from tools.schema import ToolSpec
 
@@ -111,8 +112,8 @@ _CONFIRM_PARAM = {
     "type": "boolean",
     "description": "Must be true — operation is irreversible (permanent delete, not trash).",
 }
-_WRITE_RATE_LIMIT = (30, 60)
-_READ_RATE_LIMIT = (60, 60)
+_WRITE_RATE_LIMIT = (60, 60)
+_READ_RATE_LIMIT = (120, 60)
 _PERMISSION_ROLE_PARAM = {
     "type": "string",
     "enum": ["reader", "writer", "commenter"],
@@ -139,7 +140,7 @@ _REVISION_ID_PARAM = {
     "type": "string",
     "description": "Revision id from list_revisions.",
 }
-_CHANGES_RATE_LIMIT = (30, 60)
+_CHANGES_RATE_LIMIT = (60, 60)
 _SHARED_DRIVE_ID_PARAM = {
     "type": "string",
     "description": "Shared drive id from list_shared_drives.",
@@ -161,8 +162,9 @@ GOOGLE_DRIVE_GET_ABOUT = ToolSpec(
     tags=("google", "drive", "settings", "read"),
     cache_ttl_seconds=300,
     parallel_safe=True,
-    rate_limit=(30, 60),
+    rate_limit=(60, 60),
     examples=("drive storage quota", "google drive account info"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.get_about"],
 )
 
 GOOGLE_DRIVE_SEARCH_FILES = ToolSpec(
@@ -206,8 +208,9 @@ GOOGLE_DRIVE_SEARCH_FILES = ToolSpec(
     tags=("google", "drive", "read"),
     cache_ttl_seconds=30,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("find pdf invoice in drive", "search drive for budget spreadsheet"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.search_files"],
 )
 
 GOOGLE_DRIVE_LIST_FILES = ToolSpec(
@@ -229,8 +232,9 @@ GOOGLE_DRIVE_LIST_FILES = ToolSpec(
     tags=("google", "drive", "read"),
     cache_ttl_seconds=30,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("list files in folder", "list my drive files"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.list_files"],
 )
 
 GOOGLE_DRIVE_GET_FILE = ToolSpec(
@@ -247,8 +251,9 @@ GOOGLE_DRIVE_GET_FILE = ToolSpec(
     tags=("google", "drive", "read"),
     cache_ttl_seconds=60,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("get drive file metadata", "drive file details"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.get_file"],
 )
 
 GOOGLE_DRIVE_DOWNLOAD_FILE = ToolSpec(
@@ -270,8 +275,9 @@ GOOGLE_DRIVE_DOWNLOAD_FILE = ToolSpec(
     tags=("google", "drive", "read"),
     cache_ttl_seconds=120,
     parallel_safe=True,
-    rate_limit=(20, 60),
+    rate_limit=(40, 60),
     examples=("download pdf from drive", "read txt file from drive"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.download_file"],
 )
 
 GOOGLE_DRIVE_EXPORT_FILE = ToolSpec(
@@ -297,8 +303,9 @@ GOOGLE_DRIVE_EXPORT_FILE = ToolSpec(
     tags=("google", "drive", "read"),
     cache_ttl_seconds=120,
     parallel_safe=True,
-    rate_limit=(20, 60),
+    rate_limit=(40, 60),
     examples=("export google doc as text", "read google sheet csv"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.export_file"],
 )
 
 GOOGLE_DRIVE_LIST_FOLDER = ToolSpec(
@@ -320,8 +327,9 @@ GOOGLE_DRIVE_LIST_FOLDER = ToolSpec(
     tags=("google", "drive", "read"),
     cache_ttl_seconds=30,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("list root drive folder", "files in project folder"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.list_folder"],
 )
 
 GOOGLE_DRIVE_LIST_STARRED = ToolSpec(
@@ -338,8 +346,9 @@ GOOGLE_DRIVE_LIST_STARRED = ToolSpec(
     tags=("google", "drive", "read"),
     cache_ttl_seconds=30,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("starred drive files", "my starred documents"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.list_starred"],
 )
 
 GOOGLE_DRIVE_LIST_TRASH = ToolSpec(
@@ -356,8 +365,9 @@ GOOGLE_DRIVE_LIST_TRASH = ToolSpec(
     tags=("google", "drive", "read"),
     cache_ttl_seconds=30,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("files in drive trash", "trashed documents"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.list_trash"],
 )
 
 GOOGLE_DRIVE_LIST_SHARED_WITH_ME = ToolSpec(
@@ -374,8 +384,9 @@ GOOGLE_DRIVE_LIST_SHARED_WITH_ME = ToolSpec(
     tags=("google", "drive", "read"),
     cache_ttl_seconds=30,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("shared with me drive files", "documents shared to me"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.list_shared_with_me"],
 )
 
 GOOGLE_DRIVE_LIST_RECENT = ToolSpec(
@@ -392,8 +403,9 @@ GOOGLE_DRIVE_LIST_RECENT = ToolSpec(
     tags=("google", "drive", "read"),
     cache_ttl_seconds=30,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("recent drive files", "recently opened documents"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.list_recent"],
 )
 
 GOOGLE_DRIVE_CREATE_FOLDER = ToolSpec(
@@ -412,6 +424,7 @@ GOOGLE_DRIVE_CREATE_FOLDER = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("create drive folder", "new project folder in drive"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.create_folder"],
 )
 
 GOOGLE_DRIVE_CREATE_FILE = ToolSpec(
@@ -438,30 +451,59 @@ GOOGLE_DRIVE_CREATE_FILE = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("create empty google doc", "create drive file metadata"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.create_file"],
 )
 
 GOOGLE_DRIVE_UPLOAD_FILE = ToolSpec(
     name="google.drive.upload_file",
     description=(
         GOOGLE_DRIVE_OAUTH_HINT
-        + "Upload a new file with content (text or base64). For Google Docs use create_file + export/edit flow."
+        + "Upload a new file. Prefer workspace path for Telegram uploads / sandbox files "
+        "(e.g. uploads/123_report.pdf). Else content_text (UTF-8) or content_base64 (binary). "
+        "Exactly one of path / content_text / content_base64. "
+        "name optional when path is set (defaults to filename). "
+        "For Google Docs use create_file + export/edit flow."
     ),
     parameters={
         "type": "object",
         "properties": {
-            "name": {"type": "string"},
+            "name": {
+                "type": "string",
+                "description": "Drive file name. Optional when path is set (uses basename).",
+            },
             "parent_id": _PARENT_ID_PARAM,
-            "mime_type": {"type": "string", "description": "Content MIME type."},
-            "content_text": {"type": "string", "description": "UTF-8 text content (mutually exclusive with content_base64)."},
-            "content_base64": {"type": "string", "description": "Base64-encoded binary content."},
+            "mime_type": {
+                "type": "string",
+                "description": "Content MIME type. Optional with path (guessed from file).",
+            },
+            "path": {
+                "type": "string",
+                "description": (
+                    "Workspace-relative path (xor content_text/content_base64), "
+                    "e.g. uploads/123_doc.pdf from a Telegram upload."
+                ),
+            },
+            "content_text": {
+                "type": "string",
+                "description": "UTF-8 text content (xor path/content_base64).",
+            },
+            "content_base64": {
+                "type": "string",
+                "description": "Base64-encoded binary content (xor path/content_text).",
+            },
         },
-        "required": ["name"],
+        "required": [],
     },
     handler=upload_file_handler,
     tags=("google", "drive", "write"),
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
-    examples=("upload txt file to drive", "save pdf to drive folder"),
+    examples=(
+        "upload txt file to drive",
+        "save pdf to drive folder",
+        "upload workspace uploads/report.pdf to drive",
+    ),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.upload_file"],
 )
 
 GOOGLE_DRIVE_UPDATE_FILE_METADATA = ToolSpec(
@@ -487,19 +529,25 @@ GOOGLE_DRIVE_UPDATE_FILE_METADATA = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("rename drive file", "star a drive document"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.update_file_metadata"],
 )
 
 GOOGLE_DRIVE_UPDATE_FILE_CONTENT = ToolSpec(
     name="google.drive.update_file_content",
     description=(
         GOOGLE_DRIVE_OAUTH_HINT
-        + "Replace binary/text file content. Not for native Google Docs/Sheets/Slides."
+        + "Replace binary/text file content from workspace path, content_text, or content_base64 "
+        "(exactly one). Not for native Google Docs/Sheets/Slides."
     ),
     parameters={
         "type": "object",
         "properties": {
             "file_id": _FILE_ID_PARAM,
             "mime_type": {"type": "string"},
+            "path": {
+                "type": "string",
+                "description": "Workspace-relative path (xor content_text/content_base64).",
+            },
             "content_text": {"type": "string"},
             "content_base64": {"type": "string"},
         },
@@ -509,7 +557,12 @@ GOOGLE_DRIVE_UPDATE_FILE_CONTENT = ToolSpec(
     tags=("google", "drive", "write"),
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
-    examples=("update txt file in drive", "replace pdf content"),
+    examples=(
+        "update txt file in drive",
+        "replace pdf content",
+        "overwrite drive file from workspace uploads/doc.pdf",
+    ),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.update_file_content"],
 )
 
 GOOGLE_DRIVE_COPY_FILE = ToolSpec(
@@ -529,6 +582,7 @@ GOOGLE_DRIVE_COPY_FILE = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("copy drive file", "duplicate spreadsheet in drive"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.copy_file"],
 )
 
 GOOGLE_DRIVE_MOVE_FILE = ToolSpec(
@@ -551,6 +605,7 @@ GOOGLE_DRIVE_MOVE_FILE = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("move file to folder", "relocate drive document"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.move_file"],
 )
 
 GOOGLE_DRIVE_RENAME_FILE = ToolSpec(
@@ -569,6 +624,7 @@ GOOGLE_DRIVE_RENAME_FILE = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("rename drive file", "change document title"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.rename_file"],
 )
 
 GOOGLE_DRIVE_STAR_FILE = ToolSpec(
@@ -584,6 +640,7 @@ GOOGLE_DRIVE_STAR_FILE = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("star drive file", "favorite document"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.star_file"],
 )
 
 GOOGLE_DRIVE_UNSTAR_FILE = ToolSpec(
@@ -599,6 +656,7 @@ GOOGLE_DRIVE_UNSTAR_FILE = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("unstar drive file", "remove star from document"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.unstar_file"],
 )
 
 GOOGLE_DRIVE_TRASH_FILE = ToolSpec(
@@ -614,6 +672,7 @@ GOOGLE_DRIVE_TRASH_FILE = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("trash drive file", "delete file to recycle bin"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.trash_file"],
 )
 
 GOOGLE_DRIVE_UNTRASH_FILE = ToolSpec(
@@ -629,6 +688,7 @@ GOOGLE_DRIVE_UNTRASH_FILE = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("restore file from trash", "untrash drive document"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.untrash_file"],
 )
 
 GOOGLE_DRIVE_DELETE_FILE = ToolSpec(
@@ -650,6 +710,7 @@ GOOGLE_DRIVE_DELETE_FILE = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("permanently delete drive file", "erase file forever"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.delete_file"],
 )
 
 GOOGLE_DRIVE_EMPTY_TRASH = ToolSpec(
@@ -668,6 +729,7 @@ GOOGLE_DRIVE_EMPTY_TRASH = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("empty drive trash", "permanently clear trash"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.empty_trash"],
 )
 
 GOOGLE_DRIVE_CREATE_SHORTCUT = ToolSpec(
@@ -687,6 +749,7 @@ GOOGLE_DRIVE_CREATE_SHORTCUT = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("create drive shortcut", "link to file in folder"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.create_shortcut"],
 )
 
 GOOGLE_DRIVE_GENERATE_FILE_IDS = ToolSpec(
@@ -707,6 +770,7 @@ GOOGLE_DRIVE_GENERATE_FILE_IDS = ToolSpec(
     parallel_safe=True,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("generate drive file ids", "preallocate file id"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.generate_file_ids"],
 )
 
 GOOGLE_DRIVE_LIST_PERMISSIONS = ToolSpec(
@@ -733,6 +797,7 @@ GOOGLE_DRIVE_LIST_PERMISSIONS = ToolSpec(
     parallel_safe=True,
     rate_limit=_READ_RATE_LIMIT,
     examples=("who has access to drive file", "list file sharing permissions"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.list_permissions"],
 )
 
 GOOGLE_DRIVE_GET_PERMISSION = ToolSpec(
@@ -755,6 +820,7 @@ GOOGLE_DRIVE_GET_PERMISSION = ToolSpec(
     parallel_safe=True,
     rate_limit=_READ_RATE_LIMIT,
     examples=("get drive permission details", "check sharing role for user"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.get_permission"],
 )
 
 GOOGLE_DRIVE_SHARE_FILE = ToolSpec(
@@ -791,6 +857,7 @@ GOOGLE_DRIVE_SHARE_FILE = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("share drive file read only", "give editor access to document"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.share_file"],
 )
 
 GOOGLE_DRIVE_UPDATE_PERMISSION = ToolSpec(
@@ -817,6 +884,7 @@ GOOGLE_DRIVE_UPDATE_PERMISSION = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("change drive share to viewer", "upgrade permission to writer"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.update_permission"],
 )
 
 GOOGLE_DRIVE_REMOVE_PERMISSION = ToolSpec(
@@ -838,6 +906,7 @@ GOOGLE_DRIVE_REMOVE_PERMISSION = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("revoke drive access", "remove user from shared file"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.remove_permission"],
 )
 
 GOOGLE_DRIVE_LIST_COMMENTS = ToolSpec(
@@ -866,6 +935,7 @@ GOOGLE_DRIVE_LIST_COMMENTS = ToolSpec(
     parallel_safe=True,
     rate_limit=_READ_RATE_LIMIT,
     examples=("comments on google doc", "list drive file comments"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.list_comments"],
 )
 
 GOOGLE_DRIVE_GET_COMMENT = ToolSpec(
@@ -885,6 +955,7 @@ GOOGLE_DRIVE_GET_COMMENT = ToolSpec(
     parallel_safe=True,
     rate_limit=_READ_RATE_LIMIT,
     examples=("get drive comment details", "read comment thread"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.get_comment"],
 )
 
 GOOGLE_DRIVE_CREATE_COMMENT = ToolSpec(
@@ -906,6 +977,7 @@ GOOGLE_DRIVE_CREATE_COMMENT = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("comment on google doc", "leave note on drive file"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.create_comment"],
 )
 
 GOOGLE_DRIVE_UPDATE_COMMENT = ToolSpec(
@@ -925,6 +997,7 @@ GOOGLE_DRIVE_UPDATE_COMMENT = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("edit drive comment", "update comment text"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.update_comment"],
 )
 
 GOOGLE_DRIVE_DELETE_COMMENT = ToolSpec(
@@ -943,6 +1016,7 @@ GOOGLE_DRIVE_DELETE_COMMENT = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("delete drive comment", "remove comment from doc"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.delete_comment"],
 )
 
 GOOGLE_DRIVE_LIST_REPLIES = ToolSpec(
@@ -968,6 +1042,7 @@ GOOGLE_DRIVE_LIST_REPLIES = ToolSpec(
     parallel_safe=True,
     rate_limit=_READ_RATE_LIMIT,
     examples=("replies to drive comment", "comment thread replies"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.list_replies"],
 )
 
 GOOGLE_DRIVE_GET_REPLY = ToolSpec(
@@ -988,6 +1063,7 @@ GOOGLE_DRIVE_GET_REPLY = ToolSpec(
     parallel_safe=True,
     rate_limit=_READ_RATE_LIMIT,
     examples=("get drive reply", "read comment reply"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.get_reply"],
 )
 
 GOOGLE_DRIVE_CREATE_REPLY = ToolSpec(
@@ -1007,6 +1083,7 @@ GOOGLE_DRIVE_CREATE_REPLY = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("reply to drive comment", "answer comment thread"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.create_reply"],
 )
 
 GOOGLE_DRIVE_UPDATE_REPLY = ToolSpec(
@@ -1027,6 +1104,7 @@ GOOGLE_DRIVE_UPDATE_REPLY = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("edit drive reply", "update comment reply"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.update_reply"],
 )
 
 GOOGLE_DRIVE_DELETE_REPLY = ToolSpec(
@@ -1046,6 +1124,7 @@ GOOGLE_DRIVE_DELETE_REPLY = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("delete drive reply", "remove comment reply"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.delete_reply"],
 )
 
 GOOGLE_DRIVE_LIST_REVISIONS = ToolSpec(
@@ -1070,6 +1149,7 @@ GOOGLE_DRIVE_LIST_REVISIONS = ToolSpec(
     parallel_safe=True,
     rate_limit=_READ_RATE_LIMIT,
     examples=("file version history", "list pdf revisions"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.list_revisions"],
 )
 
 GOOGLE_DRIVE_GET_REVISION = ToolSpec(
@@ -1089,6 +1169,7 @@ GOOGLE_DRIVE_GET_REVISION = ToolSpec(
     parallel_safe=True,
     rate_limit=_READ_RATE_LIMIT,
     examples=("get drive revision details", "revision metadata"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.get_revision"],
 )
 
 GOOGLE_DRIVE_UPDATE_REVISION = ToolSpec(
@@ -1114,6 +1195,7 @@ GOOGLE_DRIVE_UPDATE_REVISION = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("pin drive revision", "keep file version forever"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.update_revision"],
 )
 
 GOOGLE_DRIVE_DELETE_REVISION = ToolSpec(
@@ -1136,6 +1218,7 @@ GOOGLE_DRIVE_DELETE_REVISION = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("delete old file revision", "remove drive version"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.delete_revision"],
 )
 
 GOOGLE_DRIVE_GET_CHANGES_START_TOKEN = ToolSpec(
@@ -1159,6 +1242,7 @@ GOOGLE_DRIVE_GET_CHANGES_START_TOKEN = ToolSpec(
     parallel_safe=True,
     rate_limit=_CHANGES_RATE_LIMIT,
     examples=("drive sync start token", "changes page token"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.get_changes_start_token"],
 )
 
 GOOGLE_DRIVE_LIST_CHANGES = ToolSpec(
@@ -1188,6 +1272,7 @@ GOOGLE_DRIVE_LIST_CHANGES = ToolSpec(
     parallel_safe=True,
     rate_limit=_CHANGES_RATE_LIMIT,
     examples=("what changed in drive", "incremental drive sync"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.list_changes"],
 )
 
 GOOGLE_DRIVE_LIST_SHARED_DRIVES = ToolSpec(
@@ -1213,6 +1298,7 @@ GOOGLE_DRIVE_LIST_SHARED_DRIVES = ToolSpec(
     parallel_safe=True,
     rate_limit=_READ_RATE_LIMIT,
     examples=("list team drives", "shared drives in workspace"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.list_shared_drives"],
 )
 
 GOOGLE_DRIVE_GET_SHARED_DRIVE = ToolSpec(
@@ -1231,6 +1317,7 @@ GOOGLE_DRIVE_GET_SHARED_DRIVE = ToolSpec(
     parallel_safe=True,
     rate_limit=_READ_RATE_LIMIT,
     examples=("shared drive details", "team drive metadata"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.get_shared_drive"],
 )
 
 GOOGLE_DRIVE_CREATE_SHARED_DRIVE = ToolSpec(
@@ -1264,6 +1351,7 @@ GOOGLE_DRIVE_CREATE_SHARED_DRIVE = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("create team drive", "new shared drive"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.create_shared_drive"],
 )
 
 GOOGLE_DRIVE_UPDATE_SHARED_DRIVE = ToolSpec(
@@ -1289,6 +1377,7 @@ GOOGLE_DRIVE_UPDATE_SHARED_DRIVE = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("rename team drive", "update shared drive settings"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.update_shared_drive"],
 )
 
 GOOGLE_DRIVE_DELETE_SHARED_DRIVE = ToolSpec(
@@ -1310,6 +1399,7 @@ GOOGLE_DRIVE_DELETE_SHARED_DRIVE = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("delete team drive", "remove shared drive permanently"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.delete_shared_drive"],
 )
 
 GOOGLE_DRIVE_HIDE_SHARED_DRIVE = ToolSpec(
@@ -1330,6 +1420,7 @@ GOOGLE_DRIVE_HIDE_SHARED_DRIVE = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("hide team drive", "remove shared drive from sidebar"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.hide_shared_drive"],
 )
 
 GOOGLE_DRIVE_UNHIDE_SHARED_DRIVE = ToolSpec(
@@ -1347,6 +1438,7 @@ GOOGLE_DRIVE_UNHIDE_SHARED_DRIVE = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("unhide team drive", "show shared drive again"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.unhide_shared_drive"],
 )
 
 GOOGLE_DRIVE_LIST_FILE_LABELS = ToolSpec(
@@ -1370,6 +1462,7 @@ GOOGLE_DRIVE_LIST_FILE_LABELS = ToolSpec(
     parallel_safe=True,
     rate_limit=_READ_RATE_LIMIT,
     examples=("labels on drive file", "file metadata labels"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.list_file_labels"],
 )
 
 GOOGLE_DRIVE_MODIFY_FILE_LABELS = ToolSpec(
@@ -1400,6 +1493,7 @@ GOOGLE_DRIVE_MODIFY_FILE_LABELS = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("add label to drive file", "remove file label"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.modify_file_labels"],
 )
 
 GOOGLE_DRIVE_LIST_APPS = ToolSpec(
@@ -1433,6 +1527,7 @@ GOOGLE_DRIVE_LIST_APPS = ToolSpec(
     parallel_safe=True,
     rate_limit=_READ_RATE_LIMIT,
     examples=("connected drive apps", "open with apps list"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.list_apps"],
 )
 
 GOOGLE_DRIVE_GET_APP = ToolSpec(
@@ -1454,6 +1549,7 @@ GOOGLE_DRIVE_GET_APP = ToolSpec(
     parallel_safe=True,
     rate_limit=_READ_RATE_LIMIT,
     examples=("drive app details", "connected app metadata"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.get_app"],
 )
 
 GOOGLE_DRIVE_LIST_ACCESS_PROPOSALS = ToolSpec(
@@ -1477,6 +1573,7 @@ GOOGLE_DRIVE_LIST_ACCESS_PROPOSALS = ToolSpec(
     parallel_safe=True,
     rate_limit=_READ_RATE_LIMIT,
     examples=("pending drive access requests", "access proposals on file"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.list_access_proposals"],
 )
 
 GOOGLE_DRIVE_GET_ACCESS_PROPOSAL = ToolSpec(
@@ -1496,6 +1593,7 @@ GOOGLE_DRIVE_GET_ACCESS_PROPOSAL = ToolSpec(
     parallel_safe=True,
     rate_limit=_READ_RATE_LIMIT,
     examples=("access proposal details", "pending access request info"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.get_access_proposal"],
 )
 
 GOOGLE_DRIVE_RESOLVE_ACCESS_PROPOSAL = ToolSpec(
@@ -1532,6 +1630,7 @@ GOOGLE_DRIVE_RESOLVE_ACCESS_PROPOSAL = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("accept drive access request", "deny file access proposal"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.resolve_access_proposal"],
 )
 
 GOOGLE_DRIVE_LIST_APPROVALS = ToolSpec(
@@ -1552,6 +1651,7 @@ GOOGLE_DRIVE_LIST_APPROVALS = ToolSpec(
     parallel_safe=True,
     rate_limit=_READ_RATE_LIMIT,
     examples=("file approval requests", "drive approval status list"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.list_approvals"],
 )
 
 GOOGLE_DRIVE_GET_APPROVAL = ToolSpec(
@@ -1571,6 +1671,7 @@ GOOGLE_DRIVE_GET_APPROVAL = ToolSpec(
     parallel_safe=True,
     rate_limit=_READ_RATE_LIMIT,
     examples=("approval details", "drive approval metadata"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.get_approval"],
 )
 
 GOOGLE_DRIVE_START_APPROVAL = ToolSpec(
@@ -1599,6 +1700,7 @@ GOOGLE_DRIVE_START_APPROVAL = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("start document approval", "request file review"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.start_approval"],
 )
 
 GOOGLE_DRIVE_APPROVE_FILE = ToolSpec(
@@ -1618,6 +1720,7 @@ GOOGLE_DRIVE_APPROVE_FILE = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("approve drive document", "sign off file approval"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.approve_file"],
 )
 
 GOOGLE_DRIVE_DECLINE_APPROVAL = ToolSpec(
@@ -1637,6 +1740,7 @@ GOOGLE_DRIVE_DECLINE_APPROVAL = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("decline file approval", "reject document approval"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.decline_approval"],
 )
 
 GOOGLE_DRIVE_CANCEL_APPROVAL = ToolSpec(
@@ -1656,6 +1760,7 @@ GOOGLE_DRIVE_CANCEL_APPROVAL = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("cancel approval request", "stop file approval"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.cancel_approval"],
 )
 
 GOOGLE_DRIVE_COMMENT_APPROVAL = ToolSpec(
@@ -1675,6 +1780,7 @@ GOOGLE_DRIVE_COMMENT_APPROVAL = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("comment on approval", "add approval note"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.comment_approval"],
 )
 
 GOOGLE_DRIVE_REASSIGN_APPROVAL = ToolSpec(
@@ -1712,6 +1818,7 @@ GOOGLE_DRIVE_REASSIGN_APPROVAL = ToolSpec(
     parallel_safe=False,
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("reassign approval reviewer", "add reviewer to approval"),
+    verification_questions=DRIVE_CHECKER_QUESTIONS_BY_TOOL["google.drive.reassign_approval"],
 )
 
 GOOGLE_DRIVE_TOOLS: tuple[ToolSpec, ...] = (

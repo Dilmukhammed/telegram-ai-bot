@@ -60,7 +60,7 @@ EXA_WEB_FETCH = ToolSpec(
     handler=_web_fetch_handler,
     tags=("web", "fetch", "url", "read", "internet", "exa"),
     cache_ttl_seconds=3600,
-    rate_limit=(20, 60),
+    rate_limit=(400, 60),
     parallel_safe=True,
     examples=(
         "fetch webpage content by url",

@@ -172,7 +172,7 @@ TELEGRAM_SEND_FILE = ToolSpec(
     handler=_send_file_handler,
     tags=("telegram", "bot", "delivery"),
     cache_ttl_seconds=None,
-    rate_limit=(20, 60),
+    rate_limit=(40, 60),
     parallel_safe=True,
     examples=(
         "send downloaded drive file to user",

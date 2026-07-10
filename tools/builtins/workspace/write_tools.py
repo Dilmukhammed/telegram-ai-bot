@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from tools.builtins.workspace.workspace_checker import WORKSPACE_CHECKER_QUESTIONS_BY_TOOL
 from tools.schema import ToolSpec
 from tools.workspace.errors import WorkspaceError
 from tools.workspace.store import (
@@ -12,7 +13,7 @@ from tools.workspace.store import (
     write_file,
 )
 
-_WRITE_RATE_LIMIT = (30, 60)
+_WRITE_RATE_LIMIT = (60, 60)
 _PATH = {
     "type": "string",
     "description": "Path relative to user workspace root.",
@@ -108,6 +109,7 @@ WORKSPACE_WRITE_FILE = ToolSpec(
     tags=("workspace", "write", "filesystem"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("save notes to agent/file.md", "write json file"),
+    verification_questions=WORKSPACE_CHECKER_QUESTIONS_BY_TOOL["workspace.write_file"],
 )
 
 WORKSPACE_APPEND_FILE = ToolSpec(
@@ -125,6 +127,7 @@ WORKSPACE_APPEND_FILE = ToolSpec(
     tags=("workspace", "write", "filesystem"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("append log line", "add to notes"),
+    verification_questions=WORKSPACE_CHECKER_QUESTIONS_BY_TOOL["workspace.append_file"],
 )
 
 WORKSPACE_MKDIR = ToolSpec(
@@ -142,6 +145,7 @@ WORKSPACE_MKDIR = ToolSpec(
     tags=("workspace", "write", "filesystem"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("create agent/reports folder"),
+    verification_questions=WORKSPACE_CHECKER_QUESTIONS_BY_TOOL["workspace.mkdir"],
 )
 
 WORKSPACE_MOVE = ToolSpec(
@@ -160,6 +164,7 @@ WORKSPACE_MOVE = ToolSpec(
     tags=("workspace", "write", "filesystem"),
     rate_limit=_WRITE_RATE_LIMIT,
     examples=("rename file", "move to uploads"),
+    verification_questions=WORKSPACE_CHECKER_QUESTIONS_BY_TOOL["workspace.move"],
 )
 
 WORKSPACE_WRITE_TOOLS: tuple[ToolSpec, ...] = (

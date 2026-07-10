@@ -1,0 +1,173 @@
+{
+  "schema_version": "1",
+  "fixture_id": "ru_uncertain_016",
+  "title": "Possible move",
+  "tier": "full",
+  "language": "ru",
+  "criticality": "normal",
+  "slice_tags": [
+    "uncertainty_alternative",
+    "multi_turn"
+  ],
+  "reference_time": "2026-07-10T12:00:00+05:00",
+  "timezone": "Asia/Tashkent",
+  "users": [
+    {
+      "user_alias": "u1",
+      "user_id": 1016,
+      "display_name": "Synthetic User",
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "m1",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "assistant",
+      "content": "Ты уже решил, куда переезжать?",
+      "content_type": "text",
+      "occurred_at": "2026-07-10T09:00:00+05:00",
+      "metadata": {}
+    },
+    {
+      "event_id": "m2",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Возможно, я перееду в Берлин.",
+      "content_type": "text",
+      "occurred_at": "2026-07-10T09:01:00+05:00",
+      "metadata": {}
+    }
+  ],
+  "expected": {
+    "sources": [
+      {
+        "source_event": "m1",
+        "source_type": "chat_message",
+        "source_ref_alias": "m1",
+        "authority_class": "assistant_generated",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m1"
+        },
+        "normalization_job_status": "done"
+      },
+      {
+        "source_event": "m2",
+        "source_type": "chat_message",
+        "source_ref_alias": "m2",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m2"
+        },
+        "normalization_job_status": "done"
+      }
+    ],
+    "segments": [
+      {
+        "source_event": "m1",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Ты уже решил, куда переезжать?",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m1"
+        }
+      },
+      {
+        "source_event": "m2",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Возможно, я перееду в Берлин.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m2"
+        }
+      }
+    ],
+    "mentions": [
+      {
+        "mention_id": "berlin",
+        "source_event": "m2",
+        "mention_type": "place",
+        "surface_text": "Берлин",
+        "char_start": 22,
+        "char_end": 28,
+        "normalized_hint": "Берлин",
+        "pointer": {
+          "source_event": "m2",
+          "char_start": 22,
+          "char_end": 28
+        }
+      }
+    ],
+    "candidates": [
+      {
+        "candidate_ref": "c1",
+        "kind": "event",
+        "schema_name": "moves_to",
+        "schema_version": "1",
+        "arguments": [
+          {
+            "role": "subject",
+            "literal": "self"
+          },
+          {
+            "role": "place",
+            "mention_ref": "berlin"
+          }
+        ],
+        "attributes": {},
+        "polarity": "unknown",
+        "epistemic": {
+          "mode": "asserted",
+          "speaker_commitment": "possible",
+          "scope": "proposition",
+          "alternatives": [],
+          "needs_confirmation": true
+        },
+        "temporal": null,
+        "status": "needs_confirmation",
+        "evidence": [
+          {
+            "source_event": "m2",
+            "relation": "supports",
+            "exact_quote": "Возможно, я перееду в Берлин.",
+            "char_start": 0,
+            "char_end": 29
+          }
+        ]
+      }
+    ],
+    "forbidden_candidates": [
+      {
+        "kind": "event",
+        "schema_name": "moves_to",
+        "polarity": "positive"
+      },
+      {
+        "kind": "event",
+        "schema_name": "moves_to",
+        "polarity": "negative"
+      }
+    ],
+    "expect_abstention": false,
+    "forbidden_sources": [],
+    "forbidden_segments": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "Awaiting human gold-corpus sign-off."
+    ]
+  }
+}

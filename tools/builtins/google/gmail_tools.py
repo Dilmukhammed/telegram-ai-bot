@@ -5,6 +5,7 @@ from typing import Any
 
 from config import get_settings, google_limit_label
 from tools.builtins.google.auth import get_gmail_service
+from tools.builtins.google.gmail_checker import GMAIL_CHECKER_QUESTIONS_BY_TOOL
 from tools.builtins.google.gmail_send import (
     build_forward_body,
     build_references,
@@ -33,7 +34,7 @@ from tools.context import get_run_context
 from tools.schema import ToolSpec
 
 _MAX_RESULTS_CAP = 50
-_GMAIL_WRITE_RATE = (30, 60)
+_GMAIL_WRITE_RATE = (60, 60)
 _MAX_BATCH_MODIFY = 1000
 _MAX_BATCH_DELETE = 1000
 _UNREAD_LABEL = "UNREAD"
@@ -1247,8 +1248,9 @@ GOOGLE_GMAIL_GET_PROFILE = ToolSpec(
     tags=("google", "gmail", "read"),
     cache_ttl_seconds=120,
     parallel_safe=True,
-    rate_limit=(30, 60),
+    rate_limit=(60, 60),
     examples=("gmail profile", "connected gmail address"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.get_profile"],
 )
 
 GOOGLE_GMAIL_LIST_LABELS = ToolSpec(
@@ -1259,8 +1261,9 @@ GOOGLE_GMAIL_LIST_LABELS = ToolSpec(
     tags=("google", "gmail", "labels", "read"),
     cache_ttl_seconds=120,
     parallel_safe=True,
-    rate_limit=(30, 60),
+    rate_limit=(60, 60),
     examples=("list gmail labels", "show mailbox labels"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.list_labels"],
 )
 
 GOOGLE_GMAIL_GET_LABEL = ToolSpec(
@@ -1283,8 +1286,9 @@ GOOGLE_GMAIL_GET_LABEL = ToolSpec(
     tags=("google", "gmail", "labels", "read"),
     cache_ttl_seconds=120,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("get inbox label details", "label message counts"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.get_label"],
 )
 
 GOOGLE_GMAIL_SEARCH_MESSAGES = ToolSpec(
@@ -1311,8 +1315,9 @@ GOOGLE_GMAIL_SEARCH_MESSAGES = ToolSpec(
     tags=("google", "gmail", "read"),
     cache_ttl_seconds=30,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("find email from bank", "search gmail for invoice", "unread emails from alex"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.search_messages"],
 )
 
 GOOGLE_GMAIL_LIST_MESSAGES = ToolSpec(
@@ -1338,8 +1343,9 @@ GOOGLE_GMAIL_LIST_MESSAGES = ToolSpec(
     tags=("google", "gmail", "read"),
     cache_ttl_seconds=30,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("list messages in inbox label", "messages with label work"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.list_messages"],
 )
 
 GOOGLE_GMAIL_GET_MESSAGE = ToolSpec(
@@ -1368,8 +1374,9 @@ GOOGLE_GMAIL_GET_MESSAGE = ToolSpec(
     tags=("google", "gmail", "read"),
     cache_ttl_seconds=60,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("read email by id", "open gmail message details"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.get_message"],
 )
 
 GOOGLE_GMAIL_LIST_INBOX = ToolSpec(
@@ -1389,8 +1396,9 @@ GOOGLE_GMAIL_LIST_INBOX = ToolSpec(
     tags=("google", "gmail", "read"),
     cache_ttl_seconds=30,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("show inbox", "latest emails in inbox", "what is in my gmail inbox"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.list_inbox"],
 )
 
 GOOGLE_GMAIL_LIST_UNREAD = ToolSpec(
@@ -1411,8 +1419,9 @@ GOOGLE_GMAIL_LIST_UNREAD = ToolSpec(
     tags=("google", "gmail", "read"),
     cache_ttl_seconds=30,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("unread emails", "show unread gmail", "new mail count"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.list_unread"],
 )
 
 GOOGLE_GMAIL_LIST_THREADS = ToolSpec(
@@ -1436,8 +1445,9 @@ GOOGLE_GMAIL_LIST_THREADS = ToolSpec(
     tags=("google", "gmail", "read"),
     cache_ttl_seconds=30,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("list gmail threads", "conversation threads in inbox"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.list_threads"],
 )
 
 GOOGLE_GMAIL_GET_THREAD = ToolSpec(
@@ -1459,8 +1469,9 @@ GOOGLE_GMAIL_GET_THREAD = ToolSpec(
     tags=("google", "gmail", "read"),
     cache_ttl_seconds=60,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("open email conversation", "read gmail thread"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.get_thread"],
 )
 
 GOOGLE_GMAIL_MODIFY_MESSAGE = ToolSpec(
@@ -1479,6 +1490,7 @@ GOOGLE_GMAIL_MODIFY_MESSAGE = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("star gmail message", "add label to email"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.modify_message"],
 )
 
 GOOGLE_GMAIL_MODIFY_THREAD = ToolSpec(
@@ -1497,6 +1509,7 @@ GOOGLE_GMAIL_MODIFY_THREAD = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("mark thread starred", "label whole conversation"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.modify_thread"],
 )
 
 GOOGLE_GMAIL_MARK_READ = ToolSpec(
@@ -1508,6 +1521,7 @@ GOOGLE_GMAIL_MARK_READ = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("mark email as read", "clear unread on thread"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.mark_read"],
 )
 
 GOOGLE_GMAIL_MARK_UNREAD = ToolSpec(
@@ -1519,6 +1533,7 @@ GOOGLE_GMAIL_MARK_UNREAD = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("mark email unread", "flag thread unread"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.mark_unread"],
 )
 
 GOOGLE_GMAIL_ARCHIVE_MESSAGE = ToolSpec(
@@ -1530,6 +1545,7 @@ GOOGLE_GMAIL_ARCHIVE_MESSAGE = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("archive email", "move conversation out of inbox"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.archive_message"],
 )
 
 GOOGLE_GMAIL_TRASH_MESSAGE = ToolSpec(
@@ -1545,6 +1561,7 @@ GOOGLE_GMAIL_TRASH_MESSAGE = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("delete email to trash", "trash gmail message"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.trash_message"],
 )
 
 GOOGLE_GMAIL_UNTRASH_MESSAGE = ToolSpec(
@@ -1560,6 +1577,7 @@ GOOGLE_GMAIL_UNTRASH_MESSAGE = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("restore email from trash", "untrash gmail message"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.untrash_message"],
 )
 
 GOOGLE_GMAIL_TRASH_THREAD = ToolSpec(
@@ -1575,6 +1593,7 @@ GOOGLE_GMAIL_TRASH_THREAD = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("trash email conversation", "delete gmail thread"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.trash_thread"],
 )
 
 GOOGLE_GMAIL_UNTRASH_THREAD = ToolSpec(
@@ -1590,6 +1609,7 @@ GOOGLE_GMAIL_UNTRASH_THREAD = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("restore thread from trash", "untrash conversation"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.untrash_thread"],
 )
 
 GOOGLE_GMAIL_SEND_MESSAGE = ToolSpec(
@@ -1615,6 +1635,7 @@ GOOGLE_GMAIL_SEND_MESSAGE = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("send email", "compose gmail message"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.send_message"],
 )
 
 GOOGLE_GMAIL_REPLY_TO_MESSAGE = ToolSpec(
@@ -1641,6 +1662,7 @@ GOOGLE_GMAIL_REPLY_TO_MESSAGE = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("reply to email", "answer gmail message"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.reply_to_message"],
 )
 
 GOOGLE_GMAIL_CREATE_LABEL = ToolSpec(
@@ -1659,6 +1681,7 @@ GOOGLE_GMAIL_CREATE_LABEL = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("create gmail label", "new mail folder label"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.create_label"],
 )
 
 GOOGLE_GMAIL_UPDATE_LABEL = ToolSpec(
@@ -1678,6 +1701,7 @@ GOOGLE_GMAIL_UPDATE_LABEL = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("rename gmail label", "hide label in sidebar"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.update_label"],
 )
 
 GOOGLE_GMAIL_DELETE_LABEL = ToolSpec(
@@ -1696,6 +1720,7 @@ GOOGLE_GMAIL_DELETE_LABEL = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("delete gmail label", "remove custom label"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.delete_label"],
 )
 
 GOOGLE_GMAIL_GET_ATTACHMENT = ToolSpec(
@@ -1717,8 +1742,9 @@ GOOGLE_GMAIL_GET_ATTACHMENT = ToolSpec(
     tags=("google", "gmail", "read"),
     cache_ttl_seconds=0,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("download email attachment", "get pdf from gmail message"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.get_attachment"],
 )
 
 GOOGLE_GMAIL_BATCH_MODIFY_MESSAGES = ToolSpec(
@@ -1741,6 +1767,7 @@ GOOGLE_GMAIL_BATCH_MODIFY_MESSAGES = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("label many emails at once", "batch mark messages read"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.batch_modify_messages"],
 )
 
 GOOGLE_GMAIL_FORWARD_MESSAGE = ToolSpec(
@@ -1770,6 +1797,7 @@ GOOGLE_GMAIL_FORWARD_MESSAGE = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("forward email", "send message to colleague"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.forward_message"],
 )
 
 GOOGLE_GMAIL_LIST_DRAFTS = ToolSpec(
@@ -1786,8 +1814,9 @@ GOOGLE_GMAIL_LIST_DRAFTS = ToolSpec(
     tags=("google", "gmail", "drafts", "read"),
     cache_ttl_seconds=30,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("list gmail drafts", "show unsent emails"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.list_drafts"],
 )
 
 GOOGLE_GMAIL_GET_DRAFT = ToolSpec(
@@ -1809,8 +1838,9 @@ GOOGLE_GMAIL_GET_DRAFT = ToolSpec(
     tags=("google", "gmail", "drafts", "read"),
     cache_ttl_seconds=60,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("open gmail draft", "read draft email"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.get_draft"],
 )
 
 GOOGLE_GMAIL_CREATE_DRAFT = ToolSpec(
@@ -1822,6 +1852,7 @@ GOOGLE_GMAIL_CREATE_DRAFT = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("save email draft", "compose draft gmail"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.create_draft"],
 )
 
 GOOGLE_GMAIL_UPDATE_DRAFT = ToolSpec(
@@ -1840,6 +1871,7 @@ GOOGLE_GMAIL_UPDATE_DRAFT = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("edit gmail draft", "update unsent email"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.update_draft"],
 )
 
 GOOGLE_GMAIL_DELETE_DRAFT = ToolSpec(
@@ -1855,6 +1887,7 @@ GOOGLE_GMAIL_DELETE_DRAFT = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("delete gmail draft", "discard unsent email"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.delete_draft"],
 )
 
 GOOGLE_GMAIL_SEND_DRAFT = ToolSpec(
@@ -1870,6 +1903,7 @@ GOOGLE_GMAIL_SEND_DRAFT = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("send gmail draft", "mail draft now"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.send_draft"],
 )
 
 GOOGLE_GMAIL_DELETE_MESSAGE = ToolSpec(
@@ -1891,6 +1925,7 @@ GOOGLE_GMAIL_DELETE_MESSAGE = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("permanently delete email", "erase gmail message forever"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.delete_message"],
 )
 
 GOOGLE_GMAIL_BATCH_DELETE_MESSAGES = ToolSpec(
@@ -1916,6 +1951,7 @@ GOOGLE_GMAIL_BATCH_DELETE_MESSAGES = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("permanently delete many emails", "batch erase gmail messages"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.batch_delete_messages"],
 )
 
 GOOGLE_GMAIL_LIST_FILTERS = ToolSpec(
@@ -1926,8 +1962,9 @@ GOOGLE_GMAIL_LIST_FILTERS = ToolSpec(
     tags=("google", "gmail", "settings", "read"),
     cache_ttl_seconds=120,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("list gmail filters", "show mail rules"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.list_filters"],
 )
 
 GOOGLE_GMAIL_GET_FILTER = ToolSpec(
@@ -1942,8 +1979,9 @@ GOOGLE_GMAIL_GET_FILTER = ToolSpec(
     tags=("google", "gmail", "settings", "read"),
     cache_ttl_seconds=120,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("get gmail filter details", "read mail rule"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.get_filter"],
 )
 
 GOOGLE_GMAIL_CREATE_FILTER = ToolSpec(
@@ -1962,6 +2000,7 @@ GOOGLE_GMAIL_CREATE_FILTER = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("create gmail filter", "auto label emails from sender"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.create_filter"],
 )
 
 GOOGLE_GMAIL_DELETE_FILTER = ToolSpec(
@@ -1977,6 +2016,7 @@ GOOGLE_GMAIL_DELETE_FILTER = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("delete gmail filter", "remove mail rule"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.delete_filter"],
 )
 
 GOOGLE_GMAIL_GET_VACATION_SETTINGS = ToolSpec(
@@ -1987,8 +2027,9 @@ GOOGLE_GMAIL_GET_VACATION_SETTINGS = ToolSpec(
     tags=("google", "gmail", "settings", "read"),
     cache_ttl_seconds=120,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("get vacation responder", "check out of office gmail"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.get_vacation_settings"],
 )
 
 GOOGLE_GMAIL_UPDATE_VACATION_SETTINGS = ToolSpec(
@@ -2003,6 +2044,7 @@ GOOGLE_GMAIL_UPDATE_VACATION_SETTINGS = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("enable vacation auto reply", "set out of office message"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.update_vacation_settings"],
 )
 
 GOOGLE_GMAIL_LIST_SEND_AS = ToolSpec(
@@ -2013,8 +2055,9 @@ GOOGLE_GMAIL_LIST_SEND_AS = ToolSpec(
     tags=("google", "gmail", "settings", "read"),
     cache_ttl_seconds=120,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("list gmail aliases", "send as addresses"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.list_send_as"],
 )
 
 GOOGLE_GMAIL_GET_SEND_AS = ToolSpec(
@@ -2034,8 +2077,9 @@ GOOGLE_GMAIL_GET_SEND_AS = ToolSpec(
     tags=("google", "gmail", "settings", "read"),
     cache_ttl_seconds=120,
     parallel_safe=True,
-    rate_limit=(60, 60),
+    rate_limit=(120, 60),
     examples=("get gmail alias details", "send as profile"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.get_send_as"],
 )
 
 GOOGLE_GMAIL_PATCH_SEND_AS = ToolSpec(
@@ -2060,6 +2104,7 @@ GOOGLE_GMAIL_PATCH_SEND_AS = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("update gmail signature", "change send as display name"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.patch_send_as"],
 )
 
 GOOGLE_GMAIL_IMPORT_MESSAGE = ToolSpec(
@@ -2077,6 +2122,7 @@ GOOGLE_GMAIL_IMPORT_MESSAGE = ToolSpec(
     parallel_safe=False,
     rate_limit=_GMAIL_WRITE_RATE,
     examples=("import email into gmail", "migrate message to mailbox"),
+    verification_questions=GMAIL_CHECKER_QUESTIONS_BY_TOOL["google.gmail.import_message"],
 )
 
 GOOGLE_GMAIL_TOOLS: tuple[ToolSpec, ...] = (

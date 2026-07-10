@@ -1152,6 +1152,41 @@ class PdfToolsTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("file_ref", result)
         self.assertGreater(result["size_bytes"], 0)
 
+    async def test_create_russian_text(self) -> None:
+        from tools.builtins.pdf.create import _create_handler
+        from tools.builtins.pdf.extract import _extract_text_handler
+
+        created = await _create_handler({
+            "content": "Привет, мир!\nЭто тест кириллицы.",
+            "format": "text",
+        })
+        self.assertTrue(created["ok"])
+        extracted = await _extract_text_handler({"file_ref": created["file_ref"]})
+        self.assertTrue(extracted["ok"])
+        joined = "\n".join(page["text"] for page in extracted["pages"])
+        self.assertIn("Привет", joined)
+        self.assertIn("кириллицы", joined)
+
+    async def test_create_markdown_russian_table(self) -> None:
+        from tools.builtins.pdf.create import _create_handler
+        from tools.builtins.pdf.extract import _extract_text_handler
+
+        md = (
+            "# Сводная таблица формул\n\n"
+            "| № | Название | Формула |\n"
+            "|---|----------|--------|\n"
+            "| 1 | Квадрат суммы | $(a+b)^2 = a^2 + 2ab + b^2$ |\n"
+            "| 2 | Куб разности | $(a-b)^3 = a^3 - 3a^2b + 3ab^2 - b^3$ |\n"
+        )
+        created = await _create_handler({"content": md, "format": "markdown"})
+        self.assertTrue(created["ok"])
+        extracted = await _extract_text_handler({"file_ref": created["file_ref"]})
+        joined = "\n".join(page["text"] for page in extracted["pages"])
+        self.assertIn("Сводная таблица", joined)
+        self.assertIn("Название", joined)
+        self.assertIn("Квадрат суммы", joined)
+        self.assertIn("a^2", joined)
+
     async def test_create_from_markdown(self) -> None:
         from tools.builtins.pdf.create import _create_handler
 

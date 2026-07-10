@@ -1,7 +1,7 @@
 import os
 import unittest
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from zoneinfo import ZoneInfo
 
 from tools.builtins.google.auth import (
@@ -13,15 +13,126 @@ from tools.builtins.google.auth import (
 from tools.builtins.google.datetime_utils import (
     build_create_calendar_body,
     build_create_event_body,
+    build_create_meet_event_body,
     build_event_time,
+    build_google_meet_conference_data,
     build_patch_event_body,
     compact_color_palette,
     compact_event,
+    extract_meet_link,
     find_free_slots,
     merge_calendar_for_update,
     today_bounds,
 )
 from tools.builtins.google.token_store import GoogleTokenStore, StoredGoogleToken
+from tools.builtins.google.calendar_tools import _create_meet_event_handler, _quick_add_event_handler
+from tools.context import RunContext, reset_run_context, set_run_context
+
+
+class QuickAddHandlerTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self) -> None:
+        self._token = set_run_context(RunContext(user_id=8464921092))
+
+    async def asyncTearDown(self) -> None:
+        reset_run_context(self._token)
+
+    async def test_quick_add_passes_text_verbatim_to_google(self) -> None:
+        mock_service = MagicMock()
+        quick_add = mock_service.events.return_value.quickAdd
+        quick_add.return_value.execute.return_value = {
+            "id": "evt_quick",
+            "summary": "Встреча",
+            "htmlLink": "https://calendar.google.com/event?eid=evt_quick",
+            "start": {"dateTime": "2026-07-09T15:00:00+05:00", "timeZone": "Asia/Tashkent"},
+            "end": {"dateTime": "2026-07-09T16:00:00+05:00", "timeZone": "Asia/Tashkent"},
+        }
+        with patch(
+            "tools.builtins.google.calendar_tools.get_calendar_service",
+            new=AsyncMock(return_value=mock_service),
+        ):
+            result = await _quick_add_event_handler(
+                {"text": "Встреча завтра в 15:00", "calendar_id": "primary"}
+            )
+
+        quick_add.assert_called_once_with(
+            calendarId="primary",
+            text="Встреча завтра в 15:00",
+            sendUpdates="none",
+        )
+        self.assertTrue(result["created"])
+        self.assertEqual(result["text"], "Встреча завтра в 15:00")
+        self.assertEqual(result["event"]["start"], "2026-07-09T15:00:00+05:00")
+        self.assertEqual(result["event"]["timeZone"], "Asia/Tashkent")
+
+    async def test_quick_add_does_not_transform_datetime(self) -> None:
+        """quick_add has no datetime args — only NL text goes to Google."""
+        mock_service = MagicMock()
+        mock_service.events.return_value.quickAdd.return_value.execute.return_value = {
+            "id": "evt1",
+            "summary": "Meeting",
+            "start": {"dateTime": "2026-07-09T15:00:00+05:00"},
+            "end": {"dateTime": "2026-07-09T16:00:00+05:00"},
+        }
+        with patch(
+            "tools.builtins.google.calendar_tools.get_calendar_service",
+            new=AsyncMock(return_value=mock_service),
+        ):
+            result = await _quick_add_event_handler({"text": "Meeting tomorrow 3pm"})
+        self.assertNotIn("start", result)
+        self.assertNotIn("end", result)
+        self.assertEqual(result["event"]["start"], "2026-07-09T15:00:00+05:00")
+
+
+class CreateMeetEventHandlerTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self) -> None:
+        self._token = set_run_context(RunContext(user_id=8464921092))
+
+    async def asyncTearDown(self) -> None:
+        reset_run_context(self._token)
+
+    async def test_create_meet_uses_conference_data_version(self) -> None:
+        mock_service = MagicMock()
+        insert = mock_service.events.return_value.insert
+        insert.return_value.execute.return_value = {
+            "id": "evt_meet",
+            "summary": "Video sync",
+            "htmlLink": "https://calendar.google.com/event?eid=evt_meet",
+            "hangoutLink": "https://meet.google.com/abc-defg-hij",
+            "start": {"dateTime": "2026-07-09T15:00:00+05:00", "timeZone": "Asia/Tashkent"},
+            "end": {"dateTime": "2026-07-09T16:00:00+05:00", "timeZone": "Asia/Tashkent"},
+        }
+        with patch(
+            "tools.builtins.google.calendar_tools.get_calendar_service",
+            new=AsyncMock(return_value=mock_service),
+        ):
+            result = await _create_meet_event_handler(
+                {
+                    "summary": "Video sync",
+                    "start": {"datetime": "2026-07-09T15:00:00", "time_zone": "Asia/Tashkent"},
+                    "end": {"datetime": "2026-07-09T16:00:00", "time_zone": "Asia/Tashkent"},
+                }
+            )
+
+        insert.assert_called_once()
+        kwargs = insert.call_args.kwargs
+        self.assertEqual(kwargs["calendarId"], "primary")
+        self.assertEqual(kwargs["conferenceDataVersion"], 1)
+        body = kwargs["body"]
+        self.assertEqual(body["summary"], "Video sync")
+        self.assertIn("conferenceData", body)
+        self.assertTrue(result["created"])
+        self.assertEqual(result["meet_link"], "https://meet.google.com/abc-defg-hij")
+        self.assertEqual(result["event"]["meet_link"], "https://meet.google.com/abc-defg-hij")
+
+    async def test_create_meet_rejects_all_day(self) -> None:
+        with self.assertRaises(ValueError):
+            await _create_meet_event_handler(
+                {
+                    "summary": "Offsite",
+                    "start": {"date": "2026-07-10"},
+                    "end": {"date": "2026-07-11"},
+                }
+            )
 
 
 class GoogleTokenStoreTests(unittest.TestCase):
@@ -55,6 +166,49 @@ class GoogleCalendarHelpersTests(unittest.TestCase):
         self.assertEqual(event["id"], "evt1")
         self.assertEqual(event["summary"], "Meeting")
 
+    def test_compact_event_includes_meet_link(self) -> None:
+        event = compact_event(
+            {
+                "id": "evt2",
+                "summary": "Video sync",
+                "hangoutLink": "https://meet.google.com/abc-defg-hij",
+                "start": {"dateTime": "2026-07-02T10:00:00+05:00"},
+                "end": {"dateTime": "2026-07-02T11:00:00+05:00"},
+            }
+        )
+        self.assertEqual(event["meet_link"], "https://meet.google.com/abc-defg-hij")
+
+    def test_extract_meet_link_from_conference_data(self) -> None:
+        link = extract_meet_link(
+            {
+                "conferenceData": {
+                    "entryPoints": [
+                        {"entryPointType": "video", "uri": "https://meet.google.com/xyz"},
+                        {"entryPointType": "phone", "uri": "tel:+123"},
+                    ]
+                }
+            }
+        )
+        self.assertEqual(link, "https://meet.google.com/xyz")
+
+    def test_build_create_meet_event_body(self) -> None:
+        body = build_create_meet_event_body(
+            {
+                "summary": "Standup",
+                "start": {"datetime": "2026-07-03T15:00:00", "time_zone": "Asia/Tashkent"},
+                "end": {"datetime": "2026-07-03T16:00:00", "time_zone": "Asia/Tashkent"},
+            }
+        )
+        self.assertEqual(body["summary"], "Standup")
+        conf = body.get("conferenceData") or {}
+        create_req = conf.get("createRequest") or {}
+        self.assertEqual(create_req.get("conferenceSolutionKey"), {"type": "hangoutsMeet"})
+        self.assertTrue(create_req.get("requestId"))
+
+    def test_build_google_meet_conference_data_stable_request_id(self) -> None:
+        data = build_google_meet_conference_data(request_id="meet-req-1")
+        self.assertEqual(data["createRequest"]["requestId"], "meet-req-1")
+
     def test_today_bounds(self) -> None:
         start, end, tz_name = today_bounds("UTC")
         self.assertLess(start, end)
@@ -72,7 +226,23 @@ class GoogleCalendarHelpersTests(unittest.TestCase):
         self.assertEqual(body["summary"], "Sync")
         self.assertIn("dateTime", body["start"])
         self.assertEqual(body["start"]["timeZone"], "Asia/Tashkent")
+        self.assertEqual(body["start"]["dateTime"], "2026-07-03T15:00:00+05:00")
+        self.assertEqual(body["end"]["dateTime"], "2026-07-03T16:00:00+05:00")
         self.assertEqual(body["location"], "Zoom")
+
+    @patch("tools.builtins.google.datetime_utils.get_settings")
+    def test_naive_datetime_without_time_zone_uses_bot_timezone(self, mock_settings) -> None:
+        mock_settings.return_value.bot_timezone = "Asia/Tashkent"
+        body = build_create_event_body(
+            {
+                "summary": "Meeting",
+                "start": {"datetime": "2026-07-09T15:00:00"},
+                "end": {"datetime": "2026-07-09T16:00:00"},
+            }
+        )
+        self.assertEqual(body["start"]["dateTime"], "2026-07-09T15:00:00+05:00")
+        self.assertEqual(body["end"]["dateTime"], "2026-07-09T16:00:00+05:00")
+        self.assertEqual(body["start"]["timeZone"], "Asia/Tashkent")
 
     def test_build_all_day_event_body(self) -> None:
         body = build_create_event_body(
@@ -190,6 +360,7 @@ class GoogleToolsRegistryTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("google.calendar.list_today", names)
         self.assertIn("google.calendar.freebusy", names)
         self.assertIn("google.calendar.create_event", names)
+        self.assertIn("google.calendar.create_meet_event", names)
         self.assertIn("google.calendar.patch_event", names)
         self.assertIn("google.calendar.list_calendars", names)
         self.assertIn("google.calendar.import_event", names)

@@ -1,0 +1,118 @@
+Thinking Process:
+
+1.  **Analyze the Request:**
+    *   **Goal:** Create a Google Sheet named "Ташкент — кофейни для работы" (Tashkent - coffee shops for work).
+    *   **Data Collection:** Find 5 coffee shops/co-working spaces in Tashkent suitable for working with a laptop.
+    *   **Data Fields:** Name, District/Address, Working hours (if available), Wi-Fi (yes/no/unknown), Outlets (yes/no/unknown), Approx. espresso price (or "—"), Source link.
+    *   **Format:** One tab, headers in the first row.
+    *   **Deliverable:** The Google Sheet + a short message at the end recommending the best one for long work sessions and why (2-3 sentences).
+    *   **Language:** Russian.
+
+2.  **Adopt the Persona (P3 — Hot-window / Context planner):**
+    *   *Constraint Checklist & Confidence Score:*
+        1. Optimize for data lifetime? Yes.
+        2. Batch size before persist? Yes (8-10 turns).
+        3. Collapse risk per phase? Yes.
+        4. Explicit "persist now" points? Yes.
+        5. Strict on `must_persist_before_exit` and `context_notes`? Yes.
+        6. Group work into windows (~8-10 turns)? Yes.
+        7. No tool names in output? Yes.
+        8. No `use_tool`, `search_tools`, JSON args? Yes.
+        9. Output ONLY valid YAML for `PhasePlan`? Yes.
+        10. No markdown fences, no preamble? Yes.
+    *   *Confidence Score:* 5/5
+    *   *Mental Sandbox:* I need to structure this into phases.
+        *   Phase 1: Web Search & Data Extraction. Find 5 places in Tashkent. Extract specific fields. *Collapse risk: High* (heavy search results). *Persist:* Save raw/extracted data to a temporary doc or directly to the sheet.
+        *   Phase 2: Google Sheets Creation & Formatting. Create the sheet, add headers, populate rows. *Collapse risk: Medium*. *Persist:* The sheet itself is the persist.
+        *   Phase 3: Final Recommendation & Delivery. Analyze the 5 places, write the 2-3 sentence recommendation, deliver to user. *Collapse risk: Low*.
+
+3.  **Drafting the YAML Structure:**
+
+    *   `planner_id`: hot_window
+    *   `summary`: Plan to research 5 laptop-friendly coffee shops in Tashkent, extract specific attributes, persist them into a newly created Google Sheet, and provide a final recommendation based on the gathered data.
+    *   `phase_count`: 3
+    *   `phases`:
+        *   **Phase 1: Research & Data Extraction**
+            *   `id`: 1
+            *   `name`: Research Tashkent Coffee Shops
+            *   `goal`: Find 5 coffee shops/co-working spaces in Tashkent suitable for laptop work and extract required attributes (name, address, hours, wifi, outlets, espresso price, source).
+            *   `logical_blocks`: ["Search for laptop-friendly coffee shops in Tashkent", "Extract specific data points for 5 locations", "Verify Wi-Fi and outlet availability"]
+            *   `entry_condition`: User request received.
+            *   `exit_condition`: 5 locations fully researched with all required data points extracted.
+            *   `collapse_risk`: high (heavy web search results, risk of losing exact prices/addresses if not persisted).
+            *   `must_persist_before_exit`: ["Extracted data for all 5 locations (name, address, hours, wifi, outlets, price, source) must be saved to a workspace document or directly to the target sheet to prevent context collapse of search results."]
+            *   `context_notes`: "Search results will archive quickly. Do not rely on memory for exact espresso prices or addresses. Persist raw extracted facts immediately."
+        *   **Phase 2: Google Sheets Creation & Population**
+            *   `id`: 2
+            *   `name`: Create and Populate Google Sheet
+            *   `goal`: Create the Google Sheet 'Ташкент — кофейни для работы', format headers, and input the persisted data.
+            *   `logical_blocks`: ["Create new Google Sheet with specified title", "Add headers in the first row", "Populate rows with the 5 researched locations"]
+            *   `entry_condition`: Data for 5 locations is securely persisted.
+            *   `exit_condition`: Google Sheet is created, formatted, and populated with all 5 entries.
+            *   `collapse_risk`: medium (sheet API calls are stable, but context might lose the exact data if not read from the persisted store).
+            *   `must_persist_before_exit`: ["The populated Google Sheet itself serves as the durable memory. Ensure all 5 rows are successfully written."]
+            *   `context_notes`: "Read the persisted data from Phase 1 (or workspace doc) to populate the sheet. Do not attempt to recall search results from Phase 1 context directly."
+        *   **Phase 3: Final Recommendation & Delivery**
+            *   `id`: 3
+            *   `name`: Final Recommendation and Delivery
+            *   `goal`: Evaluate the 5 locations based on the sheet data, select the best one for long work, and deliver the final message to the user.
+            *   `logical_blocks`: ["Review populated sheet data", "Select the best location for long work sessions", "Draft 2-3 sentence recommendation", "Deliver final response with sheet link and recommendation"]
+            *   `entry_condition`: Google Sheet is fully populated and accessible.
+            *   `exit_condition`: User receives the sheet link and the final recommendation message.
+            *   `collapse_risk`: low (only requires reading the newly created sheet and generating a short text).
+            *   `must_persist_before_exit`: ["None required, as the final output is delivered directly to the user."]
+            *   `context_notes`: "Keep the recommendation concise (2-3 sentences) as requested. Base it strictly on the data in the sheet (e.g., reliable Wi-Fi, outlets, comfortable hours)."
+
+4.  **Refining and Formatting YAML:**
+    *   Ensure NO markdown fences.
+    *   Ensure NO tool names (like `web_search`, `create_spreadsheet`, etc.).
+    *   Check for strict adherence to the output contract.
+
+    ```yaml
+    phase_plan:
+      planner_id: hot_window
+      summary: Plan to research 5 laptop-friendly coffee shops in Tashkent, extract specific attributes, persist them into a newly created Google Sheet, and provide a final recommendation based on the gathered data.
+      phase_count: 3
+      phases:
+        - id: 1
+          name: Research Tashkent Coffee Shops
+          goal: Find 5 coffee shops or co-working spaces in Tashkent suitable for laptop work and extract required attributes.
+          logical_blocks:
+            - Search for laptop-friendly coffee shops in Tashkent
+            - Extract specific data points for 5 locations
+            - Verify Wi-Fi and outlet availability
+          entry_condition: User request received.
+          exit_condition: 5 locations fully researched with all required data points extracted.
+          collapse_risk: high
+          must_persist_before_exit:
+            - Extracted data for all 5 locations must be saved to a workspace document or directly to the target sheet to prevent context collapse of search results.
+          context_notes: Search results will archive quickly. Do not rely on memory for exact espresso prices or addresses. Persist raw extracted facts immediately before moving to the next phase.
+        - id: 2
+          name: Create and Populate Google Sheet
+          goal: Create the Google Sheet, format headers, and input the persisted data.
+          logical_blocks:
+            - Create new Google Sheet with the specified title
+            - Add headers in the first row
+            - Populate rows with the 5 researched locations
+          entry_condition: Data for 5 locations is securely persisted.
+          exit_condition: Google Sheet is created, formatted, and populated with all 5 entries.
+          collapse_risk: medium
+          must_persist_before_exit:
+            - The populated Google Sheet itself serves as the durable memory. Ensure all 5 rows are successfully written and verified.
+          context_notes: Read the persisted data from Phase 1 to populate the sheet. Do not attempt to recall search results from Phase 1 context directly as they will be archived.
+        - id: 3
+          name: Final Recommendation and Delivery
+          goal: Evaluate the 5 locations based on the sheet data, select the best one for long work, and deliver the final message.
+          logical_blocks:
+            - Review populated sheet data
+            - Select the best location for long work sessions
+            - Draft a 2-3 sentence recommendation
+            - Deliver final response with sheet link and recommendation
+          entry_condition: Google Sheet is fully populated and accessible.
+          exit_condition: User receives the sheet link and the final recommendation message.
+          collapse_risk: low
+          must_persist_before_exit: []
+          context_notes: Keep the recommendation concise as requested. Base it strictly on the data in the sheet such as reliable Wi-Fi, outlets, and comfortable hours.
+    ```
+
+5.

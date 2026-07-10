@@ -11,6 +11,7 @@ _TOOL_PREFIX_TO_SKILL_ID: tuple[tuple[str, str], ...] = (
     ("yandex.auth.", "yandex.music"),
     ("yandex.music.", "yandex.music"),
     ("workspace.", "workspace"),
+    ("chat.", "chat.history"),
 )
 
 GROUP_SKILL_IDS: dict[str, str] = {
@@ -23,6 +24,7 @@ GROUP_SKILL_IDS: dict[str, str] = {
     "yandex|music": "yandex.music",
     "yandex|auth": "yandex.music",
     "workspace|filesystem": "workspace",
+    "chat|history": "chat.history",
 }
 
 

@@ -71,7 +71,7 @@ EXA_WEB_SEARCH = ToolSpec(
     handler=_web_search_handler,
     tags=("web", "search", "news", "internet", "exa"),
     cache_ttl_seconds=300,
-    rate_limit=(10, 60),
+    rate_limit=(240, 60),
     parallel_safe=True,
     examples=(
         "search the web for latest news",

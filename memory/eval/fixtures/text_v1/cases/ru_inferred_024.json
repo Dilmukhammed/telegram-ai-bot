@@ -1,0 +1,155 @@
+{
+  "schema_version": "1",
+  "fixture_id": "ru_inferred_024",
+  "title": "Inferred location",
+  "tier": "full",
+  "language": "ru",
+  "criticality": "normal",
+  "slice_tags": [
+    "uncertainty_alternative",
+    "wrong_speaker_hearsay"
+  ],
+  "reference_time": "2026-07-10T12:00:00+05:00",
+  "timezone": "Asia/Tashkent",
+  "users": [
+    {
+      "user_alias": "u1",
+      "user_id": 1024,
+      "display_name": "Synthetic User",
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "m1",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Похоже, Анна уже в офисе.",
+      "content_type": "text",
+      "occurred_at": "2026-07-10T09:00:00+05:00",
+      "metadata": {}
+    }
+  ],
+  "expected": {
+    "sources": [
+      {
+        "source_event": "m1",
+        "source_type": "chat_message",
+        "source_ref_alias": "m1",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m1"
+        },
+        "normalization_job_status": "done"
+      }
+    ],
+    "segments": [
+      {
+        "source_event": "m1",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Похоже, Анна уже в офисе.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m1"
+        }
+      }
+    ],
+    "mentions": [
+      {
+        "mention_id": "anna",
+        "source_event": "m1",
+        "mention_type": "person",
+        "surface_text": "Анна",
+        "char_start": 8,
+        "char_end": 12,
+        "normalized_hint": "Анна",
+        "pointer": {
+          "source_event": "m1",
+          "char_start": 8,
+          "char_end": 12
+        }
+      },
+      {
+        "mention_id": "office",
+        "source_event": "m1",
+        "mention_type": "place",
+        "surface_text": "офисе",
+        "char_start": 19,
+        "char_end": 24,
+        "normalized_hint": "офис",
+        "pointer": {
+          "source_event": "m1",
+          "char_start": 19,
+          "char_end": 24
+        }
+      }
+    ],
+    "candidates": [
+      {
+        "candidate_ref": "c1",
+        "kind": "state",
+        "schema_name": "located_at",
+        "schema_version": "1",
+        "arguments": [
+          {
+            "role": "person",
+            "mention_ref": "anna"
+          },
+          {
+            "role": "place",
+            "mention_ref": "office"
+          }
+        ],
+        "attributes": {},
+        "polarity": "unknown",
+        "epistemic": {
+          "mode": "inferred",
+          "speaker_commitment": "probable",
+          "scope": "proposition",
+          "alternatives": [],
+          "needs_confirmation": true
+        },
+        "temporal": null,
+        "status": "needs_confirmation",
+        "evidence": [
+          {
+            "source_event": "m1",
+            "relation": "supports",
+            "exact_quote": "Похоже, Анна уже в офисе.",
+            "char_start": 0,
+            "char_end": 25
+          }
+        ]
+      }
+    ],
+    "forbidden_candidates": [
+      {
+        "kind": "state",
+        "schema_name": "located_at",
+        "polarity": "positive"
+      },
+      {
+        "kind": "state",
+        "schema_name": "located_at",
+        "polarity": "negative"
+      }
+    ],
+    "expect_abstention": false,
+    "forbidden_sources": [],
+    "forbidden_segments": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "Awaiting human gold-corpus sign-off."
+    ]
+  }
+}

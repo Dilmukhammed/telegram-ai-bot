@@ -69,6 +69,11 @@ Load once per run: `skills.load` → `skill_id: "workspace"`.
 - From workspace: `telegram.send_file` with `path` (relative).
 - From Drive/Gmail download: `file_ref` directly (no workspace needed unless persisting).
 
+## Upload to Google Drive
+
+- `google.drive.upload_file` with the same workspace `path` (e.g. from user `[file uploaded: path=…]`).
+- Do not invent paths; do not base64 the file when `path` works.
+
 ## Anti-patterns
 
 | Wrong | Right |

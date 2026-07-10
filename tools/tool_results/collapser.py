@@ -4,15 +4,20 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass, field
+from typing import Literal
 
+from agent.coach_dialog import is_coach_reply_tool
 from config import Settings
 from llm import LLMClient
 from tools.coerce import normalize_use_tool_call
 from tools.tool_results.archive import (
     RECALL_TOOL_NAME,
     archived_content_json,
+    archived_tool_call_arguments_json,
+    is_archived_tool_call_arguments,
     is_archived_tool_content,
     parse_tool_results_get_display_ref,
+    should_archive_tool_call_arguments,
     should_archive_tool_content,
     should_collapse_tool_results_get,
 )
@@ -32,6 +37,7 @@ class ArchivedToolEntry:
     ref: str
     tool_call_id: str
     turn: int
+    kind: Literal["result", "arguments"] = "result"
     collapsed: bool = False
     summarize_task: asyncio.Task[None] | None = None
     recall_display_ref: int | None = None
@@ -105,6 +111,7 @@ class ToolResultCollapser:
             payload_json=payload,
             ok=ok,
             cached=cached,
+            payload_kind="result",
         )
         entry = ArchivedToolEntry(
             ref=ref,
@@ -116,6 +123,20 @@ class ToolResultCollapser:
             self.store.get(ref, user_id=self.user_id),  # type: ignore[arg-type]
             args_json=args_json,
         )
+        record = self.store.get(ref, user_id=self.user_id)  # type: ignore[arg-type]
+        if record is not None:
+            from bot.chat_store import get_chat_store
+            from bot.chat_index.sync import enqueue_index_tool_result
+
+            enqueue_index_tool_result(
+                get_chat_store(),
+                user_id=record.user_id,
+                display_ref=record.display_ref,
+                tool_name=record.tool_name,
+                summary=record.summary,
+                payload_json=record.payload_json,
+                run_id=record.run_id,
+            )
         logger.info(
             "tool_result_archive registered ref=%s tool=%s turn=%s call_id=%s chars=%s",
             ref,
@@ -124,6 +145,72 @@ class ToolResultCollapser:
             tool_call_id,
             len(payload),
         )
+
+    def register_assistant_tool_calls(
+        self,
+        assistant_message: dict,
+        *,
+        turn: int,
+    ) -> None:
+        if not self.enabled:
+            return
+        if assistant_message.get("role") != "assistant":
+            return
+
+        min_chars = self.settings.tool_result_archive_min_chars
+        for call in assistant_message.get("tool_calls") or []:
+            function = call.get("function") or {}
+            if function.get("name") != "use_tool":
+                continue
+            tool_call_id = call.get("id")
+            if not tool_call_id:
+                continue
+            args_str = str(function.get("arguments") or "")
+            if not should_archive_tool_call_arguments(args_str, min_chars=min_chars):
+                continue
+
+            try:
+                raw_args = json.loads(args_str)
+            except (json.JSONDecodeError, TypeError):
+                raw_args = {}
+            if not isinstance(raw_args, dict):
+                continue
+
+            target, _inner = normalize_use_tool_call(raw_args)
+            if not target or is_coach_reply_tool(target):
+                continue
+
+            ref = self.store.insert(
+                user_id=self.user_id,  # type: ignore[arg-type]
+                run_id=self.run_id,
+                tool_name=target,
+                turn=turn,
+                args_json=args_json_for_use_tool(raw_args),
+                payload_json=args_str,
+                ok=True,
+                cached=False,
+                payload_kind="arguments",
+            )
+            entry = ArchivedToolEntry(
+                ref=ref,
+                tool_call_id=tool_call_id,
+                turn=turn,
+                kind="arguments",
+            )
+            self.entries.append(entry)
+            entry.summarize_task = self._queue_summarize_for_record(
+                self.store.get(ref, user_id=self.user_id),  # type: ignore[arg-type]
+                args_json=args_json_for_use_tool(raw_args),
+                payload_kind="arguments",
+            )
+            logger.info(
+                "tool_call_args_archive registered ref=%s tool=%s turn=%s call_id=%s chars=%s",
+                ref,
+                target,
+                turn,
+                tool_call_id,
+                len(args_str),
+            )
 
     def _register_recall_tool_message(
         self,
@@ -164,6 +251,7 @@ class ToolResultCollapser:
         record: StoredToolResult | None,
         *,
         args_json: str | None = None,
+        payload_kind: str = "result",
     ) -> asyncio.Task[None] | None:
         if record is None:
             return None
@@ -179,6 +267,7 @@ class ToolResultCollapser:
             tool_name=record.tool_name,
             args_json=args_json if args_json is not None else record.args_json,
             payload_json=record.payload_json,
+            payload_kind=payload_kind,
         )
         self._summarize_tasks_by_ref[record.ref] = task
         self._tasks.append(task)
@@ -212,6 +301,8 @@ class ToolResultCollapser:
     async def _collapse_entry(self, messages: list[dict], entry: ArchivedToolEntry) -> bool:
         if entry.collapsed:
             return False
+        if entry.kind == "arguments":
+            return await self._collapse_arguments_entry(messages, entry)
         tool_index = _find_tool_message_index(messages, entry.tool_call_id)
         if tool_index is None:
             entry.collapsed = True
@@ -265,6 +356,61 @@ class ToolResultCollapser:
         )
         return True
 
+    async def _collapse_arguments_entry(
+        self,
+        messages: list[dict],
+        entry: ArchivedToolEntry,
+    ) -> bool:
+        located = _find_assistant_tool_call(messages, entry.tool_call_id)
+        if located is None:
+            entry.collapsed = True
+            return False
+        message_index, call_index = located
+        assistant_message = messages[message_index]
+        tool_calls = assistant_message.get("tool_calls") or []
+        function = tool_calls[call_index].get("function") or {}
+        args_str = str(function.get("arguments") or "")
+        if is_archived_tool_call_arguments(args_str):
+            entry.collapsed = True
+            return False
+
+        record = self._resolve_target_record(entry)
+        if record is None:
+            return False
+
+        if not summary_ready_for_collapse(record.summarize_status, record.summary):
+            if entry.summarize_task is None or entry.summarize_task.done():
+                entry.summarize_task = self._queue_summarize_for_record(
+                    record,
+                    payload_kind="arguments",
+                )
+            await self._wait_for_task(entry.summarize_task)
+            record = self._resolve_target_record(entry)
+            if record is None:
+                return False
+
+        record = self._ensure_collapsible_record(record)
+        if record is None or not summary_ready_for_collapse(
+            record.summarize_status,
+            record.summary,
+        ):
+            logger.info(
+                "tool_call_args_archive skip collapse ref=%s status=%s",
+                entry.ref,
+                record.summarize_status if record else "missing",
+            )
+            return False
+
+        function["arguments"] = archived_tool_call_arguments_json(record)
+        entry.collapsed = True
+        logger.info(
+            "tool_call_args_archive collapsed ref=%s tool=%s call_id=%s",
+            record.ref,
+            record.tool_name,
+            entry.tool_call_id,
+        )
+        return True
+
     def _resolve_target_record(self, entry: ArchivedToolEntry) -> StoredToolResult | None:
         if entry.recall_display_ref is not None:
             return self.store.get(entry.recall_display_ref, user_id=self.user_id)  # type: ignore[arg-type]
@@ -298,6 +444,19 @@ def _find_tool_message_index(messages: list[dict], tool_call_id: str) -> int | N
     for index, message in enumerate(messages):
         if message.get("role") == "tool" and message.get("tool_call_id") == tool_call_id:
             return index
+    return None
+
+
+def _find_assistant_tool_call(
+    messages: list[dict],
+    tool_call_id: str,
+) -> tuple[int, int] | None:
+    for message_index, message in enumerate(messages):
+        if message.get("role") != "assistant":
+            continue
+        for call_index, call in enumerate(message.get("tool_calls") or []):
+            if call.get("id") == tool_call_id:
+                return message_index, call_index
     return None
 
 

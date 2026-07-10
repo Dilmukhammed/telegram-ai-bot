@@ -8,11 +8,18 @@ from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from typing import Any
 
+from agent.coach_dialog import (
+    bind_coach_reply_dispatch,
+    clear_coach_reply_dispatch,
+    is_billable_meta_tool_call,
+    is_coach_reply_tool,
+    reset_coach_dialog,
+)
 from agent.context_collapse import SearchContextCollapser, collapse_duplicate_use_tool_calls
 from agent.context_stats import format_context_stats
 from agent.prompts import AGENT_SYSTEM_PROMPT
 from agent.run_result import AgentRunResult
-from agent.run_trace import RunTraceCollector
+from agent.run_trace import RunTraceCollector, ToolStep
 from agent.supervisor import (
     AgentSupervisor,
     fallback_stop_decision,
@@ -21,7 +28,15 @@ from agent.supervisor import (
     format_supervisor_stop,
 )
 from agent.supervisor_triggers import detect_soft_trigger
+from agent.checker_telemetry import CheckerTelemetry
 from agent.supervisor_telemetry import SupervisorTelemetry
+from agent.coach_progress import format_coach_coaching_with_trace
+from agent.trajectory_coach import (
+    TrajectoryCoach,
+    format_coach_status,
+    should_run_coach_review,
+)
+from agent.tool_checker import ToolChecker, checker_skip_reason
 from agent.trace_store import TraceStore
 from agent.runtime_context import build_runtime_context_prompt
 from agent.calendar_links import CalendarLinkCollector, finalize_calendar_text
@@ -68,6 +83,14 @@ from tools.tool_results.collapser import ToolResultCollapser, args_json_for_use_
 logger = logging.getLogger(__name__)
 
 StatusCallback = Callable[[str], Awaitable[None]]
+
+
+def _looks_like_serialized_tool_call(content: str) -> bool:
+    lowered = content.casefold()
+    return (
+        "<tool_call>" in lowered
+        or ("<arg_key>" in lowered and "</arg_value>" in lowered)
+    )
 
 
 def _finalize_reply(
@@ -157,7 +180,7 @@ async def _finish_run(
     calendar_links: CalendarLinkCollector,
     tasks_links: TasksLinkCollector,
     skill_collapser: SkillContextCollapser,
-    llm: LLMClient,
+    summarize_llm: LLMClient,
     settings: Settings,
 ) -> AgentRunResult:
     if result_collapser is not None:
@@ -179,7 +202,7 @@ async def _finish_run(
     try:
         worker_history = await summarize_worker_assistant_content(
             result.worker_history,
-            llm=llm,
+            llm=summarize_llm,
             settings=settings,
         )
         return replace(result, worker_history=worker_history)
@@ -190,9 +213,30 @@ async def _finish_run(
 
 def _parse_tool_arguments(raw_args: str) -> dict[str, Any]:
     try:
-        return json.loads(raw_args or "{}")
+        parsed = json.loads(raw_args or "{}")
     except json.JSONDecodeError:
         return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _checker_args_fingerprint(arguments_normalized: dict[str, Any]) -> str:
+    try:
+        return json.dumps(arguments_normalized, ensure_ascii=False, sort_keys=True, default=str)
+    except (TypeError, ValueError):
+        return repr(sorted(arguments_normalized.items())) if arguments_normalized else ""
+
+
+def _count_billable_tool_calls(tool_calls: list[Any]) -> int:
+    count = 0
+    for tool_call in tool_calls:
+        meta_tool = tool_call.function.name
+        target_tool: str | None = None
+        if meta_tool == "use_tool":
+            args = _parse_tool_arguments(tool_call.function.arguments)
+            target_tool, _ = normalize_use_tool_call(args)
+        if is_billable_meta_tool_call(meta_tool, target_tool):
+            count += 1
+    return count
 
 
 def _status_for_tool(tool_name: str, arguments: dict[str, Any]) -> str:
@@ -247,6 +291,8 @@ def _status_for_tool(tool_name: str, arguments: dict[str, Any]) -> str:
         return "Список skills…"
     if target == "tool_results.get":
         return "Загружаю полный результат инструмента…"
+    if target == "coach.reply":
+        return "Уточняю статус для коуча…"
     return f"Запускаю {target}…"
 
 
@@ -254,19 +300,34 @@ class Agent:
     def __init__(self, settings: Settings, runtime: ToolRuntime) -> None:
         self._settings = settings
         self._llm = LLMClient(settings)
+        self._summarize_llm = LLMClient(settings, profile="summarize")
+        self._coach_llm = LLMClient(settings, profile="coach")
+        self._checker_llm = LLMClient(settings, profile="checker")
         self._runtime = runtime
         self._max_tool_turns = settings.agent_max_tool_turns
         self._supervisor = (
             AgentSupervisor(self._llm, settings) if settings.agent_supervisor_enabled else None
         )
-        self._trace_store = TraceStore()
+        self._trajectory_coach = (
+            TrajectoryCoach(self._coach_llm, settings) if settings.agent_coach_enabled else None
+        )
+        self._tool_checker = (
+            ToolChecker(self._checker_llm, settings) if settings.agent_checker_enabled else None
+        )
+        if settings.agent_checker_enabled:
+            allowlist = settings.checker_tools_allowlist.strip() or "*"
+            logger.info("Tool checker enabled allowlist=%s", allowlist)
+        self._trace_store = TraceStore(settings)
         self._supervisor_telemetry = SupervisorTelemetry()
+        self._checker_telemetry = CheckerTelemetry()
 
     def stats_report(self, runtime: ToolRuntime) -> str:
         return (
             runtime.stats_report()
             + "\n\n"
             + self._supervisor_telemetry.format_report()
+            + "\n\n"
+            + self._checker_telemetry.format_report()
         )
 
     async def context_stats_report(
@@ -288,10 +349,20 @@ class Agent:
             prompt_tokens,
             user_id=user_id,
             history=history,
+        ) + (
+            "\n\n" + self._checker_telemetry.format_report()
+            if self._settings.agent_checker_enabled
+            else ""
         )
 
     def trace_last_report(self, user_id: int) -> str:
         return self._trace_store.format_for_telegram(user_id)
+
+    def coach_last_report(self, user_id: int) -> str:
+        return self._trace_store.format_coach_last_for_telegram(user_id)
+
+    def checker_last_report(self, user_id: int) -> str:
+        return self._trace_store.format_checker_last_for_telegram(user_id)
 
     def last_trace(self, user_id: int):
         return self._trace_store.get(user_id)
@@ -325,6 +396,70 @@ class Agent:
         )
         return messages
 
+    async def _maybe_run_tool_checker(
+        self,
+        *,
+        tool_name: str,
+        arguments: dict[str, Any],
+        trace: RunTraceCollector,
+        current_step: ToolStep | None,
+        user_message: str,
+        user_id: int | None,
+        checker_tasks: list[asyncio.Task[None]],
+    ) -> None:
+        if self._tool_checker is None or tool_name != "use_tool":
+            return
+        target, _inner = normalize_use_tool_call(arguments)
+        if not target or is_coach_reply_tool(target):
+            return
+        spec = self._runtime.get_tool_spec(target)
+        if spec is None:
+            return
+        if current_step is None:
+            return
+        skip_reason = checker_skip_reason(spec=spec, step=current_step, settings=self._settings)
+        if skip_reason is not None:
+            if skip_reason not in {"disabled", "not_use_tool", "no_questions", "tool_disabled"}:
+                self._checker_telemetry.record_skip(tool_name=target, reason=skip_reason)
+            return
+        # Skip identical (tool, args) calls already checked this run — retries and
+        # duplicates produce the same verdict, so one review is enough.
+        dedup_key = f"{target}|{_checker_args_fingerprint(current_step.arguments_normalized)}"
+        if not trace.register_checker_dedup(dedup_key):
+            self._checker_telemetry.record_skip(tool_name=target, reason="duplicate")
+            return
+        prior_steps = trace.steps_before(current_step)
+        snapshot_steps = (*prior_steps, current_step)
+        snapshot_checker_reviews = trace.checker_reviews_snapshot()
+
+        async def _run() -> None:
+            try:
+                review = await self._tool_checker.review_step(
+                    spec=spec,
+                    current_step=current_step,
+                    prior_steps=prior_steps,
+                    user_message=user_message,
+                    user_id=user_id,
+                    runtime=self._runtime,
+                    all_steps=snapshot_steps,
+                    prior_checker_reviews=snapshot_checker_reviews,
+                    worker_turns_used=trace.worker_turns_used,
+                    worker_turns_budget=trace.worker_turns_budget,
+                )
+                trace.record_checker_review(review)
+                self._checker_telemetry.record_review(
+                    user_id=user_id,
+                    tool_name=review.tool_name,
+                    overall=review.overall,
+                    rule_based_only=review.rule_based_only,
+                )
+            except Exception:
+                logger.exception("tool_checker background review failed tool=%s", target)
+                self._checker_telemetry.record_error(tool_name=target)
+
+        checker_tasks.append(asyncio.create_task(_run(), name=f"tool_checker:{target}"))
+        logger.info("tool_checker spawned tool=%s turn=%s", target, current_step.turn)
+
     async def _dispatch_tool_call(
         self,
         tool_call: Any,
@@ -333,7 +468,12 @@ class Agent:
         on_status: StatusCallback | None,
         trace: RunTraceCollector,
         messages: list[dict[str, Any]],
+        *,
+        billable_tool_calls_before: int = 0,
+        user_message: str = "",
+        checker_tasks: list[asyncio.Task[None]] | None = None,
     ) -> tuple[str, str]:
+        checker_tasks = checker_tasks if checker_tasks is not None else []
         tool_name = tool_call.function.name
         arguments = _parse_tool_arguments(tool_call.function.arguments)
 
@@ -347,35 +487,52 @@ class Agent:
             call_id=tool_call.id,
         )
 
+        bind_coach_reply_dispatch(
+            tool_calls_at=billable_tool_calls_before,
+            tool_step_index=len(trace.steps),
+        )
+
         logger.info("Tool call turn=%s name=%s args=%s", turn + 1, tool_name, arguments)
 
-        if tool_name == "use_tool":
-            target, tool_args = normalize_use_tool_call(arguments)
-            if target == "exa.web_search" and transit_route_satisfied(messages):
-                query = str(tool_args.get("query") or "").strip()
-                logger.info(
-                    "Skipping exa.web_search after transit route satisfied query=%s",
-                    query,
-                )
-                result = skipped_web_search_result(query=query)
-                trace.on_tool_result(
-                    turn=turn,
-                    call_id=tool_call.id,
-                    result_json=result,
-                    duration_ms=0,
-                )
-                return tool_call.id, result
+        try:
+            if tool_name == "use_tool":
+                target, tool_args = normalize_use_tool_call(arguments)
+                if target == "exa.web_search" and transit_route_satisfied(messages):
+                    query = str(tool_args.get("query") or "").strip()
+                    logger.info(
+                        "Skipping exa.web_search after transit route satisfied query=%s",
+                        query,
+                    )
+                    result = skipped_web_search_result(query=query)
+                    trace.on_tool_result(
+                        turn=turn,
+                        call_id=tool_call.id,
+                        result_json=result,
+                        duration_ms=0,
+                    )
+                    return tool_call.id, result
 
-        ctx = RunContext(user_id=user_id, turn=turn + 1, meta_tool=tool_name)
-        started = time.perf_counter()
-        result = await self._runtime.dispatch_meta_tool(tool_name, arguments, ctx=ctx)
-        trace.on_tool_result(
-            turn=turn,
-            call_id=tool_call.id,
-            result_json=result,
-            duration_ms=int((time.perf_counter() - started) * 1000),
-        )
-        return tool_call.id, result
+            ctx = RunContext(user_id=user_id, turn=turn + 1, meta_tool=tool_name)
+            started = time.perf_counter()
+            result = await self._runtime.dispatch_meta_tool(tool_name, arguments, ctx=ctx)
+            current_step = trace.on_tool_result(
+                turn=turn,
+                call_id=tool_call.id,
+                result_json=result,
+                duration_ms=int((time.perf_counter() - started) * 1000),
+            )
+            await self._maybe_run_tool_checker(
+                tool_name=tool_name,
+                arguments=arguments,
+                trace=trace,
+                current_step=current_step,
+                user_message=user_message,
+                user_id=user_id,
+                checker_tasks=checker_tasks,
+            )
+            return tool_call.id, result
+        finally:
+            clear_coach_reply_dispatch()
 
     async def _execute_tool_turn(
         self,
@@ -397,7 +554,11 @@ class Agent:
         tasks_links: TasksLinkCollector,
         hinted_tool_groups: set[str],
         hinted_skill_groups: set[str],
+        billable_tool_calls_before: int = 0,
+        user_message: str = "",
+        checker_tasks: list[asyncio.Task[None]] | None = None,
     ) -> None:
+        checker_tasks = checker_tasks if checker_tasks is not None else []
         parallel_safe = all(
             self._runtime.is_meta_tool_parallel_safe(
                 tool_call.function.name,
@@ -410,7 +571,10 @@ class Agent:
             pairs = await asyncio.gather(
                 *[
                     self._dispatch_tool_call(
-                        tool_call, turn, user_id, on_status, trace, messages
+                        tool_call, turn, user_id, on_status, trace, messages,
+                        billable_tool_calls_before=billable_tool_calls_before,
+                        user_message=user_message,
+                        checker_tasks=checker_tasks,
                     )
                     for tool_call in tool_calls
                 ]
@@ -420,7 +584,10 @@ class Agent:
             for tool_call in tool_calls:
                 pairs.append(
                     await self._dispatch_tool_call(
-                        tool_call, turn, user_id, on_status, trace, messages
+                        tool_call, turn, user_id, on_status, trace, messages,
+                        billable_tool_calls_before=billable_tool_calls_before,
+                        user_message=user_message,
+                        checker_tasks=checker_tasks,
                     )
                 )
 
@@ -440,7 +607,7 @@ class Agent:
                         auto_loaded_skill = maybe_auto_load_for_skill(skill_id)
                 else:
                     tool_name = str(payload.get("tool_name") or "")
-                    if tool_name:
+                    if tool_name and not is_coach_reply_tool(tool_name):
                         record_tool_use(tool_name)
                         auto_loaded_skill = maybe_auto_load_after_tool(tool_name)
                 if auto_loaded_skill and on_status:
@@ -470,13 +637,14 @@ class Agent:
             ):
                 raw_args = _parse_tool_arguments(tool_call.function.arguments)
                 target, _inner = normalize_use_tool_call(raw_args)
-                result_collapser.register_tool_message(
-                    tool_call_id=tool_call_id,
-                    turn=turn,
-                    content=result,
-                    tool_name=target,
-                    args_json=args_json_for_use_tool(raw_args),
-                )
+                if not is_coach_reply_tool(target):
+                    result_collapser.register_tool_message(
+                        tool_call_id=tool_call_id,
+                        turn=turn,
+                        content=result,
+                        tool_name=target,
+                        args_json=args_json_for_use_tool(raw_args),
+                    )
             for image_path, data_url in take_pending_vision():
                 messages.append(
                     {
@@ -525,6 +693,7 @@ class Agent:
         history_len: int,
         skill_collapser: SkillContextCollapser,
         result_collapser: ToolResultCollapser | None,
+        checker_tasks: list[asyncio.Task[None]] | None = None,
     ) -> tuple[AgentRunResult | None, int, int, int]:
         """Returns run result (if done), cycles_left, retries_left, bonus_turns to add."""
         if self._supervisor is None or supervisor_cycles_left <= 0:
@@ -550,7 +719,7 @@ class Agent:
                     calendar_links=calendar_links,
                     tasks_links=tasks_links,
                     skill_collapser=skill_collapser,
-                    llm=self._llm,
+                    summarize_llm=self._summarize_llm,
                     settings=self._settings,
                 ),
                 supervisor_cycles_left,
@@ -560,6 +729,11 @@ class Agent:
 
         if on_status:
             await on_status("Проверяю шаги агента…")
+
+        # Flush pending checker reviews so the supervisor sees fresh verdicts in its cycle log.
+        if checker_tasks:
+            await asyncio.gather(*checker_tasks, return_exceptions=True)
+            checker_tasks.clear()
 
         decision = await self._supervisor.review(
             trace.build(),
@@ -627,7 +801,7 @@ class Agent:
                 calendar_links=calendar_links,
                 tasks_links=tasks_links,
                 skill_collapser=skill_collapser,
-                llm=self._llm,
+                summarize_llm=self._summarize_llm,
                 settings=self._settings,
             ),
             supervisor_cycles_left,
@@ -661,6 +835,7 @@ class Agent:
         hinted_skill_groups: set[str] = set()
         reset_skill_run_state()
         reset_auto_load_run_state()
+        reset_coach_dialog()
         prepare_skills_for_run(history)
         skill_collapser = SkillContextCollapser()
         skill_collapser.sync_from_messages(messages)
@@ -681,12 +856,15 @@ class Agent:
         retries_left = (
             self._settings.agent_supervisor_max_retries if self._supervisor is not None else 0
         )
+        serialized_tool_call_retries = 0
         last_soft_trigger_turn = -1
+        tool_calls_completed = 0
+        last_meta_review_at_tool_count = 0
 
         run_id = uuid.uuid4().hex[:12]
         result_collapser = ToolResultCollapser(
             settings=self._settings,
-            llm=self._llm,
+            llm=self._summarize_llm,
             user_id=user_id,
             run_id=run_id,
         )
@@ -694,6 +872,7 @@ class Agent:
         outbound_queue = OutboundQueue()
         file_store_token = set_run_file_store(file_store)
         outbound_token = set_outbound_queue(outbound_queue)
+        checker_tasks: list[asyncio.Task[None]] = []
 
         try:
             while True:
@@ -710,6 +889,30 @@ class Agent:
                     if not tool_calls:
                         collapser.collapse_if_pending(messages)
                         content = (message.content or "").strip()
+                        if (
+                            content
+                            and _looks_like_serialized_tool_call(content)
+                            and serialized_tool_call_retries < 1
+                        ):
+                            serialized_tool_call_retries += 1
+                            logger.warning(
+                                "Model serialized a tool call as text at turn=%s; retrying",
+                                turn_index,
+                            )
+                            messages.append({"role": "assistant", "content": content})
+                            messages.append(
+                                {
+                                    "role": "user",
+                                    "content": (
+                                        "Your previous response emitted tool-call markup as plain text. "
+                                        "Do not print tool markup. Call the required tool now using the "
+                                        "native use_tool function, or answer in plain language if no tool "
+                                        "is needed."
+                                    ),
+                                }
+                            )
+                            turn_index += 1
+                            continue
                         if not content:
                             logger.warning(
                                 "Model returned empty final response at turn=%s; requesting summary",
@@ -739,13 +942,18 @@ class Agent:
                             calendar_links=calendar_links,
                             tasks_links=tasks_links,
                             skill_collapser=skill_collapser,
-                            llm=self._llm,
+                            summarize_llm=self._summarize_llm,
                             settings=self._settings,
                         )
 
                     assistant_message = message.model_dump(exclude_none=True)
                     assistant_message.pop("reasoning_content", None)
                     messages.append(assistant_message)
+                    if result_collapser is not None:
+                        result_collapser.register_assistant_tool_calls(
+                            assistant_message,
+                            turn=turn_index,
+                        )
                     await self._execute_tool_turn(
                         turn=turn_index,
                         messages=messages,
@@ -764,8 +972,52 @@ class Agent:
                         tasks_links=tasks_links,
                         hinted_tool_groups=hinted_tool_groups,
                         hinted_skill_groups=hinted_skill_groups,
+                        billable_tool_calls_before=tool_calls_completed,
+                        user_message=user_message,
+                        checker_tasks=checker_tasks,
                     )
+                    tool_calls_completed += _count_billable_tool_calls(tool_calls)
                     turn_index += 1
+
+                    run_periodic_meta_review = should_run_coach_review(
+                        tool_calls_completed=tool_calls_completed,
+                        last_coach_at_tool_count=last_meta_review_at_tool_count,
+                        every_n=self._settings.coach_every_n_tool_calls,
+                    )
+                    if run_periodic_meta_review and self._trajectory_coach is not None:
+                        # Flush pending per-call checker reviews so the coach — the single
+                        # trajectory reviewer — sees the latest verification verdicts.
+                        if checker_tasks:
+                            await asyncio.gather(*checker_tasks, return_exceptions=True)
+                            checker_tasks.clear()
+
+                        built_trace = trace.build()
+
+                        if on_status:
+                            await on_status("Проверяю траекторию…")
+                        coach_decision, coach_trace_input = await self._trajectory_coach.review(
+                            built_trace
+                        )
+                        trace.record_coach_review(
+                            turn=turn_index,
+                            tool_calls=tool_calls_completed,
+                            trace_input=coach_trace_input,
+                            decision=coach_decision,
+                        )
+                        if on_status:
+                            await on_status(format_coach_status(coach_decision))
+
+                        last_meta_review_at_tool_count = tool_calls_completed
+
+                        if (
+                            self._settings.coach_inject_hints
+                            and coach_decision.should_inject_hint()
+                        ):
+                            for coach_message in format_coach_coaching_with_trace(
+                                coach_decision,
+                                built_trace,
+                            ):
+                                messages.append(coach_message)
 
                     if (
                         self._settings.agent_supervisor_soft_triggers
@@ -804,6 +1056,7 @@ class Agent:
                                 history_len=history_len,
                                 skill_collapser=skill_collapser,
                                 result_collapser=result_collapser,
+                                checker_tasks=checker_tasks,
                             )
                             if run_result is not None:
                                 return run_result
@@ -834,12 +1087,15 @@ class Agent:
                     history_len=history_len,
                     skill_collapser=skill_collapser,
                     result_collapser=result_collapser,
+                    checker_tasks=checker_tasks,
                 )
                 if run_result is not None:
                     return run_result
 
                 turn_limit += bonus
         finally:
+            if checker_tasks:
+                await asyncio.gather(*checker_tasks, return_exceptions=True)
             reset_outbound_queue(outbound_token)
             reset_run_file_store(file_store_token)
             file_store.cleanup()

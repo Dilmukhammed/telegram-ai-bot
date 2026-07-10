@@ -55,6 +55,26 @@ class TraceStoreTests(unittest.TestCase):
         self.assertIn("google.calendar.list_events", text)
         self.assertLessEqual(len(text), 3500)
 
+    def test_format_coach_last_includes_trace_input(self) -> None:
+        store = TraceStore()
+        trace = _sample_trace()
+        trace.coach_reviews.append(
+            {
+                "turn": 2,
+                "tool_calls": 5,
+                "trace_input": "Goal: F1 2020\nDiscovery:\nT1 exa.web_search query='austria'",
+                "on_track": False,
+                "focus_now": "Австрия",
+                "assessment": "test",
+                "collapse_risk": "low",
+            }
+        )
+        store.put(42, trace)
+        text = store.format_coach_last_for_telegram(42)
+        self.assertIn("Last coach input", text)
+        self.assertIn("exa.web_search query='austria'", text)
+        self.assertIn("focus_now: `Австрия`", text)
+
 
 class SupervisorTelemetryTests(unittest.TestCase):
     def test_record_and_summary(self) -> None:

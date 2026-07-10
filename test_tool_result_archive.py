@@ -43,6 +43,7 @@ class ToolResultArchiveTests(unittest.IsolatedAsyncioTestCase):
             run_id="run1",
             tool_name="exa.web_search",
             turn=0,
+            payload_kind="result",
             args_json="{}",
             payload_json='{"tool_name":"exa.web_search","ok":true}',
             char_count=100,
@@ -341,7 +342,8 @@ class ToolResultArchiveTests(unittest.IsolatedAsyncioTestCase):
                 (past.isoformat(), ref),
             )
             conn.commit()
-        self.assertIsNone(store.get(ref, user_id=1))
+        with patch("tools.tool_results.store.tool_results_expire_enabled", return_value=True):
+            self.assertIsNone(store.get(ref, user_id=1))
 
     def test_purge_expired(self) -> None:
         store = ToolResultStore(":memory:")
@@ -362,10 +364,11 @@ class ToolResultArchiveTests(unittest.IsolatedAsyncioTestCase):
                 (past.isoformat(), ref),
             )
             conn.commit()
-        deleted = store.purge_expired(now=datetime.now(timezone.utc))
-        self.assertEqual(deleted, 1)
-        self.assertIsNone(store.get(ref, user_id=1))
-        self.assertEqual(store.purge_expired(now=datetime.now(timezone.utc)), 0)
+        with patch("tools.tool_results.store.tool_results_expire_enabled", return_value=True):
+            deleted = store.purge_expired(now=datetime.now(timezone.utc))
+            self.assertEqual(deleted, 1)
+            self.assertIsNone(store.get(ref, user_id=1))
+            self.assertEqual(store.purge_expired(now=datetime.now(timezone.utc)), 0)
 
     def test_enforce_user_row_caps(self) -> None:
         store = ToolResultStore(":memory:")
@@ -415,7 +418,9 @@ class ToolResultArchiveTests(unittest.IsolatedAsyncioTestCase):
         with patch("tools.tool_results.maintenance.get_settings") as mock_settings:
             mock_settings.return_value.tool_result_archive_enabled = True
             mock_settings.return_value.tool_result_max_rows_per_user = 0
-            deleted = run_tool_result_maintenance()
+            mock_settings.return_value.tool_result_ttl_hours = 72
+            with patch("tools.tool_results.store.tool_results_expire_enabled", return_value=True):
+                deleted = run_tool_result_maintenance()
         self.assertEqual(deleted, 1)
 
 

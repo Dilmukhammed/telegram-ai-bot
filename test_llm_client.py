@@ -1,4 +1,5 @@
 import asyncio
+import os
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -42,6 +43,88 @@ class LLMClientReasoningTests(unittest.TestCase):
         client = LLMClient(settings)
         kwargs = client._completion_kwargs(messages=[])
         self.assertNotIn("reasoning_effort", kwargs)
+
+    def test_summarize_profile_uses_separate_model_without_reasoning(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {
+                "OPENAI_MODEL": "accounts/fireworks/models/glm-5p2",
+                "SUMMARIZE_MODEL": "accounts/fireworks/models/qwen3-8b",
+                "REASONING_EFFORT": "high",
+            },
+            clear=False,
+        ):
+            settings = get_settings()
+        agent = LLMClient(settings)
+        summarize = LLMClient(settings, profile="summarize")
+        self.assertEqual(agent._completion_kwargs(messages=[])["model"], "accounts/fireworks/models/glm-5p2")
+        self.assertEqual(
+            summarize._completion_kwargs(messages=[])["model"],
+            "accounts/fireworks/models/qwen3-8b",
+        )
+        self.assertIn("reasoning_effort", agent._completion_kwargs(messages=[]))
+        self.assertNotIn("reasoning_effort", summarize._completion_kwargs(messages=[]))
+
+    def test_thorough_profiles_use_dedicated_model_env(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {
+                "SUMMARIZE_MODEL": "accounts/fireworks/models/deepseek-v4-flash",
+                "THOROUGH_PLANNER_UNIT_MODEL": "accounts/fireworks/models/unit-model",
+                "THOROUGH_MERGER_MODEL": "accounts/fireworks/models/merger-model",
+            },
+            clear=False,
+        ):
+            settings = get_settings()
+        unit = LLMClient(settings, profile="thorough_planner_unit")
+        merger = LLMClient(settings, profile="thorough_merger")
+        self.assertEqual(
+            unit._completion_kwargs(messages=[])["model"],
+            "accounts/fireworks/models/unit-model",
+        )
+        self.assertEqual(
+            merger._completion_kwargs(messages=[])["model"],
+            "accounts/fireworks/models/merger-model",
+        )
+        self.assertNotIn("reasoning_effort", unit._completion_kwargs(messages=[]))
+
+    def test_thorough_planner_defaults_when_model_env_empty(self) -> None:
+        env = {
+            k: v for k, v in os.environ.items() if not k.startswith("THOROUGH_PLANNER_")
+        }
+        with patch.dict("os.environ", env, clear=True):
+            settings = get_settings()
+        self.assertEqual(
+            LLMClient(settings, profile="thorough_planner_unit")._completion_kwargs(
+                messages=[]
+            )["model"],
+            "accounts/fireworks/models/kimi-k2p6",
+        )
+        self.assertEqual(
+            LLMClient(settings, profile="thorough_planner_surface")._completion_kwargs(
+                messages=[]
+            )["model"],
+            "accounts/fireworks/models/glm-5p2",
+        )
+        self.assertEqual(
+            LLMClient(settings, profile="thorough_planner_hot")._completion_kwargs(
+                messages=[]
+            )["model"],
+            "accounts/fireworks/models/qwen3p7-plus",
+        )
+
+    def test_thorough_merger_defaults_to_glm(self) -> None:
+        env = {k: v for k, v in os.environ.items() if not k.startswith("THOROUGH_MERGER_")}
+        with patch.dict("os.environ", env, clear=True):
+            settings = get_settings()
+        self.assertEqual(
+            LLMClient(settings, profile="thorough_merger")._completion_kwargs(messages=[])[
+                "model"
+            ],
+            "accounts/fireworks/models/glm-5p2",
+        )
+        self.assertEqual(settings.thorough_planner_max_output_tokens, 4096)
+        self.assertEqual(settings.thorough_merger_max_output_tokens, 8192)
 
 
 class LLMClientTimeoutRetryTests(unittest.IsolatedAsyncioTestCase):

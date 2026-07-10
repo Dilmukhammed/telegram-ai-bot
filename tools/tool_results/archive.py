@@ -7,6 +7,25 @@ from tools.tool_results.store import StoredToolResult
 
 ARCHIVED_FLAG = "archived"
 RECALL_TOOL_NAME = "tool_results.get"
+TOOL_CALL_KIND = "tool_call_arguments"
+
+
+def is_archived_tool_call_arguments(args_str: str) -> bool:
+    try:
+        payload = json.loads(args_str)
+    except (json.JSONDecodeError, TypeError):
+        return False
+    return (
+        isinstance(payload, dict)
+        and payload.get(ARCHIVED_FLAG) is True
+        and payload.get("kind") == TOOL_CALL_KIND
+    )
+
+
+def should_archive_tool_call_arguments(args_str: str, *, min_chars: int) -> bool:
+    if len(args_str) <= min_chars:
+        return False
+    return not is_archived_tool_call_arguments(args_str)
 
 
 def is_archived_tool_content(content: str) -> bool:
@@ -101,5 +120,19 @@ def build_archived_tool_content(record: StoredToolResult) -> dict[str, Any]:
     }
 
 
+def build_archived_tool_call_arguments(record: StoredToolResult) -> dict[str, Any]:
+    return {
+        ARCHIVED_FLAG: True,
+        "kind": TOOL_CALL_KIND,
+        "ref": record.display_ref,
+        "tool_name": record.tool_name,
+        "summary": record.summary,
+    }
+
+
 def archived_content_json(record: StoredToolResult) -> str:
     return json.dumps(build_archived_tool_content(record), ensure_ascii=False)
+
+
+def archived_tool_call_arguments_json(record: StoredToolResult) -> str:
+    return json.dumps(build_archived_tool_call_arguments(record), ensure_ascii=False)

@@ -54,3 +54,22 @@ def summarize_system_prompt(family: str) -> str:
         "default": common,
     }
     return by_family.get(family, by_family["default"])
+
+
+def summarize_arguments_system_prompt(family: str) -> str:
+    common = (
+        "You summarize tool CALL ARGUMENTS (the request the agent sent), not the tool result. "
+        "Output 2-4 concise sentences in the same language as the payload when obvious. "
+        "State the target tool, key parameters (IDs, ranges, titles, counts, data shape). "
+        "Do NOT reproduce large arrays, cell matrices, or full JSON. No markdown fences."
+    )
+    by_family = {
+        "google": (
+            f"{common} For Sheets: mention spreadsheet id, sheet/range, row/column counts — "
+            "not every cell value."
+        ),
+        "exa": f"{common} Mention search query, URLs, fetch targets.",
+        "workspace": f"{common} Mention paths, line ranges, write/delete targets.",
+        "default": common,
+    }
+    return by_family.get(family, by_family["default"])

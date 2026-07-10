@@ -1,0 +1,184 @@
+{
+  "schema_version": "1",
+  "fixture_id": "en_followup_052",
+  "title": "Pronoun manager follow-up",
+  "tier": "full",
+  "language": "en",
+  "criticality": "normal",
+  "slice_tags": [
+    "correction_followup",
+    "direct_attribute_relation",
+    "multi_turn"
+  ],
+  "reference_time": "2026-07-10T12:00:00+05:00",
+  "timezone": "Asia/Tashkent",
+  "users": [
+    {
+      "user_alias": "u1",
+      "user_id": 1052,
+      "display_name": "Synthetic User",
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "m1",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "This is Daniel.",
+      "content_type": "text",
+      "occurred_at": "2026-07-10T09:00:00+05:00",
+      "metadata": {}
+    },
+    {
+      "event_id": "m2",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "He is my manager.",
+      "content_type": "text",
+      "occurred_at": "2026-07-10T09:01:00+05:00",
+      "metadata": {}
+    }
+  ],
+  "expected": {
+    "sources": [
+      {
+        "source_event": "m1",
+        "source_type": "chat_message",
+        "source_ref_alias": "m1",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m1"
+        },
+        "normalization_job_status": "done"
+      },
+      {
+        "source_event": "m2",
+        "source_type": "chat_message",
+        "source_ref_alias": "m2",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m2"
+        },
+        "normalization_job_status": "done"
+      }
+    ],
+    "segments": [
+      {
+        "source_event": "m1",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "This is Daniel.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m1"
+        }
+      },
+      {
+        "source_event": "m2",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "He is my manager.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m2"
+        }
+      }
+    ],
+    "mentions": [
+      {
+        "mention_id": "daniel",
+        "source_event": "m1",
+        "mention_type": "person",
+        "surface_text": "Daniel",
+        "char_start": 8,
+        "char_end": 14,
+        "normalized_hint": "Daniel",
+        "pointer": {
+          "source_event": "m1",
+          "char_start": 8,
+          "char_end": 14
+        }
+      },
+      {
+        "mention_id": "pronoun",
+        "source_event": "m2",
+        "mention_type": "person",
+        "surface_text": "He",
+        "char_start": 0,
+        "char_end": 2,
+        "normalized_hint": "He",
+        "pointer": {
+          "source_event": "m2",
+          "char_start": 0,
+          "char_end": 2
+        }
+      }
+    ],
+    "candidates": [
+      {
+        "candidate_ref": "c1",
+        "kind": "relation",
+        "schema_name": "manager_of",
+        "schema_version": "1",
+        "arguments": [
+          {
+            "role": "manager",
+            "mention_ref": "daniel"
+          },
+          {
+            "role": "report",
+            "literal": "self"
+          }
+        ],
+        "attributes": {},
+        "polarity": "positive",
+        "epistemic": {
+          "mode": "asserted",
+          "speaker_commitment": "certain",
+          "scope": "proposition",
+          "alternatives": [],
+          "needs_confirmation": false
+        },
+        "temporal": null,
+        "status": "proposed",
+        "evidence": [
+          {
+            "source_event": "m1",
+            "relation": "introduces_entity",
+            "exact_quote": "This is Daniel.",
+            "char_start": 0,
+            "char_end": 15
+          },
+          {
+            "source_event": "m2",
+            "relation": "supports_coreference",
+            "exact_quote": "He is my manager.",
+            "char_start": 0,
+            "char_end": 17
+          }
+        ]
+      }
+    ],
+    "forbidden_candidates": [],
+    "expect_abstention": false,
+    "forbidden_sources": [],
+    "forbidden_segments": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "Awaiting human gold-corpus sign-off."
+    ]
+  }
+}

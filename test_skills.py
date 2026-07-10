@@ -62,6 +62,14 @@ def test_skill_registry_loads_workspace():
     assert len(spec.content) > 500
 
 
+def test_skill_registry_loads_chat_history():
+    spec = get_skill("chat.history")
+    assert spec is not None
+    assert spec.skill_id == "chat.history"
+    assert "chat.search" in spec.content
+    assert "history" in spec.tags
+
+
 def test_skill_registry_loads_yandex_music():
     spec = get_skill("yandex.music")
     assert spec is not None
@@ -79,6 +87,7 @@ def test_list_skills_includes_google_maps():
     assert "google.calendar" in ids
     assert "google.tasks" in ids
     assert "google.gmail" in ids
+    assert "chat.history" in ids
     assert "yandex.music" in ids
     assert "workspace" in ids
 
@@ -165,6 +174,7 @@ if __name__ == "__main__":
     test_skill_registry_loads_google_tasks()
     test_skill_registry_loads_google_gmail()
     test_skill_registry_loads_workspace()
+    test_skill_registry_loads_chat_history()
     test_list_skills_includes_google_maps()
     test_tool_search_hint_tags_for_skills()
     test_tool_search_hint_tags_for_skills_unload()
