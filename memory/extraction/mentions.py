@@ -108,6 +108,26 @@ class MemoryMentionStore:
                 )
         return resolved
 
+    def list_for_segment(
+        self,
+        segment_id: str,
+        *,
+        user_id: int,
+        active_only: bool = True,
+    ) -> list[dict[str, object]]:
+        status_clause = "AND status = 'active'" if active_only else ""
+        with self._db.connection() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT *
+                FROM memory_mentions
+                WHERE segment_id = ? AND user_id = ? {status_clause}
+                ORDER BY mention_id
+                """,
+                (segment_id, user_id),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
     def list_for_source_version(
         self,
         source_version_id: str,

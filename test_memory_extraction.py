@@ -170,6 +170,396 @@ class ParserTests(unittest.TestCase):
         with self.assertRaises(ExtractionParseError):
             parse_extraction_output(_valid_output(), segment_text=TEXT, allow_candidates=False)
 
+    def test_invalid_temporal_is_rejected(self) -> None:
+        payload = _valid_output()
+        payload["candidates"][0]["temporal"] = {"at": "2026-07-10T09:00:00+05:00"}
+        with self.assertRaises(ExtractionParseError):
+            parse_extraction_output(payload, segment_text=TEXT)
+
+    def test_normalize_user_uncertainty_commitment(self) -> None:
+        from memory.extraction.pipeline import _normalize_user_uncertainty
+        from memory.extraction.schemas import SpeakerCommitment
+
+        parsed = parse_extraction_output(
+            {
+                "schema_version": "1",
+                "abstain": False,
+                "mentions": [
+                    {
+                        "mention_ref": "ivan",
+                        "mention_type": "person",
+                        "surface_text": "Иван",
+                        "char_start": 17,
+                        "char_end": 21,
+                        "normalized_hint": None,
+                    },
+                    {
+                        "mention_ref": "acme",
+                        "mention_type": "organization",
+                        "surface_text": "Acme",
+                        "char_start": 33,
+                        "char_end": 37,
+                        "normalized_hint": None,
+                    },
+                ],
+                "candidates": [
+                    {
+                        "candidate_ref": "c1",
+                        "kind": "relation",
+                        "schema_name": "works_at",
+                        "schema_version": "1",
+                        "arguments": [
+                            {"role": "person", "mention_ref": "ivan"},
+                            {"role": "organization", "mention_ref": "acme"},
+                        ],
+                        "attributes": {},
+                        "polarity": "unknown",
+                        "epistemic": {
+                            "mode": "asserted",
+                            "speaker_commitment": "possible",
+                            "scope": "proposition",
+                            "alternatives": [],
+                            "needs_confirmation": True,
+                            "speaker_ref": None,
+                        },
+                        "temporal": None,
+                        "status": "needs_confirmation",
+                        "evidence": [
+                            {
+                                "relation": "supports",
+                                "exact_quote": "Я не уверен, что Иван работает в Acme.",
+                                "char_start": 0,
+                                "char_end": 38,
+                            }
+                        ],
+                        "canonical_hint": None,
+                    }
+                ],
+            },
+            segment_text="Я не уверен, что Иван работает в Acme.",
+        )
+        normalized = _normalize_user_uncertainty(
+            parsed,
+            segment_text="Я не уверен, что Иван работает в Acme.",
+        )
+        self.assertEqual(
+            normalized.candidates[0].epistemic.speaker_commitment,
+            SpeakerCommitment.UNCERTAIN,
+        )
+
+    def test_reported_business_trip_is_synthesized_with_correct_speaker(self) -> None:
+        from dataclasses import replace
+
+        from memory.extraction.pipeline import _normalize_reported_belief
+        from memory.extraction.schemas import ExtractionResult
+
+        text = "Сосед сказал, что Петр уехал в командировку."
+        normalized = _normalize_reported_belief(
+            ExtractionResult(schema_version="1", abstain=True),
+            segment_text=text,
+        )
+
+        self.assertFalse(normalized.abstain)
+        self.assertEqual(
+            [(mention.surface_text, mention.char_start, mention.char_end) for mention in normalized.mentions],
+            [("Сосед", 0, 5), ("Петр", 18, 22)],
+        )
+        candidate = normalized.candidates[0]
+        self.assertEqual(candidate.schema_name, "attends")
+        self.assertEqual(candidate.arguments[0].mention_ref, "reported_subject")
+        self.assertEqual(candidate.epistemic.mode, EpistemicMode.REPORTED)
+        self.assertEqual(candidate.epistemic.speaker_ref, "reported_speaker")
+        self.assertEqual(candidate.status.value, "needs_confirmation")
+
+        wrong_model_candidate = replace(
+            candidate,
+            schema_name="moves_to",
+            arguments=(
+                CandidateArgument(
+                    role="subject",
+                    mention_ref="reported_subject",
+                    has_literal=False,
+                ),
+                CandidateArgument(role="place", literal="командировку", has_literal=True),
+            ),
+        )
+        repaired = _normalize_reported_belief(
+            ExtractionResult(
+                schema_version="1",
+                abstain=False,
+                mentions=normalized.mentions,
+                candidates=(wrong_model_candidate,),
+            ),
+            segment_text=text,
+        ).candidates[0]
+        self.assertEqual(repaired.schema_name, "attends")
+        self.assertEqual([argument.role for argument in repaired.arguments], ["subject", "event"])
+
+    def test_reporting_verb_does_not_flatten_direct_quote(self) -> None:
+        from memory.extraction.pipeline import _normalize_reported_belief
+        from memory.extraction.schemas import (
+            CandidateDraft,
+            CandidateKind,
+            CandidateStatus,
+            EvidenceSpan,
+            ExtractionResult,
+            Polarity,
+        )
+
+        text = 'Jordan said, “I hate flying.”'
+        parsed = ExtractionResult(
+            schema_version="1",
+            abstain=False,
+            candidates=(
+                CandidateDraft(
+                    candidate_ref="c1",
+                    kind=CandidateKind.PREFERENCE,
+                    schema_name="likes_flying",
+                    schema_version="1",
+                    arguments=(CandidateArgument(role="subject", literal="self", has_literal=True),),
+                    attributes={},
+                    polarity=Polarity.NEGATIVE,
+                    epistemic=Epistemic(
+                        mode=EpistemicMode.QUOTED,
+                        speaker_commitment=SpeakerCommitment.CERTAIN,
+                        scope=EpistemicScope.PROPOSITION,
+                    ),
+                    temporal=None,
+                    status=CandidateStatus.PROPOSED,
+                    evidence=(EvidenceSpan("supports", text, 0, len(text)),),
+                ),
+            ),
+        )
+
+        normalized = _normalize_reported_belief(parsed, segment_text=text)
+
+        self.assertEqual(normalized.candidates[0].epistemic.mode, EpistemicMode.QUOTED)
+
+    def test_postprocessor_does_not_invent_missing_correction_values(self) -> None:
+        from types import SimpleNamespace
+
+        from memory.extraction.pipeline import _promote_correction_candidate
+        from memory.extraction.schemas import ExtractionResult
+
+        text = "Уточнение: я больше не вегетарианец."
+        normalized = _promote_correction_candidate(
+            ExtractionResult(schema_version="1", abstain=True),
+            segment_text=text,
+            prior_segments=(SimpleNamespace(text="Я вегетарианец."),),
+        )
+
+        self.assertTrue(normalized.abstain)
+        self.assertEqual(normalized.candidates, ())
+
+    def test_stable_semantic_normalizers_for_preferences_tasks_and_deadlines(self) -> None:
+        from memory.extraction.pipeline import apply_segment_post_processors
+        from memory.extraction.schemas import ExtractionResult
+
+        def normalize_result(text: str):
+            return apply_segment_post_processors(
+                ExtractionResult(schema_version="1", abstain=True),
+                segment_text=text,
+                authority_class="user_direct_statement",
+                occurred_at="2026-07-11T09:00:00+05:00",
+                timezone="Asia/Tashkent",
+                prior_segments=(),
+            )
+
+        def normalize(text: str):
+            return normalize_result(text).candidates[0]
+
+        coffee = normalize("Пью только чёрный кофе без сахара.")
+        self.assertEqual(coffee.schema_name, "prefers")
+        self.assertEqual(coffee.arguments[1].literal, "чёрный кофе без сахара")
+
+        one_shot_command = normalize_result("Book a quiet hotel.")
+        self.assertTrue(one_shot_command.abstain)
+        self.assertEqual(one_shot_command.candidates, ())
+
+        reminder = normalize("Remind me to renew my driver's license next week.")
+        self.assertEqual(reminder.schema_name, "created_task")
+        self.assertEqual(reminder.arguments[1].literal, "renew driver's license")
+        self.assertEqual(reminder.temporal.original_text, "next week")
+
+        exam = normalize("Собираюсь сдать IELTS в декабре.")
+        self.assertEqual((exam.kind.value, exam.schema_name), ("task", "created_task"))
+        self.assertEqual(exam.arguments[1].literal, "сдать IELTS")
+        self.assertEqual(exam.temporal.original_text, "в декабре")
+
+        deadline = normalize("Дедлайн по отчёту — 20 июля.")
+        self.assertEqual((deadline.kind.value, deadline.schema_name), ("event", "calendar_event"))
+        self.assertEqual(deadline.arguments[1].literal, "Дедлайн по отчёту")
+        self.assertEqual(deadline.temporal.original_text, "20 июля")
+
+        sibling = normalize("Моя сестра Оля живёт в Казани.")
+        self.assertEqual(sibling.schema_name, "sibling_of")
+        self.assertEqual(sibling.arguments[0].mention_ref, "named_sibling")
+        self.assertEqual(sibling.arguments[1].literal, "self")
+
+    def test_flight_tool_payload_is_normalized_without_model_guessing(self) -> None:
+        from memory.extraction.pipeline import apply_segment_post_processors
+        from memory.extraction.schemas import ExtractionResult
+
+        text = '{"flight": "HY704", "departure": "2026-07-18T08:15:00+05:00", "seat": "14A"}'
+        candidate = apply_segment_post_processors(
+            ExtractionResult(schema_version="1", abstain=True),
+            segment_text=text,
+            authority_class="tool_api_result",
+            occurred_at="2026-07-11T09:00:00+05:00",
+            timezone="Asia/Tashkent",
+            prior_segments=(),
+        ).candidates[0]
+
+        self.assertEqual(candidate.arguments[1].literal, "HY704")
+        self.assertEqual(candidate.epistemic.mode.value, "retrieved")
+        self.assertEqual(candidate.temporal.event_time, "2026-07-18T08:15:00+05:00")
+
+    def test_sibling_subject_role_is_canonicalized_to_person(self) -> None:
+        from memory.extraction.contracts import normalize_candidate_contracts
+        from memory.extraction.schemas import (
+            CandidateDraft,
+            CandidateKind,
+            CandidateStatus,
+            EvidenceSpan,
+            ExtractionResult,
+            Polarity,
+        )
+
+        text = "Моя сестра Оля."
+        candidate = CandidateDraft(
+            candidate_ref="c1",
+            kind=CandidateKind.RELATION,
+            schema_name="sibling_of",
+            schema_version="1",
+            arguments=(
+                CandidateArgument(role="subject", literal="self", has_literal=True),
+                CandidateArgument(role="related_to", literal="Оля", has_literal=True),
+            ),
+            attributes={},
+            polarity=Polarity.POSITIVE,
+            epistemic=Epistemic(
+                mode=EpistemicMode.ASSERTED,
+                speaker_commitment=SpeakerCommitment.CERTAIN,
+                scope=EpistemicScope.PROPOSITION,
+            ),
+            temporal=None,
+            status=CandidateStatus.PROPOSED,
+            evidence=(EvidenceSpan("supports", text, 0, len(text)),),
+        )
+        normalized = normalize_candidate_contracts(
+            ExtractionResult(schema_version="1", abstain=False, candidates=(candidate,))
+        ).candidates[0]
+
+        self.assertEqual([argument.role for argument in normalized.arguments], ["person", "related_to"])
+
+    def test_considered_relocation_is_possible_not_probable(self) -> None:
+        from memory.extraction.pipeline import _normalize_considered_plan
+        from memory.extraction.schemas import (
+            CandidateDraft,
+            CandidateKind,
+            CandidateStatus,
+            EvidenceSpan,
+            ExtractionResult,
+            Polarity,
+        )
+
+        text = "Думаю переехать в Варшаву осенью."
+        candidate = CandidateDraft(
+            candidate_ref="c1",
+            kind=CandidateKind.EVENT,
+            schema_name="moves_to",
+            schema_version="1",
+            arguments=(
+                CandidateArgument(role="subject", literal="self", has_literal=True),
+                CandidateArgument(role="place", literal="Warsaw", has_literal=True),
+            ),
+            attributes={},
+            polarity=Polarity.POSITIVE,
+            epistemic=Epistemic(
+                mode=EpistemicMode.ASSERTED,
+                speaker_commitment=SpeakerCommitment.CERTAIN,
+                scope=EpistemicScope.PROPOSITION,
+            ),
+            temporal=None,
+            status=CandidateStatus.PROPOSED,
+            evidence=(EvidenceSpan("supports", text, 0, len(text)),),
+        )
+        normalized = _normalize_considered_plan(
+            ExtractionResult(schema_version="1", abstain=False, candidates=(candidate,)),
+            segment_text=text,
+        ).candidates[0]
+
+        self.assertEqual(normalized.polarity.value, "unknown")
+        self.assertEqual(normalized.epistemic.speaker_commitment.value, "possible")
+        self.assertTrue(normalized.epistemic.needs_confirmation)
+
+    def test_general_semantic_policies_transfer_to_unseen_objects(self) -> None:
+        from memory.extraction.pipeline import (
+            _normalize_intolerance_ontology,
+            apply_segment_post_processors,
+        )
+        from memory.extraction.schemas import (
+            CandidateDraft,
+            CandidateKind,
+            CandidateStatus,
+            EvidenceSpan,
+            ExtractionResult,
+            Polarity,
+        )
+
+        def process(text: str) -> ExtractionResult:
+            return apply_segment_post_processors(
+                ExtractionResult(schema_version="1", abstain=True),
+                segment_text=text,
+                authority_class="user_direct_statement",
+                occurred_at="2026-07-11T09:00:00+05:00",
+                timezone="Asia/Tashkent",
+                prior_segments=(),
+            )
+
+        tea = process("I only drink herbal tea.").candidates[0]
+        self.assertEqual((tea.schema_name, tea.arguments[1].literal), ("prefers", "herbal tea"))
+
+        intention = process("I plan to replace the kitchen faucet next month.").candidates[0]
+        self.assertEqual(intention.schema_name, "created_task")
+        self.assertEqual(intention.arguments[1].literal, "replace the kitchen faucet")
+
+        command = process("Reserve a window seat.")
+        self.assertTrue(command.abstain)
+        self.assertEqual(command.candidates, ())
+
+        kinship = process("My brother Daniel lives in Toronto.").candidates[0]
+        self.assertEqual(kinship.schema_name, "sibling_of")
+        self.assertEqual(kinship.arguments[0].mention_ref, "named_sibling")
+
+        text = "I have gluten intolerance."
+        allergy = CandidateDraft(
+            candidate_ref="c1",
+            kind=CandidateKind.ENTITY_ATTRIBUTE,
+            schema_name="allergic_to",
+            schema_version="1",
+            arguments=(
+                CandidateArgument(role="subject", literal="self", has_literal=True),
+                CandidateArgument(role="allergen", literal="gluten", has_literal=True),
+            ),
+            attributes={},
+            polarity=Polarity.POSITIVE,
+            epistemic=Epistemic(
+                mode=EpistemicMode.ASSERTED,
+                speaker_commitment=SpeakerCommitment.CERTAIN,
+                scope=EpistemicScope.PROPOSITION,
+            ),
+            temporal=None,
+            status=CandidateStatus.PROPOSED,
+            evidence=(EvidenceSpan("supports", text, 0, len(text)),),
+        )
+        normalized = _normalize_intolerance_ontology(
+            ExtractionResult(schema_version="1", abstain=False, candidates=(allergy,)),
+            segment_text=text,
+        ).candidates[0]
+        self.assertEqual((normalized.kind.value, normalized.schema_name), ("preference", "dietary_constraint"))
+        self.assertEqual(normalized.arguments[1].role, "excluded")
+
 
 class _FakeModel:
     model_profile = "fake"
@@ -178,9 +568,31 @@ class _FakeModel:
         self.payload = payload
         self.calls: list[list[dict[str, str]]] = []
 
-    async def generate(self, messages: list[dict[str, str]]) -> str:
+    async def generate(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        structured_schema: str | None = "extraction",
+    ) -> str:
+        _ = structured_schema
         self.calls.append(messages)
         return json.dumps(self.payload, ensure_ascii=False)
+
+
+class _SequenceFakeModel(_FakeModel):
+    def __init__(self, payloads: list[dict]) -> None:
+        super().__init__(payloads[-1])
+        self.payloads = list(payloads)
+
+    async def generate(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        structured_schema: str | None = "extraction",
+    ) -> str:
+        _ = structured_schema
+        self.calls.append(messages)
+        return json.dumps(self.payloads.pop(0), ensure_ascii=False)
 
 
 class _BadCommitProcessor:
@@ -381,7 +793,10 @@ class PipelineIntegrationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_worker_persists_mentions_candidates_pointers_and_lineage_atomically(self) -> None:
         ingest, segments = self._seed_segment()
-        model = _FakeModel(_valid_output())
+        payload = _valid_output()
+        payload["candidates"][0]["epistemic"]["mode"] = "reported"
+        payload["candidates"][0]["epistemic"]["speaker_ref"] = "ivan"
+        model = _FakeModel(payload)
         self.service.registry.register(
             TextExtractionProcessor(service=self.service, model=model, timezone="Asia/Tashkent")
         )
@@ -400,6 +815,10 @@ class PipelineIntegrationTests(unittest.IsolatedAsyncioTestCase):
         mentions_by_surface = {item["surface_text"]: item["mention_id"] for item in mentions}
         self.assertEqual(
             candidates[0]["arguments"][0]["mention_id"],
+            mentions_by_surface["Иван"],
+        )
+        self.assertEqual(
+            candidates[0]["epistemic"]["speaker_ref"],
             mentions_by_surface["Иван"],
         )
         with self.service.db.connection() as conn:
@@ -440,6 +859,26 @@ class PipelineIntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await self._wait_done(enqueued.job_id), JobStatus.DONE)
         self.assertEqual(model.calls, [])
         self.assertEqual(self.service.candidates.list_for_user(user_id=7), [])
+
+    async def test_worker_repairs_one_invalid_model_response(self) -> None:
+        ingest, segments = self._seed_segment()
+        invalid = _valid_output()
+        invalid["candidates"][0]["temporal"] = {"at": "2026-07-10T09:00:00+05:00"}
+        model = _SequenceFakeModel([invalid, _valid_output()])
+        self.service.registry.register(
+            TextExtractionProcessor(service=self.service, model=model, timezone="Asia/Tashkent")
+        )
+        request = extraction_job_request(
+            normalized_segments_hash(segments),
+            model_profile="fake",
+        )
+        enqueued = self.service.jobs.enqueue(7, ingest.source_version_id, request)
+        await self.service.start_worker()
+
+        self.assertEqual(await self._wait_done(enqueued.job_id), JobStatus.DONE)
+        self.assertEqual(len(model.calls), 2)
+        self.assertIn("rejected by the strict parser", model.calls[1][-1]["content"])
+        self.assertEqual(len(self.service.candidates.list_for_user(user_id=7)), 1)
 
     async def test_candidate_commit_failure_rolls_back_mentions_and_lineage(self) -> None:
         ingest, segments = self._seed_segment()

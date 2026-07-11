@@ -30,6 +30,15 @@ class MemoryConfig:
     extraction_enabled: bool = False
     extraction_model_profile: str = "summarize"
     extraction_max_tokens: int = 4096
+    # PR 4 independent candidate verification (shadow-only)
+    verification_enabled: bool = False
+    verification_support_model_profile: str = "extraction"
+    verification_adversarial_model_profile: str = "agent"
+    verification_max_tokens: int = 2048
+    verification_scan_interval_seconds: float = 30.0
+    verification_scan_batch_size: int = 100
+    verification_context_chars: int = 240
+    verification_policy_version: str = "verification_policy_v1"
 
 
 def memory_config_from_settings() -> MemoryConfig:
@@ -60,6 +69,18 @@ def memory_config_from_settings() -> MemoryConfig:
         extraction_enabled=settings.memory_extraction_enabled,
         extraction_model_profile=settings.memory_extraction_model_profile,
         extraction_max_tokens=settings.memory_extraction_max_tokens,
+        verification_enabled=settings.memory_verification_enabled,
+        verification_support_model_profile=settings.memory_verification_support_model_profile,
+        verification_adversarial_model_profile=(
+            settings.memory_verification_adversarial_model_profile
+        ),
+        verification_max_tokens=settings.memory_verification_max_tokens,
+        verification_scan_interval_seconds=(
+            settings.memory_verification_scan_interval_seconds
+        ),
+        verification_scan_batch_size=settings.memory_verification_scan_batch_size,
+        verification_context_chars=settings.memory_verification_context_chars,
+        verification_policy_version=settings.memory_verification_policy_version,
     )
 
 
@@ -102,7 +123,24 @@ def validate_memory_config(config: MemoryConfig) -> None:
         raise ValueError("memory ingest shutdown grace seconds must be > 0")
     if not config.extraction_model_profile.strip():
         raise ValueError("memory extraction model profile must be non-empty")
-    if config.extraction_model_profile not in {"agent", "summarize", "checker"}:
-        raise ValueError("memory extraction model profile must be agent, summarize, or checker")
+    if config.extraction_model_profile not in {"agent", "summarize", "checker", "extraction"}:
+        raise ValueError(
+            "memory extraction model profile must be agent, summarize, checker, or extraction"
+        )
     if config.extraction_max_tokens < 256:
         raise ValueError("memory extraction max tokens must be >= 256")
+    profiles = {"agent", "summarize", "checker", "extraction"}
+    if config.verification_support_model_profile not in profiles:
+        raise ValueError("invalid memory verification support model profile")
+    if config.verification_adversarial_model_profile not in profiles:
+        raise ValueError("invalid memory verification adversarial model profile")
+    if config.verification_max_tokens < 256:
+        raise ValueError("memory verification max tokens must be >= 256")
+    if config.verification_scan_interval_seconds <= 0:
+        raise ValueError("memory verification scan interval must be > 0")
+    if config.verification_scan_batch_size < 1:
+        raise ValueError("memory verification scan batch size must be >= 1")
+    if config.verification_context_chars < 0:
+        raise ValueError("memory verification context chars must be >= 0")
+    if not config.verification_policy_version.strip():
+        raise ValueError("memory verification policy version must be non-empty")

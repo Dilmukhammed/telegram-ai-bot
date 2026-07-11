@@ -1,0 +1,140 @@
+{
+  "schema_version": "1",
+  "fixture_id": "verify3_ru_relocate_226",
+  "title": "Planned relocation",
+  "tier": "smoke",
+  "language": "ru",
+  "criticality": "critical",
+  "slice_tags": [
+    "goal_task_deadline",
+    "uncertainty_alternative",
+    "temporal_precision"
+  ],
+  "reference_time": "2026-07-11T12:00:00+05:00",
+  "timezone": "Asia/Tashkent",
+  "users": [
+    {
+      "user_alias": "u1",
+      "user_id": 3226,
+      "display_name": "Synthetic User",
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "m1",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Думаю переехать в Варшаву осенью.",
+      "content_type": "text",
+      "occurred_at": "2026-07-11T09:00:00+05:00",
+      "metadata": {}
+    }
+  ],
+  "expected": {
+    "sources": [
+      {
+        "source_event": "m1",
+        "source_type": "chat_message",
+        "source_ref_alias": "m1",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m1"
+        },
+        "normalization_job_status": "done"
+      }
+    ],
+    "segments": [
+      {
+        "source_event": "m1",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Думаю переехать в Варшаву осенью.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m1"
+        }
+      }
+    ],
+    "mentions": [
+      {
+        "mention_id": "warsaw",
+        "source_event": "m1",
+        "mention_type": "place",
+        "surface_text": "Варшаву",
+        "char_start": 18,
+        "char_end": 25,
+        "normalized_hint": "Варшаву",
+        "pointer": {
+          "source_event": "m1",
+          "char_start": 18,
+          "char_end": 25
+        }
+      }
+    ],
+    "candidates": [
+      {
+        "candidate_ref": "c1",
+        "kind": "event",
+        "schema_name": "moves_to",
+        "schema_version": "1",
+        "arguments": [
+          {
+            "role": "place",
+            "mention_ref": "warsaw"
+          },
+          {
+            "role": "subject",
+            "literal": "self"
+          }
+        ],
+        "attributes": {},
+        "polarity": "unknown",
+        "epistemic": {
+          "alternatives": [],
+          "mode": "asserted",
+          "needs_confirmation": true,
+          "scope": "proposition",
+          "speaker_commitment": "possible",
+          "speaker_ref": null
+        },
+        "temporal": {
+          "event_time": null,
+          "original_text": "осенью",
+          "precision": "season",
+          "timezone": "Asia/Tashkent",
+          "valid_from": null,
+          "valid_to": null
+        },
+        "status": "needs_confirmation",
+        "evidence": [
+          {
+            "source_event": "m1",
+            "relation": "supports",
+            "exact_quote": "Думаю переехать в Варшаву осенью.",
+            "char_start": 0,
+            "char_end": 33
+          }
+        ]
+      }
+    ],
+    "forbidden_candidates": [],
+    "expect_abstention": false,
+    "forbidden_sources": [],
+    "forbidden_segments": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "PR4 verification v2 probe.",
+      "Gold calibrated from live extraction eval actual_signatures."
+    ]
+  }
+}

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 _MIGRATION_1_DDL = """
 CREATE TABLE IF NOT EXISTS memory_schema_migrations (
@@ -233,6 +233,63 @@ CREATE INDEX IF NOT EXISTS idx_memory_candidate_evidence_segment
     ON memory_candidate_evidence(segment_id, candidate_id);
 """
 
+_MIGRATION_5_DDL = """
+ALTER TABLE memory_jobs ADD COLUMN target_kind TEXT;
+ALTER TABLE memory_jobs ADD COLUMN target_id TEXT;
+
+CREATE TABLE IF NOT EXISTS memory_candidate_verdicts (
+    verdict_id            TEXT PRIMARY KEY,
+    user_id               INTEGER NOT NULL,
+    candidate_id          TEXT NOT NULL,
+    role                  TEXT NOT NULL,
+    verdict               TEXT NOT NULL,
+    evidence_directness   TEXT,
+    scope_errors_json     TEXT NOT NULL,
+    ambiguities_json      TEXT NOT NULL,
+    missing_context_json  TEXT NOT NULL,
+    corrected_candidate_json TEXT,
+    verifier_name         TEXT NOT NULL,
+    verifier_version      TEXT NOT NULL,
+    prompt_version        TEXT NOT NULL,
+    model_profile         TEXT,
+    model_name            TEXT,
+    input_hash            TEXT NOT NULL,
+    output_json           TEXT NOT NULL,
+    verification_run_id   TEXT NOT NULL,
+    created_at            TEXT NOT NULL,
+    status                TEXT NOT NULL DEFAULT 'active',
+    FOREIGN KEY(candidate_id) REFERENCES memory_claim_candidates(candidate_id),
+    FOREIGN KEY(verification_run_id) REFERENCES memory_processor_runs(run_id),
+    UNIQUE(
+        candidate_id, role, verifier_name, verifier_version,
+        prompt_version, input_hash
+    )
+);
+
+CREATE TABLE IF NOT EXISTS memory_candidate_scores (
+    score_id              TEXT PRIMARY KEY,
+    user_id               INTEGER NOT NULL,
+    candidate_id          TEXT NOT NULL,
+    policy_version        TEXT NOT NULL,
+    verdict_set_hash      TEXT NOT NULL,
+    components_json       TEXT NOT NULL,
+    route_status          TEXT NOT NULL,
+    verification_run_id   TEXT NOT NULL,
+    created_at            TEXT NOT NULL,
+    status                TEXT NOT NULL DEFAULT 'active',
+    FOREIGN KEY(candidate_id) REFERENCES memory_claim_candidates(candidate_id),
+    FOREIGN KEY(verification_run_id) REFERENCES memory_processor_runs(run_id),
+    UNIQUE(candidate_id, policy_version, verdict_set_hash)
+);
+
+CREATE INDEX IF NOT EXISTS idx_memory_jobs_target
+    ON memory_jobs(target_kind, target_id, status);
+CREATE INDEX IF NOT EXISTS idx_memory_candidate_verdicts_candidate
+    ON memory_candidate_verdicts(candidate_id, status, created_at);
+CREATE INDEX IF NOT EXISTS idx_memory_candidate_scores_candidate
+    ON memory_candidate_scores(candidate_id, status, created_at);
+"""
+
 
 class MemorySchemaError(RuntimeError):
     pass
@@ -317,6 +374,16 @@ def _ensure_schema_in_txn(conn: sqlite3.Connection) -> None:
         )
         applied.add(4)
 
+    if 5 not in applied:
+        for statement in _MIGRATION_5_DDL.split(";"):
+            if statement.strip():
+                conn.execute(statement)
+        conn.execute(
+            "INSERT INTO memory_schema_migrations(version, applied_at) VALUES (?, ?)",
+            (5, utc_now_iso()),
+        )
+        applied.add(5)
+
     _validate_schema(conn)
 
 
@@ -356,6 +423,8 @@ _REQUIRED_COLUMNS: dict[str, frozenset[str]] = {
             "lease_token",
             "lease_until",
             "input_hash",
+            "target_kind",
+            "target_id",
         }
     ),
     "memory_lineage": frozenset(
@@ -415,6 +484,35 @@ _REQUIRED_COLUMNS: dict[str, frozenset[str]] = {
     "memory_candidate_evidence": frozenset(
         {"candidate_id", "segment_id", "pointer_json", "evidence_relation"}
     ),
+    "memory_candidate_verdicts": frozenset(
+        {
+            "verdict_id",
+            "user_id",
+            "candidate_id",
+            "role",
+            "verdict",
+            "verifier_name",
+            "verifier_version",
+            "prompt_version",
+            "input_hash",
+            "output_json",
+            "verification_run_id",
+            "status",
+        }
+    ),
+    "memory_candidate_scores": frozenset(
+        {
+            "score_id",
+            "user_id",
+            "candidate_id",
+            "policy_version",
+            "verdict_set_hash",
+            "components_json",
+            "route_status",
+            "verification_run_id",
+            "status",
+        }
+    ),
 }
 
 _REQUIRED_INDEXES: dict[str, tuple[str, ...]] = {
@@ -431,6 +529,9 @@ _REQUIRED_INDEXES: dict[str, tuple[str, ...]] = {
     "idx_memory_mentions_segment": ("segment_id", "status"),
     "idx_memory_candidates_user_status": ("user_id", "status"),
     "idx_memory_candidate_evidence_segment": ("segment_id", "candidate_id"),
+    "idx_memory_jobs_target": ("target_kind", "target_id", "status"),
+    "idx_memory_candidate_verdicts_candidate": ("candidate_id", "status", "created_at"),
+    "idx_memory_candidate_scores_candidate": ("candidate_id", "status", "created_at"),
 }
 
 

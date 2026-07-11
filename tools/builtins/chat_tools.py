@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from bot.chat_store.encode import row_to_message_dict
+from bot.chat_store.session_period import session_overlaps_day
 from bot.chat_store.models import ChatMessage, ChatSession, SessionStatus
 from config import get_settings
 from tools.builtins.chat_checker import CHAT_CHECKER_QUESTIONS_BY_TOOL
@@ -90,10 +91,11 @@ async def _sessions_list_handler(arguments: dict[str, Any]) -> dict[str, Any]:
 
     sessions = _chat_store().list_sessions(user_id, status=status, limit=limit)
     if date:
+        tz_name = get_settings().bot_timezone
         sessions = [
             session
             for session in sessions
-            if session.started_at is not None and session.started_at.date().isoformat() == date
+            if session_overlaps_day(session, date, tz_name)
         ]
     return {
         "ok": True,
@@ -248,7 +250,7 @@ CHAT_SESSIONS_LIST = ToolSpec(
     name="chat.sessions.list",
     description=(
         "List the current user's chat sessions with summary, dates, and message counts. "
-        "Optional date filter uses session started_at (YYYY-MM-DD)."
+        "Optional date filter matches sessions with activity on that local day (YYYY-MM-DD)."
     ),
     parameters={
         "type": "object",
@@ -260,7 +262,7 @@ CHAT_SESSIONS_LIST = ToolSpec(
             },
             "date": {
                 "type": "string",
-                "description": "Optional YYYY-MM-DD filter on session started_at.",
+                "description": "Optional YYYY-MM-DD filter on session activity (bot timezone).",
             },
             "limit": {
                 "type": "integer",
@@ -314,7 +316,7 @@ CHAT_SEARCH = ToolSpec(
     description=(
         "Hybrid semantic + Unicode lexical search over stored chat history. "
         "Returns diverse top matches with session metadata, turn, turn_context, and tool_ref. "
-        "Optional session_id or date (session started_at, YYYY-MM-DD) narrows the search scope."
+        "Optional session_id or date (message activity day, YYYY-MM-DD) narrows the search scope."
     ),
     parameters={
         "type": "object",
@@ -329,7 +331,7 @@ CHAT_SEARCH = ToolSpec(
             },
             "date": {
                 "type": "string",
-                "description": "Optional YYYY-MM-DD filter on session started_at.",
+                "description": "Optional YYYY-MM-DD filter on session activity (bot timezone).",
             },
             "top_k": {
                 "type": "integer",

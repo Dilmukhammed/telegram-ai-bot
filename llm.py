@@ -57,11 +57,13 @@ class LLMRequestTimeoutError(TimeoutError):
 class LLMClient:
     def __init__(self, settings: Settings, *, profile: str = "agent") -> None:
         self._settings = settings
-        if profile in {"summarize", "coach"}:
+        if profile in {"summarize", "coach", "extraction"}:
             self._model = settings.summarize_model
             base_url = settings.summarize_base_url
             api_key = settings.summarize_api_key
-            self._reasoning_effort: str | None = None
+            self._reasoning_effort: str | None = (
+                settings.reasoning_effort if profile == "extraction" else None
+            )
         elif profile == "checker":
             self._model = settings.checker_model
             base_url = settings.checker_base_url
@@ -88,6 +90,14 @@ class LLMClient:
     @property
     def request_timeouts(self) -> tuple[float, ...]:
         return self._settings.llm_request_timeouts
+
+    @property
+    def model_name(self) -> str:
+        return self._model
+
+    @property
+    def reasoning_effort(self) -> str | None:
+        return self._reasoning_effort
 
     def _completion_kwargs(self, **extra: Any) -> dict[str, Any]:
         kwargs: dict[str, Any] = {
@@ -227,7 +237,8 @@ class LLMClient:
         messages: list[dict[str, str]],
         *,
         max_tokens: int = 512,
-        response_format: dict[str, str] | None = None,
+        response_format: dict[str, Any] | None = None,
+        temperature: float | None = None,
         on_retry: RetryCallback | None = None,
     ) -> str:
         """Fast utility completion without reasoning_effort (summaries, classifiers)."""
@@ -240,6 +251,8 @@ class LLMClient:
             }
             if response_format is not None:
                 kwargs["response_format"] = response_format
+            if temperature is not None:
+                kwargs["temperature"] = temperature
             response = await self._client.chat.completions.create(**kwargs)
             content = (response.choices[0].message.content or "").strip()
             if not content:
@@ -248,6 +261,40 @@ class LLMClient:
 
         return await self._call_with_timeout_retry(
             "chat_without_reasoning",
+            _call,
+            on_retry=on_retry,
+        )
+
+    async def chat_structured(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        max_tokens: int = 512,
+        response_format: dict[str, Any] | None = None,
+        temperature: float | None = None,
+        on_retry: RetryCallback | None = None,
+    ) -> str:
+        """Structured completion that preserves this profile's reasoning settings."""
+
+        async def _call() -> str:
+            kwargs = self._completion_kwargs(
+                messages=messages,
+                max_tokens=max_tokens,
+            )
+            if response_format is not None:
+                kwargs["response_format"] = response_format
+            # Most reasoning endpoints reject sampling controls. Determinism comes
+            # from the structured schema and semantic validator for these calls.
+            if temperature is not None and self._reasoning_effort is None:
+                kwargs["temperature"] = temperature
+            response = await self._client.chat.completions.create(**kwargs)
+            content = (response.choices[0].message.content or "").strip()
+            if not content:
+                raise RuntimeError("Empty response from model")
+            return content
+
+        return await self._call_with_timeout_retry(
+            "chat_structured",
             _call,
             on_retry=on_retry,
         )

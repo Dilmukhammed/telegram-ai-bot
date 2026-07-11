@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 from memory.db import MemoryDatabase, dumps_json, loads_json_object, utc_now_iso
@@ -48,6 +48,7 @@ class CandidateInput:
     extractor_name: str
     extractor_version: str
     prompt_version: str
+    cross_segment_mention_ids: Mapping[tuple[str, str], str] = field(default_factory=dict)
 
 
 class MemoryCandidateStore:
@@ -67,7 +68,12 @@ class MemoryCandidateStore:
         resolved: dict[tuple[str, str], str] = {}
         now = utc_now_iso()
         for candidate in candidates:
-            resolved_arguments, argument_mentions = _resolve_arguments(candidate, mention_ids)
+            merged_mention_ids = dict(mention_ids)
+            merged_mention_ids.update(candidate.cross_segment_mention_ids)
+            resolved_arguments, argument_mentions = _resolve_arguments(
+                candidate,
+                merged_mention_ids,
+            )
             evidence_payload = []
             for evidence in candidate.evidence:
                 _assert_evidence_owner(
@@ -95,6 +101,18 @@ class MemoryCandidateStore:
                 raise ValueError("candidate requires at least one evidence pointer")
             attributes = {str(k): thaw_json(v) for k, v in candidate.attributes.items()}
             epistemic = _epistemic_payload(candidate.epistemic)
+            speaker_ref = candidate.epistemic.speaker_ref
+            if speaker_ref not in (None, "self"):
+                speaker_key = (candidate.segment_id, speaker_ref)
+                speaker_id = mention_ids.get(speaker_key)
+                if speaker_id is None:
+                    raise ValueError(
+                        f"candidate epistemic speaker references unknown mention: {speaker_key!r}"
+                    )
+                epistemic["speaker_ref"] = speaker_id
+                argument_mentions = tuple(
+                    dict.fromkeys((*argument_mentions, speaker_id))
+                )
             temporal = _temporal_payload(candidate.temporal)
             semantic_payload = {
                 "kind": candidate.kind,
@@ -194,6 +212,33 @@ class MemoryCandidateStore:
                     for mention_id in argument_mentions
                 )
                 lineage_store.add_links(conn, user_id=user_id, links=links)
+        support_segment_ids = {
+            evidence.segment_id
+            for candidate in candidates
+            if candidate.kind == "correction"
+            for evidence in candidate.evidence
+            if evidence.relation == "supports" and evidence.segment_id != candidate.segment_id
+        }
+        if support_segment_ids:
+            placeholders = ",".join("?" for _ in support_segment_ids)
+            conn.execute(
+                f"""
+                UPDATE memory_claim_candidates
+                SET status = 'superseded', updated_at = ?
+                WHERE user_id = ?
+                  AND candidate_kind != 'correction'
+                  AND status IN (
+                      'proposed', 'needs_confirmation', 'ready_for_resolution',
+                      'insufficient', 'contradicted'
+                  )
+                  AND candidate_id IN (
+                    SELECT DISTINCT candidate_id
+                    FROM memory_candidate_evidence
+                    WHERE segment_id IN ({placeholders})
+                  )
+                """,
+                (now, user_id, *sorted(support_segment_ids)),
+            )
         return resolved
 
     def list_for_user(

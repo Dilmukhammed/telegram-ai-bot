@@ -1,0 +1,71 @@
+{
+  "schema_version": "1",
+  "pack_id": "text_v1_verification_v2",
+  "pack_version": "1",
+  "fixtures": [
+    "cases/verify3_en_budget_221.json",
+    "cases/verify3_en_corr_223.json",
+    "cases/verify3_en_diet_208.json",
+    "cases/verify3_en_hotel_228.json",
+    "cases/verify3_en_inferred_217.json",
+    "cases/verify3_en_manager_225.json",
+    "cases/verify3_en_negation_214.json",
+    "cases/verify3_en_pref_202.json",
+    "cases/verify3_en_question_210.json",
+    "cases/verify3_en_quote_215.json",
+    "cases/verify3_en_residence_204.json",
+    "cases/verify3_en_residence_227.json",
+    "cases/verify3_en_sarcasm_219.json",
+    "cases/verify3_en_task_206.json",
+    "cases/verify3_en_tool_230.json",
+    "cases/verify3_en_uncertain_212.json",
+    "cases/verify3_ru_allergy_220.json",
+    "cases/verify3_ru_command_218.json",
+    "cases/verify3_ru_corr_222.json",
+    "cases/verify3_ru_deadline_229.json",
+    "cases/verify3_ru_goal_205.json",
+    "cases/verify3_ru_health_207.json",
+    "cases/verify3_ru_hearsay_216.json",
+    "cases/verify3_ru_negation_213.json",
+    "cases/verify3_ru_occupation_203.json",
+    "cases/verify3_ru_pref_201.json",
+    "cases/verify3_ru_question_209.json",
+    "cases/verify3_ru_relocate_226.json",
+    "cases/verify3_ru_sibling_224.json",
+    "cases/verify3_ru_uncertain_211.json"
+  ],
+  "coverage": {
+    "fixture_count": 30,
+    "smoke_count": 30,
+    "language_minimums": {
+      "ru": 14,
+      "en": 16,
+      "mixed": 0
+    },
+    "slice_minimums": {
+      "correction_followup": 2,
+      "direct_attribute_relation": 6,
+      "negation": 2,
+      "uncertainty_alternative": 4,
+      "wrong_speaker_hearsay": 2,
+      "exact_tool_result": 1,
+      "goal_task_deadline": 5,
+      "temporal_precision": 4,
+      "preference_constraint": 6,
+      "hard_negative": 12,
+      "multi_turn": 4,
+      "irrelevant_abstention": 4
+    },
+    "smoke_slice_minimums": {
+      "correction_followup": 1,
+      "direct_attribute_relation": 1,
+      "preference_constraint": 1,
+      "multi_turn": 1,
+      "exact_tool_result": 1
+    },
+    "multi_turn_minimum": 4,
+    "hard_negative_minimum": 12,
+    "require_reviewed": false
+  },
+  "pack_hash": "2ec062334ac1ca4235e0626d342a5b4030e40009c1a77faae648829caf125c39"
+}

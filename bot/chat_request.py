@@ -29,6 +29,10 @@ def merge_chat_requests(
         request = requests[0]
         return request.message, request.user_text, request.image_data_urls, request.message.date
 
+    if any(request.message.reply_to_message for request in requests):
+        last = requests[-1]
+        return last.message, last.user_text.strip(), last.image_data_urls, last.message.date
+
     texts: list[str] = []
     images: list[str] = []
     for request in requests:

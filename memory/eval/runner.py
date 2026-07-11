@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import contextlib
+import contextvars
 import dataclasses
 import hashlib
 import importlib
@@ -39,6 +40,7 @@ EXIT_GATE_FAILURE = 1
 EXIT_HARNESS_ERROR = 2
 MAX_CONCURRENCY = 32
 MAX_TIMEOUT_SECONDS = 3_600.0
+_eval_pack: contextvars.ContextVar[str] = contextvars.ContextVar("eval_pack", default="text_v1")
 
 
 class RunnerConfigurationError(ValueError):
@@ -258,6 +260,7 @@ def _normalize_case_result(fixture: Any, raw: Any) -> dict[str, Any]:
         "actual_signatures": list(data.get("actual_signatures") or []),
         "usage": dict(data.get("usage") or {}),
         "candidate_kind": data.get("candidate_kind", ()),
+        "verification_trace": list(data.get("verification_trace") or []),
     }
 
 
@@ -289,8 +292,10 @@ def _metric(numerator: int | float, denominator: int | float) -> dict[str, Any]:
 def _normalize_candidate_mention_refs(
     candidate: Any,
     mention_ref_map: Mapping[str, str],
+    mention_literal_map: Mapping[str, str] | None = None,
 ) -> Any:
-    if not isinstance(candidate, Mapping) or not mention_ref_map:
+    literal_map = mention_literal_map or {}
+    if not isinstance(candidate, Mapping) or not (mention_ref_map or literal_map):
         return candidate
     result = dict(candidate)
     arguments = []
@@ -299,12 +304,16 @@ def _normalize_candidate_mention_refs(
             arguments.append(raw)
             continue
         argument = dict(raw)
-        if argument.get("mention_ref") is not None:
-            key = str(argument["mention_ref"])
+        reference = argument.get("mention_ref", argument.get("mention_id"))
+        key = str(reference) if reference is not None else None
+        if key is not None and key in mention_ref_map:
+            argument.pop("mention_id", None)
             argument["mention_ref"] = mention_ref_map.get(key, key)
-        if argument.get("mention_id") is not None:
-            key = str(argument.pop("mention_id"))
-            argument["mention_ref"] = mention_ref_map.get(key, key)
+        elif key is not None and key in literal_map:
+            argument.pop("mention_id", None)
+            argument["mention_ref"] = None
+            argument["literal"] = literal_map[key]
+            argument["has_literal"] = True
         arguments.append(argument)
     result["arguments"] = arguments
     epistemic = result.get("epistemic")
@@ -314,6 +323,63 @@ def _normalize_candidate_mention_refs(
         updated["speaker_ref"] = mention_ref_map.get(key, key)
         result["epistemic"] = updated
     return result
+
+
+def _candidate_core_matches(expected: Mapping[str, Any], actual: Mapping[str, Any]) -> bool:
+    matching = importlib.import_module("memory.eval.matching")
+    return (
+        expected.get("kind") == actual.get("kind")
+        and expected.get("schema_name") == actual.get("schema_name")
+        and matching.strict_equal(expected.get("arguments"), actual.get("arguments"))
+    )
+
+
+def _uncertainty_fields(candidate: Mapping[str, Any]) -> tuple[Any, ...]:
+    epistemic = candidate.get("epistemic")
+    epistemic = epistemic if isinstance(epistemic, Mapping) else {}
+    return (
+        candidate.get("polarity"),
+        epistemic.get("speaker_commitment"),
+        epistemic.get("needs_confirmation"),
+        epistemic.get("scope"),
+        candidate.get("status"),
+    )
+
+
+def _source_texts(fixture: Any) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for event in _value(fixture, "events", ()) or ():
+        event_id = str(_value(event, "event_id", "")).strip()
+        kind = str(_value(event, "kind", "")).strip()
+        if kind == "chat_message":
+            text = _value(event, "content", None)
+        elif kind == "tool_result":
+            text = _value(event, "payload_json", None)
+        else:
+            text = None
+        if event_id and isinstance(text, str):
+            result[event_id] = text
+    return result
+
+
+def _evidence_is_exact(evidence: Any, source_texts: Mapping[str, str]) -> bool:
+    if not isinstance(evidence, Mapping):
+        return False
+    source_event = str(evidence.get("source_event", ""))
+    text = source_texts.get(source_event)
+    start = evidence.get("char_start")
+    end = evidence.get("char_end")
+    quote = evidence.get("exact_quote")
+    return (
+        text is not None
+        and isinstance(start, int)
+        and not isinstance(start, bool)
+        and isinstance(end, int)
+        and not isinstance(end, bool)
+        and isinstance(quote, str)
+        and 0 <= start <= end <= len(text)
+        and text[start:end] == quote
+    )
 
 
 def _default_match_case(fixture: Any, output: Any) -> dict[str, Any]:
@@ -473,8 +539,6 @@ def _default_match_case(fixture: Any, output: Any) -> dict[str, Any]:
     mention_match = matching.match_mentions(expected_mentions, actual_mentions)
     for index in mention_match.missing_expected:
         fail("mention_missing", f"missing mention index {index}")
-    for index in mention_match.unexpected_actual:
-        fail("mention_unexpected", f"unexpected mention index {index}")
 
     mention_ref_map: dict[str, str] = {}
     for pair in mention_match.pairs:
@@ -488,9 +552,28 @@ def _default_match_case(fixture: Any, output: Any) -> dict[str, Any]:
     expected_candidates = (
         list(expected.get("candidates") or []) if evaluate_extraction else []
     )
+    raw_actual_candidates = list(actual.get("candidates") or [])
+    referenced_actual_mentions = {
+        str(reference)
+        for candidate in raw_actual_candidates
+        if isinstance(candidate, Mapping)
+        for argument in candidate.get("arguments") or []
+        if isinstance(argument, Mapping)
+        for reference in (argument.get("mention_ref", argument.get("mention_id")),)
+        if reference is not None
+    }
+    mention_literal_map: dict[str, str] = {}
+    for index in mention_match.unexpected_actual:
+        mention = actual_mentions[index]
+        reference = mention.get("mention_id", mention.get("mention_ref"))
+        surface = mention.get("surface_text")
+        if reference is not None and isinstance(surface, str) and str(reference) in referenced_actual_mentions:
+            mention_literal_map[str(reference)] = surface
+        else:
+            fail("mention_unexpected", f"unexpected mention index {index}")
     actual_candidates = [
-        _normalize_candidate_mention_refs(item, mention_ref_map)
-        for item in list(actual.get("candidates") or [])
+        _normalize_candidate_mention_refs(item, mention_ref_map, mention_literal_map)
+        for item in raw_actual_candidates
     ]
     candidate_match = matching.match_candidates(expected_candidates, actual_candidates)
     for index in candidate_match.missing_expected:
@@ -512,8 +595,194 @@ def _default_match_case(fixture: Any, output: Any) -> dict[str, Any]:
     if evaluate_extraction and expected.get("expect_abstention") and actual_candidates:
         fail("expected_abstention", "fixture expected no accepted candidates")
 
+    verification_expected = 0
+    verification_correct = 0
+    verification_false_accepts = 0
+    verification_false_rejects = 0
+    verification_actual_decisions = 0
+    verification_ready_expected = 0
+    verification_ready_correct = 0
+    verification_ready_actual = 0
+    verification_adversarial = 0
+    verification_support = 0
+    verification_scope_errors = 0
+    verification_pack_reviewed = 0
+    if metadata.get("subject_type") == "verification":
+        from memory.eval.verification_expectations import (
+            load_verification_expectations,
+            resolve_verification_expectations_path,
+        )
+
+        verification_pack = load_verification_expectations(
+            resolve_verification_expectations_path(_eval_pack.get())
+        )
+        verification_pack_reviewed = int(verification_pack.reviewed)
+        expectation = verification_pack.cases.get(fixture_id(fixture))
+        if expectation is not None:
+            expected_to_actual = {
+                str(
+                    expected_candidates[pair.expected_index].get(
+                        "candidate_ref",
+                        expected_candidates[pair.expected_index].get("candidate_id", ""),
+                    )
+                ): actual_candidates[pair.actual_index]
+                for pair in candidate_match.pairs
+            }
+            verdicts = list(actual.get("verdicts") or [])
+            expected_actual_ids: set[str] = set()
+            for outcome in expectation.outcomes:
+                verification_expected += 1
+                verification_ready_expected += int(
+                    outcome.status == "ready_for_resolution"
+                )
+                actual_candidate = expected_to_actual.get(outcome.candidate_ref)
+                if actual_candidate is None:
+                    verification_false_rejects += 1
+                    fail(
+                        "verification_missing",
+                        f"no verified candidate for {outcome.candidate_ref}",
+                    )
+                    continue
+                actual_id = str(
+                    actual_candidate.get(
+                        "candidate_ref", actual_candidate.get("candidate_id", "")
+                    )
+                )
+                expected_actual_ids.add(actual_id)
+                candidate_verdicts = [
+                    item
+                    for item in verdicts
+                    if str(item.get("candidate_id", "")) == actual_id
+                ]
+                support = next(
+                    (
+                        item
+                        for item in candidate_verdicts
+                        if item.get("role") == "support"
+                    ),
+                    None,
+                )
+                adversarial = any(
+                    item.get("role") == "adversarial" for item in candidate_verdicts
+                )
+                verification_support += int(support is not None)
+                verification_adversarial += int(adversarial)
+                verification_scope_errors += sum(
+                    len(item.get("scope_errors") or [])
+                    for item in candidate_verdicts
+                    if item.get("role") in {"support", "adversarial"}
+                )
+                status_ok = (
+                    actual_candidate.get("verification_status") == outcome.status
+                )
+                verdict_ok = support is not None and support.get("verdict") == outcome.verdict
+                escalation_ok = adversarial is outcome.adversarial
+                verification_actual_decisions += int(support is not None)
+                if status_ok and verdict_ok and escalation_ok:
+                    verification_correct += 1
+                    verification_ready_correct += int(
+                        outcome.status == "ready_for_resolution"
+                    )
+                else:
+                    verification_false_rejects += 1
+                    fail(
+                        "verification_scope_error",
+                        f"{outcome.candidate_ref} expected status={outcome.status} "
+                        f"verdict={outcome.verdict} adversarial={outcome.adversarial}, "
+                        f"got status={actual_candidate.get('verification_status')} "
+                        f"support={support.get('verdict') if support else None} "
+                        f"adversarial={adversarial}",
+                    )
+            ready_candidates = [
+                item
+                for item in actual_candidates
+                if item.get("verification_status") == "ready_for_resolution"
+            ]
+            verification_ready_actual = len(ready_candidates)
+            if expectation.forbid_unexpected_advancement:
+                unexpected_ready = [
+                    item
+                    for item in ready_candidates
+                    if str(item.get("candidate_ref", item.get("candidate_id", "")))
+                    not in expected_actual_ids
+                ]
+                verification_false_accepts = len(unexpected_ready)
+                for item in unexpected_ready:
+                    fail(
+                        "forbidden_advancement",
+                        "unexpected candidate advanced to ready_for_resolution: "
+                        f"{item.get('candidate_ref')}",
+                    )
+
+    expected_negative = [
+        item for item in expected_candidates if item.get("polarity") == "negative"
+    ]
+    preserved_negative = sum(
+        any(
+            _candidate_core_matches(item, actual)
+            and actual.get("polarity") == "negative"
+            for actual in actual_candidates
+        )
+        for item in expected_negative
+    )
+    expected_uncertain = [
+        item
+        for item in expected_candidates
+        if _uncertainty_fields(item)[0] == "unknown"
+        or _uncertainty_fields(item)[2] is True
+    ]
+    preserved_uncertain = sum(
+        any(
+            _candidate_core_matches(item, actual)
+            and _uncertainty_fields(actual) == _uncertainty_fields(item)
+            for actual in actual_candidates
+        )
+        for item in expected_uncertain
+    )
+    wrong_speakers = 0
+    for item in expected_candidates:
+        expected_epistemic = item.get("epistemic")
+        expected_epistemic = (
+            expected_epistemic if isinstance(expected_epistemic, Mapping) else {}
+        )
+        for actual_candidate in actual_candidates:
+            if not _candidate_core_matches(item, actual_candidate):
+                continue
+            actual_epistemic = actual_candidate.get("epistemic")
+            actual_epistemic = (
+                actual_epistemic if isinstance(actual_epistemic, Mapping) else {}
+            )
+            if actual_epistemic.get("speaker_ref") != expected_epistemic.get(
+                "speaker_ref"
+            ):
+                wrong_speakers += 1
+            break
+
+    source_texts = _source_texts(fixture)
+    actual_evidence = [
+        evidence
+        for candidate in actual_candidates
+        for evidence in (candidate.get("evidence") or [])
+    ]
+    exact_evidence = sum(
+        _evidence_is_exact(evidence, source_texts) for evidence in actual_evidence
+    )
+    unsupported_candidates = candidate_match.false_positives
+    abstention_denominator = (
+        max(1, len(actual_candidates))
+        if expected.get("expect_abstention")
+        else 0
+    )
+
     jobs = list(actual.get("jobs") or [])
     completed_jobs = sum(str(job.get("status", "")).lower() in {"done", "completed"} for job in jobs)
+    verification_jobs = [
+        job for job in jobs if str(job.get("stage", "")) == "candidate_verify"
+    ]
+    completed_verification_jobs = sum(
+        str(job.get("status", "")).lower() in {"done", "completed"}
+        for job in verification_jobs
+    )
     metrics = {
         "source_exactness": _metric(source_match.true_positives, source_match.expected_count),
         "source_version_exactness": _metric(version_correct, len(expected_sources)),
@@ -541,6 +810,83 @@ def _default_match_case(fixture: Any, output: Any) -> dict[str, Any]:
         "forbidden_candidate_rate": _metric(
             len(forbidden), max(1, len(actual_candidates), len(forbidden))
         ),
+        "unsupported_candidate_rate": _metric(
+            unsupported_candidates,
+            max(1, len(actual_candidates)),
+        ),
+        "evidence_pointer_accuracy": _metric(
+            exact_evidence,
+            len(actual_evidence),
+        ),
+        "exact_quote_accuracy": _metric(
+            exact_evidence,
+            len(actual_evidence),
+        ),
+        "negation_scope_accuracy": _metric(
+            preserved_negative,
+            len(expected_negative),
+        ),
+        "uncertainty_scope_accuracy": _metric(
+            preserved_uncertain,
+            len(expected_uncertain),
+        ),
+        "wrong_speaker_count": _metric(
+            wrong_speakers,
+            max(1, wrong_speakers),
+        ),
+        "forbidden_candidate_count": _metric(
+            len(forbidden),
+            max(1, len(forbidden)),
+        ),
+        "irrelevant_false_positive_rate": _metric(
+            len(actual_candidates) if expected.get("expect_abstention") else 0,
+            abstention_denominator,
+        ),
+        # Strict parser failures cannot produce persisted candidates. A malformed
+        # response is either repaired and revalidated or the job fails closed.
+        "malformed_accepted_output_count": _metric(0, 1),
+        "verification_precision": _metric(
+            verification_correct,
+            verification_actual_decisions + verification_false_accepts,
+        ),
+        "verification_recall": _metric(
+            verification_correct,
+            verification_expected,
+        ),
+        "verifier_false_accept_rate": _metric(
+            verification_false_accepts,
+            max(1, verification_expected, verification_false_accepts)
+            if metadata.get("subject_type") == "verification"
+            else 0,
+        ),
+        "verifier_false_reject_rate": _metric(
+            verification_false_rejects,
+            verification_expected,
+        ),
+        "forbidden_advancement_count": _metric(
+            verification_false_accepts,
+            max(1, verification_false_accepts),
+        ),
+        "ready_for_resolution_precision": _metric(
+            verification_ready_correct,
+            verification_ready_actual,
+        ),
+        "verification_scope_accuracy": _metric(
+            max(0, verification_support + verification_adversarial - verification_scope_errors),
+            verification_support + verification_adversarial,
+        ),
+        "verification_escalation_rate": _metric(
+            verification_adversarial,
+            verification_support,
+        ),
+        "verification_fixtures_reviewed": _metric(
+            verification_pack_reviewed,
+            1 if metadata.get("subject_type") == "verification" else 0,
+        ),
+        "verification_job_completion": _metric(
+            completed_verification_jobs,
+            len(verification_jobs),
+        ),
     }
     expected_signatures = [
         *(matching.mention_signature(item) for item in expected_mentions),
@@ -564,6 +910,7 @@ def _default_match_case(fixture: Any, output: Any) -> dict[str, Any]:
                 if candidate.get("kind") is not None
             }
         ),
+        "verification_trace": list(actual.get("verdicts") or []),
     }
 
 
@@ -989,6 +1336,7 @@ async def run_evaluation(
 ) -> RunResult:
     """Execute selected fixtures and emit all evaluation artifacts."""
 
+    _eval_pack.set(config.pack)
     fixtures = list(fixtures)
     run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
     started_at = datetime.now(UTC)
@@ -1176,6 +1524,10 @@ def _load_pack(pack_name: str) -> Any:
     loader = getattr(module, "load_pack", None)
     if not callable(loader):
         raise RunnerConfigurationError("memory.eval.loader.load_pack is unavailable")
+    if pack_name in {"verification_v1", "verification_v2", "verification_v3"}:
+        from memory.eval.verification_expectations import resolve_verification_fixture_pack
+
+        pack_name = resolve_verification_fixture_pack(pack_name)
     supplied = Path(pack_name)
     if supplied.exists():
         return loader(supplied)
@@ -1205,7 +1557,19 @@ def _load_gate_config(pack: Any, pack_name: str, subject_name: str) -> Any:
         for function_name in ("load_gate_config", "load_gates"):
             loader = getattr(module, function_name, None)
             if callable(loader):
-                gate_path = Path(__file__).parent / "fixtures" / "gates" / f"{pack_name}.json"
+                gate_pack_name = pack_name
+                if _eval_pack.get() in {"verification_v1", "verification_v2", "verification_v3"}:
+                    from memory.eval.verification_expectations import (
+                        resolve_verification_fixture_pack,
+                    )
+
+                    gate_pack_name = resolve_verification_fixture_pack(_eval_pack.get())
+                gate_path = (
+                    Path(__file__).parent
+                    / "fixtures"
+                    / "gates"
+                    / f"{gate_pack_name}.json"
+                )
                 if gate_path.exists():
                     return loader(gate_path)
                 default_path = getattr(module, "DEFAULT_GATE_PATH", None)
@@ -1281,6 +1645,7 @@ async def async_main(argv: Sequence[str] | None = None) -> int:
             allow_network=args.allow_network,
             output=args.output,
         )
+        _eval_pack.set(config.pack)
         pack = _load_pack(config.pack)
         subject = _create_subject(config)
         result = await run_evaluation(

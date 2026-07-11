@@ -12,6 +12,8 @@ from xml.etree import ElementTree
 
 from memory.eval.reports import BaselineCompatibilityError, compare_baseline
 from memory.eval.gates import parse_gate_config
+from memory.eval.loader import load_fixture
+from memory.eval.matching import to_plain
 from memory.eval.runner import (
     EXIT_GATE_FAILURE,
     EXIT_HARNESS_ERROR,
@@ -61,6 +63,16 @@ class PassingSubject:
 
 
 class MemoryEvalSelectionTests(unittest.TestCase):
+    def test_candidate_matching_treats_likes_as_prefers_alias(self) -> None:
+        from memory.eval.matching import candidate_matches
+
+        expected = {
+            "kind": "preference", "schema_name": "prefers", "schema_version": "1",
+            "polarity": "positive", "arguments": [], "attributes": {},
+            "epistemic": {}, "temporal": None, "status": "proposed", "evidence": [],
+        }
+        self.assertTrue(candidate_matches(expected, {**expected, "schema_name": "likes"}))
+
     def test_filter_sort_and_shard_are_deterministic(self) -> None:
         fixtures = [
             _fixture("c", language="ru", tags=("direct", "critical")),
@@ -164,6 +176,50 @@ class MemoryEvalSelectionTests(unittest.TestCase):
         self.assertEqual(result["metrics"]["candidate_precision"]["numerator"], 1)
         self.assertFalse(
             any(item["code"].startswith("candidate_") for item in result["failures"])
+        )
+
+    def test_candidate_matching_accepts_mention_surface_for_literal(self) -> None:
+        fixture = load_fixture(
+            Path("memory/eval/fixtures/text_v1/cases/ru_goal_008.json")
+        )
+        candidate = to_plain(fixture.expected.candidates[0])
+        skill = next(item for item in candidate["arguments"] if item["role"] == "skill")
+        skill.update(
+            {
+                "mention_ref": "mmen_python",
+                "literal": None,
+                "has_literal": False,
+            }
+        )
+        result = _default_match_case(
+            fixture,
+            {
+                "fixture_id": fixture.fixture_id,
+                "sources": [],
+                "source_versions": [],
+                "segments": [],
+                "jobs": [],
+                "pointer_checks": [],
+                "mentions": [
+                    {
+                        "mention_id": "mmen_python",
+                        "source_event": "m1",
+                        "mention_type": "concept",
+                        "surface_text": "Python",
+                        "char_start": 13,
+                        "char_end": 19,
+                    }
+                ],
+                "candidates": [candidate],
+                "metadata": {"subject_type": "extraction"},
+            },
+        )
+        self.assertEqual(result["metrics"]["candidate_precision"]["numerator"], 1)
+        self.assertFalse(
+            any(
+                item["code"] in {"mention_unexpected", "candidate_missing", "candidate_unexpected"}
+                for item in result["failures"]
+            )
         )
 
     def test_full_tier_contains_smoke_and_full_cases(self) -> None:

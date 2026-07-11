@@ -10,6 +10,7 @@ from memory.eval.subjects import (
     EvalContext,
     PR1IngestionSubject,
     PR3ExtractionSubject,
+    PR4VerificationSubject,
     SubjectOutputError,
     create_subject,
 )
@@ -129,7 +130,8 @@ class PR1IngestionSubjectTests(unittest.IsolatedAsyncioTestCase):
 class _EvalExtractionModel:
     model_profile = "summarize"
 
-    async def generate(self, messages):
+    async def generate(self, messages, *, structured_schema=None):
+        _ = structured_schema
         return json.dumps(
             {
                 "schema_version": "1",
@@ -236,6 +238,73 @@ class PR3ExtractionSubjectTests(unittest.IsolatedAsyncioTestCase):
     def test_factory_requires_explicit_network_permission(self) -> None:
         with self.assertRaises(ValueError):
             create_subject("extraction", allow_network=False)
+
+
+class _EvalVerificationModel:
+    def __init__(self, profile: str) -> None:
+        self.model_profile = profile
+
+    async def generate(self, messages, *, structured_schema=None):
+        _ = messages, structured_schema
+        return json.dumps(
+            {
+                "schema_version": "1",
+                "verdict": "supported",
+                "evidence_directness": "direct",
+                "scope_errors": [],
+                "ambiguities": [],
+                "missing_context": [],
+                "corrected_candidate": None,
+            }
+        )
+
+
+class PR4VerificationSubjectTests(unittest.IsolatedAsyncioTestCase):
+    async def test_relation_fixture_runs_verification_subject(self) -> None:
+        fixture = load_fixture(
+            Path("memory/eval/fixtures/text_v1/cases/ru_relation_001.json")
+        )
+        output = await PR4VerificationSubject(
+            _EvalExtractionModel(),
+            _EvalVerificationModel("checker"),
+            _EvalVerificationModel("agent"),
+        ).run(
+            fixture,
+            EvalContext(timeout_seconds=5.0, poll_interval_seconds=0.02),
+        )
+        self.assertEqual(output.metadata["subject_type"], "verification")
+        self.assertEqual(
+            {item["stage"] for item in output.jobs},
+            {"normalize_text", "candidate_extract", "candidate_verify"},
+        )
+        self.assertEqual(output.candidates[0]["status"], "proposed")
+        self.assertEqual(
+            output.candidates[0]["verification_status"],
+            "ready_for_resolution",
+        )
+        self.assertEqual(
+            {item["role"] for item in output.verdicts},
+            {"deterministic", "support"},
+        )
+        scored = _default_match_case(fixture, output)
+        self.assertEqual(scored["metrics"]["verification_recall"]["numerator"], 1)
+        self.assertEqual(scored["metrics"]["verification_recall"]["denominator"], 1)
+        self.assertEqual(
+            scored["metrics"]["verification_job_completion"]["numerator"], 1
+        )
+        self.assertEqual(
+            scored["metrics"]["verification_job_completion"]["denominator"], 1
+        )
+        self.assertTrue(scored["verification_trace"])
+        self.assertIn("raw_output", scored["verification_trace"][0])
+        self.assertIn(
+            "verification_fixtures_reviewed",
+            scored["metrics"],
+        )
+
+    def test_factory_requires_explicit_network_permission(self) -> None:
+        with self.assertRaises(ValueError):
+            create_subject("verification", allow_network=False)
 
 
 if __name__ == "__main__":

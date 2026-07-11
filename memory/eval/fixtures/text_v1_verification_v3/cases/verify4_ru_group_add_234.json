@@ -1,0 +1,112 @@
+{
+  "schema_version": "1",
+  "fixture_id": "verify4_ru_group_add_234",
+  "title": "Add student to existing group",
+  "tier": "smoke",
+  "language": "ru",
+  "criticality": "critical",
+  "slice_tags": [
+    "tutoring_group",
+    "multi_turn",
+    "correction_followup"
+  ],
+  "reference_time": "2026-07-11T16:00:00+05:00",
+  "timezone": "Asia/Tashkent",
+  "users": [
+    {
+      "user_alias": "u1",
+      "user_id": 3304,
+      "display_name": "Synthetic User",
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "m1",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Группа Математика-1 уже есть.",
+      "content_type": "text",
+      "occurred_at": "2026-07-11T10:00:00+05:00",
+      "metadata": {}
+    },
+    {
+      "event_id": "m2",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Добавь Алису в Математика-1.",
+      "content_type": "text",
+      "occurred_at": "2026-07-11T10:01:00+05:00",
+      "metadata": {}
+    }
+  ],
+  "expected": {
+    "sources": [
+      {
+        "source_event": "m1",
+        "source_type": "chat_message",
+        "source_ref_alias": "m1",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m1"
+        },
+        "normalization_job_status": "done"
+      },
+      {
+        "source_event": "m2",
+        "source_type": "chat_message",
+        "source_ref_alias": "m2",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m2"
+        },
+        "normalization_job_status": "done"
+      }
+    ],
+    "segments": [
+      {
+        "source_event": "m1",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Группа Математика-1 уже есть.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m1"
+        }
+      },
+      {
+        "source_event": "m2",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Добавь Алису в Математика-1.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m2"
+        }
+      }
+    ],
+    "mentions": [],
+    "candidates": [],
+    "forbidden_candidates": [],
+    "expect_abstention": true,
+    "forbidden_sources": [],
+    "forbidden_segments": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "PR4 verification v3 scenario probe.",
+      "Gold calibrated from live extraction eval actual_signatures."
+    ]
+  }
+}

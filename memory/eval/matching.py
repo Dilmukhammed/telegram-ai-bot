@@ -29,6 +29,10 @@ FAILURE_CODES = (
     "wrong_speaker",
     "temporal_mismatch",
     "expected_abstention",
+    "verification_missing",
+    "verification_unexpected",
+    "forbidden_advancement",
+    "verification_scope_error",
     "subject_timeout",
     "subject_error",
 )
@@ -155,6 +159,8 @@ def _candidate_projection(candidate: Any) -> dict[str, Any]:
     projection: dict[str, Any] = {}
     for name in _CANDIDATE_FIELDS:
         projection[name] = item[name] if name in item else {"__missing_field__": name}
+    if projection["schema_name"] == "likes":
+        projection["schema_name"] = "prefers"
     projection["arguments"] = _sort_unordered(to_plain(projection["arguments"]))
     projection["evidence"] = _sort_unordered(to_plain(projection["evidence"]))
     return projection

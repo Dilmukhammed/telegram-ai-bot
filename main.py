@@ -63,8 +63,12 @@ async def main() -> None:
         logger.info("chat_v1_migration skipped reason=%s", migration.reason)
 
     chat_service = ChatService(Agent(settings, runtime))
+    from bot.chat_store.day_archive import register_day_archive_callback
+
+    register_day_archive_callback(chat_service.invalidate_user_history)
     memory_service = None
     memory_ingest_runtime = None
+    memory_verification_scheduler = None
 
     oauth_runner = None
     if google_oauth_configured() and not google_oauth_manual_mode():
@@ -210,6 +214,7 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
             ingest_enabled=settings.memory_ingest_enabled,
             worker_enabled=settings.memory_worker_enabled,
             extraction_enabled=settings.memory_extraction_enabled,
+            verification_enabled=settings.memory_verification_enabled,
         )
         await message.answer(text[:4000])
 
@@ -646,6 +651,7 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
         settings.memory_ingest_enabled
         or settings.memory_worker_enabled
         or settings.memory_extraction_enabled
+        or settings.memory_verification_enabled
     ):
         from memory.service import create_memory_runtime
 
@@ -693,6 +699,49 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
         )
         logger.info("memory text extraction registered (shadow-only)")
 
+    if settings.memory_verification_enabled and memory_service is not None:
+        from llm import LLMClient
+        from memory.verification.pipeline import (
+            LLMVerificationModel,
+            register_candidate_verifier,
+        )
+        from memory.verification.scheduler import VerificationScheduler
+
+        support_client = LLMClient(
+            settings,
+            profile=settings.memory_verification_support_model_profile,
+        )
+        adversarial_client = LLMClient(
+            settings,
+            profile=settings.memory_verification_adversarial_model_profile,
+        )
+        register_candidate_verifier(
+            memory_service.registry,
+            service=memory_service,
+            support_model=LLMVerificationModel(
+                support_client,
+                model_profile=settings.memory_verification_support_model_profile,
+                max_tokens=settings.memory_verification_max_tokens,
+            ),
+            adversarial_model=LLMVerificationModel(
+                adversarial_client,
+                model_profile=settings.memory_verification_adversarial_model_profile,
+                max_tokens=settings.memory_verification_max_tokens,
+            ),
+            policy_version=settings.memory_verification_policy_version,
+            context_chars=settings.memory_verification_context_chars,
+        )
+        memory_verification_scheduler = VerificationScheduler(
+            service=memory_service,
+            support_profile=settings.memory_verification_support_model_profile,
+            adversarial_profile=settings.memory_verification_adversarial_model_profile,
+            policy_version=settings.memory_verification_policy_version,
+            interval_seconds=settings.memory_verification_scan_interval_seconds,
+            batch_size=settings.memory_verification_scan_batch_size,
+        )
+        await memory_verification_scheduler.start()
+        logger.info("memory candidate verification registered (shadow-only)")
+
     if settings.memory_worker_enabled and memory_service is not None:
         await memory_service.start_worker()
         logger.info("memory worker started")
@@ -704,6 +753,8 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
     try:
         await dp.start_polling(bot)
     finally:
+        if memory_verification_scheduler is not None:
+            await memory_verification_scheduler.stop()
         if memory_ingest_runtime is not None:
             from bot.memory_chat_adapter import set_text_ingest_sink
             from tools.tool_results.store import get_tool_result_store

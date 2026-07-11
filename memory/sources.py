@@ -383,6 +383,26 @@ class MemorySourceStore:
                         (now, record.child_id, user_id),
                     )
                     inactive_descendant_count += int(updated.rowcount)
+                elif record.child_kind == "candidate_verdict":
+                    updated = conn.execute(
+                        """
+                        UPDATE memory_candidate_verdicts
+                        SET status = 'invalidated'
+                        WHERE verdict_id = ? AND user_id = ? AND status != 'invalidated'
+                        """,
+                        (record.child_id, user_id),
+                    )
+                    inactive_descendant_count += int(updated.rowcount)
+                elif record.child_kind == "candidate_score":
+                    updated = conn.execute(
+                        """
+                        UPDATE memory_candidate_scores
+                        SET status = 'invalidated'
+                        WHERE score_id = ? AND user_id = ? AND status != 'invalidated'
+                        """,
+                        (record.child_id, user_id),
+                    )
+                    inactive_descendant_count += int(updated.rowcount)
                 elif record.child_kind == "source_version":
                     conn.execute(
                         """

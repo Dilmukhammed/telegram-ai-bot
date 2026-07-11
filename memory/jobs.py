@@ -73,6 +73,25 @@ class MemoryJobQueue:
             raise MemoryJobOwnershipError("source version belongs to another user")
         if owner["source_status"] != "active" or owner["version_status"] != "active":
             raise MemorySourceInactiveError("cannot enqueue work for inactive source version")
+        if request.target_kind == "candidate":
+            target = conn.execute(
+                """
+                SELECT c.user_id, extraction_job.source_version_id
+                FROM memory_claim_candidates c
+                JOIN memory_processor_runs extraction_run
+                  ON extraction_run.run_id = c.extraction_run_id
+                JOIN memory_jobs extraction_job
+                  ON extraction_job.job_id = extraction_run.job_id
+                WHERE c.candidate_id = ?
+                """,
+                (request.target_id,),
+            ).fetchone()
+            if target is None:
+                raise ValueError(f"unknown candidate target: {request.target_id!r}")
+            if int(target["user_id"]) != user_id:
+                raise MemoryJobOwnershipError("candidate target belongs to another user")
+            if str(target["source_version_id"]) != source_version_id:
+                raise ValueError("candidate target does not belong to the job source version")
 
         job_id = make_job_id(
             source_version_id=source_version_id,
@@ -82,6 +101,8 @@ class MemoryJobQueue:
             prompt_version=request.prompt_version,
             input_hash=request.input_hash,
             config_hash=request.config_hash,
+            target_kind=request.target_kind,
+            target_id=request.target_id,
         )
         now = utc_now_iso()
         existing = conn.execute(
@@ -94,16 +115,19 @@ class MemoryJobQueue:
         conn.execute(
             """
             INSERT INTO memory_jobs(
-                job_id, user_id, source_version_id, stage, status, priority,
+                job_id, user_id, source_version_id, target_kind, target_id,
+                stage, status, priority,
                 attempts, max_attempts, model_profile, input_hash,
                 processor_name, processor_version, prompt_version,
                 not_before, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 job_id,
                 user_id,
                 source_version_id,
+                request.target_kind,
+                request.target_id,
                 request.stage,
                 JobStatus.PENDING.value,
                 request.priority,
@@ -621,6 +645,13 @@ def _validate_job_request(request: JobRequest) -> None:
             raise ValueError(f"{field_name} must be non-empty")
     if request.max_attempts is not None and request.max_attempts < 1:
         raise ValueError("max_attempts must be >= 1")
+    if (request.target_kind is None) != (request.target_id is None):
+        raise ValueError("target_kind and target_id must be provided together")
+    if request.target_kind is not None:
+        if request.target_kind != "candidate":
+            raise ValueError(f"unsupported job target kind: {request.target_kind!r}")
+        if not str(request.target_id).strip():
+            raise ValueError("target_id must be non-empty")
 
 
 def _row_to_job(row: Any) -> MemoryJob:
@@ -642,4 +673,6 @@ def _row_to_job(row: Any) -> MemoryJob:
         lease_token=row["lease_token"],
         lease_until=parse_utc(row["lease_until"]),
         model_profile=row["model_profile"],
+        target_kind=row["target_kind"],
+        target_id=row["target_id"],
     )

@@ -1,0 +1,182 @@
+{
+  "schema_version": "1",
+  "fixture_id": "verify3_ru_sibling_224",
+  "title": "Sister residence",
+  "tier": "smoke",
+  "language": "ru",
+  "criticality": "critical",
+  "slice_tags": [
+    "direct_attribute_relation"
+  ],
+  "reference_time": "2026-07-11T12:00:00+05:00",
+  "timezone": "Asia/Tashkent",
+  "users": [
+    {
+      "user_alias": "u1",
+      "user_id": 3224,
+      "display_name": "Synthetic User",
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "m1",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Моя сестра Оля живёт в Казани.",
+      "content_type": "text",
+      "occurred_at": "2026-07-11T09:00:00+05:00",
+      "metadata": {}
+    }
+  ],
+  "expected": {
+    "sources": [
+      {
+        "source_event": "m1",
+        "source_type": "chat_message",
+        "source_ref_alias": "m1",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m1"
+        },
+        "normalization_job_status": "done"
+      }
+    ],
+    "segments": [
+      {
+        "source_event": "m1",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Моя сестра Оля живёт в Казани.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m1"
+        }
+      }
+    ],
+    "mentions": [
+      {
+        "mention_id": "olya",
+        "source_event": "m1",
+        "mention_type": "person",
+        "surface_text": "Оля",
+        "char_start": 11,
+        "char_end": 14,
+        "normalized_hint": "Оля",
+        "pointer": {
+          "source_event": "m1",
+          "char_start": 11,
+          "char_end": 14
+        }
+      },
+      {
+        "mention_id": "kazan",
+        "source_event": "m1",
+        "mention_type": "place",
+        "surface_text": "Казани",
+        "char_start": 23,
+        "char_end": 29,
+        "normalized_hint": "Казани",
+        "pointer": {
+          "source_event": "m1",
+          "char_start": 23,
+          "char_end": 29
+        }
+      }
+    ],
+    "candidates": [
+      {
+        "candidate_ref": "c1",
+        "kind": "relation",
+        "schema_name": "lives_in",
+        "schema_version": "1",
+        "arguments": [
+          {
+            "role": "place",
+            "mention_ref": "kazan"
+          },
+          {
+            "role": "person",
+            "mention_ref": "olya"
+          }
+        ],
+        "attributes": {},
+        "polarity": "positive",
+        "epistemic": {
+          "alternatives": [],
+          "mode": "asserted",
+          "needs_confirmation": false,
+          "scope": "proposition",
+          "speaker_commitment": "certain",
+          "speaker_ref": null
+        },
+        "temporal": null,
+        "status": "proposed",
+        "evidence": [
+          {
+            "source_event": "m1",
+            "relation": "supports",
+            "exact_quote": "Моя сестра Оля живёт в Казани.",
+            "char_start": 0,
+            "char_end": 30
+          }
+        ]
+      },
+      {
+        "candidate_ref": "c2",
+        "kind": "relation",
+        "schema_name": "sibling_of",
+        "schema_version": "1",
+        "arguments": [
+          {
+            "role": "person",
+            "mention_ref": "olya"
+          },
+          {
+            "role": "related_to",
+            "literal": "self"
+          }
+        ],
+        "attributes": {},
+        "polarity": "positive",
+        "epistemic": {
+          "alternatives": [],
+          "mode": "asserted",
+          "needs_confirmation": false,
+          "scope": "proposition",
+          "speaker_commitment": "certain",
+          "speaker_ref": null
+        },
+        "temporal": null,
+        "status": "proposed",
+        "evidence": [
+          {
+            "source_event": "m1",
+            "relation": "supports",
+            "exact_quote": "Моя сестра Оля живёт в Казани.",
+            "char_start": 0,
+            "char_end": 30
+          }
+        ]
+      }
+    ],
+    "forbidden_candidates": [],
+    "expect_abstention": false,
+    "forbidden_sources": [],
+    "forbidden_segments": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "PR4 verification v2 probe.",
+      "Gold calibrated from live extraction eval actual_signatures."
+    ]
+  }
+}

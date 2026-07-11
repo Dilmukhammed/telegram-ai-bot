@@ -1,0 +1,323 @@
+{
+  "schema_version": "1",
+  "pack_id": "verification_v2",
+  "base_pack_id": "text_v1_verification_v2",
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "PR4 verification v2 expectations calibrated from extraction gold.",
+      "Re-run verification eval after extraction stabilizes."
+    ]
+  },
+  "cases": {
+    "verify3_en_budget_221": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": false
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_en_corr_223": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_en_diet_208": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": false
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_en_hotel_228": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": false
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_en_inferred_217": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_en_manager_225": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": false
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_en_negation_214": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_en_pref_202": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": false
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_en_question_210": {
+      "outcomes": [],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_en_quote_215": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_en_residence_204": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": false
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_en_residence_227": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_en_sarcasm_219": {
+      "outcomes": [],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_en_task_206": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_en_tool_230": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": false
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_en_uncertain_212": {
+      "outcomes": [],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_ru_allergy_220": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": false
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_ru_command_218": {
+      "outcomes": [],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_ru_corr_222": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_ru_deadline_229": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_ru_goal_205": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_ru_health_207": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": false
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_ru_hearsay_216": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_ru_negation_213": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_ru_occupation_203": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": false
+        },
+        {
+          "candidate_ref": "c2",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": false
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_ru_pref_201": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": false
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_ru_question_209": {
+      "outcomes": [],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_ru_relocate_226": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_ru_sibling_224": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": false
+        },
+        {
+          "candidate_ref": "c2",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": false
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify3_ru_uncertain_211": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    }
+  }
+}

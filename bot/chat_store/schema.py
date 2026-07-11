@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import sqlite3
 from datetime import datetime, timezone
+from typing import Callable
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 _DDL = """
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -101,6 +102,7 @@ CREATE TABLE IF NOT EXISTS chat_search_chunks (
     session_started_at  TEXT,
     session_title       TEXT,
     session_summary     TEXT,
+    source_at           TEXT,
     embedding_json      TEXT,
     indexed_at          TEXT NOT NULL,
     UNIQUE(user_id, source_type, source_key, chunk_index)
@@ -150,6 +152,25 @@ def parse_dt(raw: str | None) -> datetime | None:
     return parsed.astimezone(timezone.utc)
 
 
+def _migrate_v6(conn: sqlite3.Connection) -> None:
+    columns = {
+        row[1] for row in conn.execute("PRAGMA table_info(chat_search_chunks)").fetchall()
+    }
+    if "source_at" not in columns:
+        conn.execute("ALTER TABLE chat_search_chunks ADD COLUMN source_at TEXT")
+    conn.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_chat_search_chunks_user_source_at
+        ON chat_search_chunks(user_id, source_at DESC)
+        """
+    )
+
+
+_MIGRATIONS: dict[int, Callable[[sqlite3.Connection], None]] = {
+    6: _migrate_v6,
+}
+
+
 def ensure_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(_DDL)
     row = conn.execute(
@@ -159,6 +180,9 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
     if current >= SCHEMA_VERSION:
         return
     for version in range(current + 1, SCHEMA_VERSION + 1):
+        migrator = _MIGRATIONS.get(version)
+        if migrator is not None:
+            migrator(conn)
         conn.execute(
             "INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)",
             (version, utc_now_iso()),

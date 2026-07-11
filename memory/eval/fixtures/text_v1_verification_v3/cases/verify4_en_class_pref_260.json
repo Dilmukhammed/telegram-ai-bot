@@ -1,0 +1,187 @@
+{
+  "schema_version": "1",
+  "fixture_id": "verify4_en_class_pref_260",
+  "title": "Class size preference follow-up",
+  "tier": "smoke",
+  "language": "en",
+  "criticality": "critical",
+  "slice_tags": [
+    "tutoring_group",
+    "multi_turn",
+    "preference_constraint"
+  ],
+  "reference_time": "2026-07-11T16:00:00+05:00",
+  "timezone": "Asia/Tashkent",
+  "users": [
+    {
+      "user_alias": "u1",
+      "user_id": 3330,
+      "display_name": "Synthetic User",
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "m1",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Need a quiet classroom.",
+      "content_type": "text",
+      "occurred_at": "2026-07-11T10:00:00+05:00",
+      "metadata": {}
+    },
+    {
+      "event_id": "m2",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "I prefer groups of up to four students.",
+      "content_type": "text",
+      "occurred_at": "2026-07-11T10:01:00+05:00",
+      "metadata": {}
+    }
+  ],
+  "expected": {
+    "sources": [
+      {
+        "source_event": "m1",
+        "source_type": "chat_message",
+        "source_ref_alias": "m1",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m1"
+        },
+        "normalization_job_status": "done"
+      },
+      {
+        "source_event": "m2",
+        "source_type": "chat_message",
+        "source_ref_alias": "m2",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m2"
+        },
+        "normalization_job_status": "done"
+      }
+    ],
+    "segments": [
+      {
+        "source_event": "m1",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Need a quiet classroom.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m1"
+        }
+      },
+      {
+        "source_event": "m2",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "I prefer groups of up to four students.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m2"
+        }
+      }
+    ],
+    "mentions": [],
+    "candidates": [
+      {
+        "candidate_ref": "c1",
+        "kind": "preference",
+        "schema_name": "prefers",
+        "schema_version": "1",
+        "arguments": [
+          {
+            "role": "value",
+            "literal": "groups of up to four students"
+          },
+          {
+            "role": "subject",
+            "literal": "self"
+          }
+        ],
+        "attributes": {},
+        "polarity": "positive",
+        "epistemic": {
+          "alternatives": [],
+          "mode": "asserted",
+          "needs_confirmation": false,
+          "scope": "proposition",
+          "speaker_commitment": "certain",
+          "speaker_ref": null
+        },
+        "temporal": null,
+        "status": "proposed",
+        "evidence": [
+          {
+            "source_event": "m2",
+            "relation": "supports",
+            "exact_quote": "I prefer groups of up to four students.",
+            "char_start": 0,
+            "char_end": 39
+          }
+        ]
+      },
+      {
+        "candidate_ref": "c2",
+        "kind": "preference",
+        "schema_name": "prefers",
+        "schema_version": "1",
+        "arguments": [
+          {
+            "role": "value",
+            "literal": "quiet classroom"
+          },
+          {
+            "role": "subject",
+            "literal": "self"
+          }
+        ],
+        "attributes": {},
+        "polarity": "positive",
+        "epistemic": {
+          "alternatives": [],
+          "mode": "asserted",
+          "needs_confirmation": false,
+          "scope": "proposition",
+          "speaker_commitment": "certain",
+          "speaker_ref": null
+        },
+        "temporal": null,
+        "status": "proposed",
+        "evidence": [
+          {
+            "source_event": "m1",
+            "relation": "supports",
+            "exact_quote": "Need a quiet classroom.",
+            "char_start": 0,
+            "char_end": 23
+          }
+        ]
+      }
+    ],
+    "forbidden_candidates": [],
+    "expect_abstention": false,
+    "forbidden_sources": [],
+    "forbidden_segments": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "PR4 verification v3 scenario probe.",
+      "Gold calibrated from live extraction eval actual_signatures."
+    ]
+  }
+}

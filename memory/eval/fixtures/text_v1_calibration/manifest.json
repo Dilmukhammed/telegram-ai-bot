@@ -1,0 +1,53 @@
+{
+  "schema_version": "1",
+  "pack_id": "text_v1_calibration",
+  "pack_version": "1",
+  "fixtures": [
+    "cases/calib_ru_occupation_065.json",
+    "cases/calib_en_negation_066.json",
+    "cases/calib_ru_uncertain_067.json",
+    "cases/calib_en_possible_068.json",
+    "cases/calib_ru_hearsay_069.json",
+    "cases/calib_mixed_residence_070.json",
+    "cases/calib_ru_selection_071.json",
+    "cases/calib_ru_calendar_072.json",
+    "cases/calib_en_task_073.json",
+    "cases/calib_ru_relation_074.json"
+  ],
+  "coverage": {
+    "fixture_count": 10,
+    "smoke_count": 10,
+    "language_minimums": {
+      "ru": 5,
+      "en": 3,
+      "mixed": 1
+    },
+    "slice_minimums": {
+      "correction_followup": 3,
+      "direct_attribute_relation": 4,
+      "negation": 1,
+      "uncertainty_alternative": 3,
+      "wrong_speaker_hearsay": 1,
+      "exact_tool_result": 2,
+      "goal_task_deadline": 2,
+      "temporal_precision": 1,
+      "preference_constraint": 1,
+      "hard_negative": 6,
+      "multi_turn": 6
+    },
+    "smoke_slice_minimums": {
+      "correction_followup": 1,
+      "direct_attribute_relation": 1,
+      "negation": 1,
+      "uncertainty_alternative": 1,
+      "wrong_speaker_hearsay": 1,
+      "exact_tool_result": 1,
+      "hard_negative": 1,
+      "multi_turn": 1
+    },
+    "multi_turn_minimum": 6,
+    "hard_negative_minimum": 6,
+    "require_reviewed": false
+  },
+  "pack_hash": "14d1d6e21ef79fb16189ed2d7bde3e0f31ce4c98e0770813f041468e9f35229a"
+}

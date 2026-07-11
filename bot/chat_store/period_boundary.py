@@ -112,6 +112,12 @@ async def run_period_boundary_once(
     # Also useful for logs: which periods are still open.
     _ = current_period_keys(now, tz_name)
 
+    from bot.chat_store.day_archive import run_day_archives_for_pending_days
+
+    archive_results = await run_day_archives_for_pending_days(store, now=now)
+    if archive_results:
+        logger.info("period_boundary day_archive results=%s", archive_results)
+
     results: dict[str, dict[str, int]] = {}
     for period_type in _PERIOD_TYPES:
         period_key = closed[period_type]

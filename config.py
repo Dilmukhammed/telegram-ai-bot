@@ -33,6 +33,8 @@ DEFAULT_SKILLS_AUTO_LOAD_DISTINCT_TOOLS = 3
 DEFAULT_SKILLS_COLLAPSE_IDLE_TURNS = 7
 DEFAULT_BOT_TIMEZONE = "Asia/Tashkent"
 DEFAULT_MESSAGE_GAP_MINUTES = 20
+DEFAULT_TELEGRAM_REPLY_CONTEXT_ENABLED = True
+DEFAULT_TELEGRAM_REPLY_TURN_RADIUS = 5
 DEFAULT_CHAT_MAX_HISTORY = 50
 DEFAULT_CHAT_MIGRATE_V1_SOURCE_PATH = "data/chat_history.sqlite"
 DEFAULT_CHAT_DB_PATH = "data/chat.sqlite"
@@ -44,6 +46,7 @@ DEFAULT_CHAT_PERIOD_SUMMARY_ON_SESSION_ARCHIVE = True
 DEFAULT_CHAT_PERIOD_SUMMARY_MAX_INPUT_CHARS = 120_000
 DEFAULT_CHAT_PERIOD_SUMMARY_BOUNDARY_ENABLED = True
 DEFAULT_CHAT_PERIOD_SUMMARY_BOUNDARY_POLL_SECONDS = 60
+DEFAULT_CHAT_DAY_ARCHIVE_ENABLED = True
 DEFAULT_CHAT_MIGRATE_V1_ON_STARTUP = True
 DEFAULT_CHAT_MIGRATE_V1_TARGET = "active"
 DEFAULT_CHAT_MIGRATE_V1_BACKUP = True
@@ -81,8 +84,16 @@ DEFAULT_MEMORY_TEXT_SEGMENT_OVERLAP = 200
 DEFAULT_MEMORY_TOOL_RECONCILE_BATCH_SIZE = 100
 DEFAULT_MEMORY_INGEST_SHUTDOWN_GRACE_SECONDS = 10.0
 DEFAULT_MEMORY_EXTRACTION_ENABLED = False
-DEFAULT_MEMORY_EXTRACTION_MODEL_PROFILE = "summarize"
+DEFAULT_MEMORY_EXTRACTION_MODEL_PROFILE = "extraction"
 DEFAULT_MEMORY_EXTRACTION_MAX_TOKENS = 4096
+DEFAULT_MEMORY_VERIFICATION_ENABLED = False
+DEFAULT_MEMORY_VERIFICATION_SUPPORT_MODEL_PROFILE = "extraction"
+DEFAULT_MEMORY_VERIFICATION_ADVERSARIAL_MODEL_PROFILE = "agent"
+DEFAULT_MEMORY_VERIFICATION_MAX_TOKENS = 2048
+DEFAULT_MEMORY_VERIFICATION_SCAN_INTERVAL_SECONDS = 30.0
+DEFAULT_MEMORY_VERIFICATION_SCAN_BATCH_SIZE = 100
+DEFAULT_MEMORY_VERIFICATION_CONTEXT_CHARS = 240
+DEFAULT_MEMORY_VERIFICATION_POLICY_VERSION = "verification_policy_v1"
 
 DEFAULT_QUEUE_MAX_PENDING = 10
 DEFAULT_MESSAGE_BURST_QUIET_MS = 150
@@ -426,6 +437,14 @@ class Settings:
     memory_extraction_enabled: bool
     memory_extraction_model_profile: str
     memory_extraction_max_tokens: int
+    memory_verification_enabled: bool
+    memory_verification_support_model_profile: str
+    memory_verification_adversarial_model_profile: str
+    memory_verification_max_tokens: int
+    memory_verification_scan_interval_seconds: float
+    memory_verification_scan_batch_size: int
+    memory_verification_context_chars: int
+    memory_verification_policy_version: str
 
     # LLM / agent
     openai_base_url: str
@@ -462,6 +481,7 @@ class Settings:
     chat_period_summary_max_input_chars: int
     chat_period_summary_boundary_enabled: bool
     chat_period_summary_boundary_poll_seconds: int
+    chat_day_archive_enabled: bool
     chat_migrate_v1_on_startup: bool
     chat_migrate_v1_target: str
     chat_migrate_v1_backup: bool
@@ -474,6 +494,8 @@ class Settings:
     chat_index_on_startup: bool
     chat_index_payload_max_chars: int
     message_gap_minutes: int
+    telegram_reply_context_enabled: bool
+    telegram_reply_turn_radius: int
 
     # Single-instance guard (Telegram polling)
     instance_lock_enabled: bool
@@ -842,6 +864,38 @@ def get_settings(*, require_telegram_token: bool = False) -> Settings:
             "MEMORY_EXTRACTION_MAX_TOKENS",
             DEFAULT_MEMORY_EXTRACTION_MAX_TOKENS,
         ),
+        memory_verification_enabled=_bool_env(
+            "MEMORY_VERIFICATION_ENABLED",
+            DEFAULT_MEMORY_VERIFICATION_ENABLED,
+        ),
+        memory_verification_support_model_profile=_str_env(
+            "MEMORY_VERIFICATION_SUPPORT_MODEL_PROFILE",
+            DEFAULT_MEMORY_VERIFICATION_SUPPORT_MODEL_PROFILE,
+        ),
+        memory_verification_adversarial_model_profile=_str_env(
+            "MEMORY_VERIFICATION_ADVERSARIAL_MODEL_PROFILE",
+            DEFAULT_MEMORY_VERIFICATION_ADVERSARIAL_MODEL_PROFILE,
+        ),
+        memory_verification_max_tokens=_int_env(
+            "MEMORY_VERIFICATION_MAX_TOKENS",
+            DEFAULT_MEMORY_VERIFICATION_MAX_TOKENS,
+        ),
+        memory_verification_scan_interval_seconds=_float_env(
+            "MEMORY_VERIFICATION_SCAN_INTERVAL_SECONDS",
+            DEFAULT_MEMORY_VERIFICATION_SCAN_INTERVAL_SECONDS,
+        ),
+        memory_verification_scan_batch_size=_int_env(
+            "MEMORY_VERIFICATION_SCAN_BATCH_SIZE",
+            DEFAULT_MEMORY_VERIFICATION_SCAN_BATCH_SIZE,
+        ),
+        memory_verification_context_chars=_int_env(
+            "MEMORY_VERIFICATION_CONTEXT_CHARS",
+            DEFAULT_MEMORY_VERIFICATION_CONTEXT_CHARS,
+        ),
+        memory_verification_policy_version=_str_env(
+            "MEMORY_VERIFICATION_POLICY_VERSION",
+            DEFAULT_MEMORY_VERIFICATION_POLICY_VERSION,
+        ),
         openai_base_url=openai_base_url,
         openai_api_key=openai_api_key,
         openai_model=_str_env("OPENAI_MODEL", DEFAULT_OPENAI_MODEL),
@@ -932,6 +986,10 @@ def get_settings(*, require_telegram_token: bool = False) -> Settings:
             "CHAT_PERIOD_SUMMARY_BOUNDARY_POLL_SECONDS",
             DEFAULT_CHAT_PERIOD_SUMMARY_BOUNDARY_POLL_SECONDS,
         ),
+        chat_day_archive_enabled=_bool_env(
+            "CHAT_DAY_ARCHIVE_ENABLED",
+            DEFAULT_CHAT_DAY_ARCHIVE_ENABLED,
+        ),
         chat_migrate_v1_on_startup=_bool_env(
             "CHAT_MIGRATE_V1_ON_STARTUP",
             DEFAULT_CHAT_MIGRATE_V1_ON_STARTUP,
@@ -977,6 +1035,14 @@ def get_settings(*, require_telegram_token: bool = False) -> Settings:
             DEFAULT_CHAT_INDEX_PAYLOAD_MAX_CHARS,
         ),
         message_gap_minutes=_int_env("MESSAGE_GAP_MINUTES", DEFAULT_MESSAGE_GAP_MINUTES),
+        telegram_reply_context_enabled=_bool_env(
+            "TELEGRAM_REPLY_CONTEXT_ENABLED",
+            DEFAULT_TELEGRAM_REPLY_CONTEXT_ENABLED,
+        ),
+        telegram_reply_turn_radius=_int_env(
+            "TELEGRAM_REPLY_TURN_RADIUS",
+            DEFAULT_TELEGRAM_REPLY_TURN_RADIUS,
+        ),
         instance_lock_enabled=_bool_env("INSTANCE_LOCK_ENABLED", DEFAULT_INSTANCE_LOCK_ENABLED),
         instance_lock_path=_str_env("INSTANCE_LOCK_PATH", DEFAULT_INSTANCE_LOCK_PATH),
         queue_max_pending=_int_env("QUEUE_MAX_PENDING", DEFAULT_QUEUE_MAX_PENDING),

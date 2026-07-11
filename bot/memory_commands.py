@@ -22,12 +22,14 @@ def format_memory_status(
     ingest_enabled: bool,
     worker_enabled: bool,
     extraction_enabled: bool = False,
+    verification_enabled: bool = False,
 ) -> str:
     base = service.status()
     lines = [
         "Graph memory (shadow)",
         f"ingest_enabled={int(ingest_enabled)} worker_enabled={int(worker_enabled)} "
-        f"extraction_enabled={int(extraction_enabled)}",
+        f"extraction_enabled={int(extraction_enabled)} "
+        f"verification_enabled={int(verification_enabled)}",
         f"schema_version={base.schema_version}",
         f"sources={base.source_count} active_versions={base.active_version_count}",
         f"dead_jobs={base.dead_job_count} active_workers={base.active_worker_count}",
@@ -35,6 +37,8 @@ def format_memory_status(
         f"jobs_by_stage={_fmt_counts(base.jobs_by_stage)}",
         f"active_mentions={base.active_mention_count}",
         f"candidates_by_status={_fmt_counts(base.candidates_by_status)}",
+        f"active_verdicts={base.active_verdict_count} "
+        f"active_candidate_scores={base.active_candidate_score_count}",
     ]
     if base.oldest_pending_age_seconds is not None:
         lines.append(f"oldest_pending_age_s={base.oldest_pending_age_seconds:.1f}")

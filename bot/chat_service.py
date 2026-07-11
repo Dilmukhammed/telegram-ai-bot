@@ -2,6 +2,8 @@ from datetime import datetime, timezone
 import logging
 from typing import Any
 
+from aiogram.types import Message
+
 from agent.context_collapse import collapse_duplicate_use_tool_calls
 from agent.loop import Agent
 from agent.reply_markup import build_reply_markup
@@ -11,6 +13,7 @@ from bot.chat_store.sessions import ArchiveReason
 from bot.chat_store.summary import enqueue_session_summary
 from bot.history_persist import trim_history_to_turns
 from bot.message_gap import prefix_message_if_gap
+from bot.telegram_reply_context import apply_reply_context_prefix
 from bot.vision import history_text_for_image_turn
 from skills.session import SkillSessionStore, apply_skill_run_snapshot
 from config import get_settings
@@ -150,6 +153,11 @@ class ChatService:
                 closed_by,
             )
         return deleted
+
+    def invalidate_user_history(self, user_id: int) -> None:
+        """Drop in-memory prompt history after external session archive (e.g. day boundary)."""
+        self._histories.pop(user_id, None)
+        self._last_message_at.pop(user_id, None)
 
     def get_history(self, user_id: int) -> list[dict[str, Any]]:
         if user_id not in self._histories:
@@ -292,12 +300,20 @@ class ChatService:
         image_data_urls: list[str] | None = None,
         telegram_message_id: int | None = None,
         telegram_chat_id: int | None = None,
+        telegram_message: Message | None = None,
     ) -> ChatResponse:
         if message_at is None:
             message_at = datetime.now(timezone.utc)
 
         prepared_text = self.prepare_user_message(user_id, user_text, message_at)
         history = self.get_history(user_id)
+        prepared_text = apply_reply_context_prefix(
+            prepared_text,
+            telegram_message=telegram_message,
+            user_id=user_id,
+            chat_store=self._chat_store,
+            prompt_history=history,
+        )
         self._log_history_snapshot(user_id=user_id, stage="before_agent", history=history)
         logger.info(
             "chat_history_current_message user_id=%s %s",

@@ -3073,13 +3073,23 @@ memory/resolution/
 
 Initial resolution:
 
-- root user entity;
-- simple concepts;
-- organizations and projects with exact aliases;
-- immutable assertions;
-- support links;
-- `active`, `uncertain`, `rejected`, and `historical` beliefs;
-- no fuzzy automatic person merge.
+- consume only active `ready_for_resolution` candidates with an active accepted PR 4 score;
+- deterministic root user and exact typed concepts;
+- literal/mention concept equivalence with provenance preserved;
+- user-scoped exact aliases for organizations, projects, and places;
+- conditional reasoning-enabled support/adversarial LLM critics for risky alias reuse;
+- critics may confirm or veto a proposed link but cannot propose targets or override hard rules;
+- mention-scoped provisional non-self people, with no name-based automatic merge;
+- immutable assertions with candidate/score/verdict/resolution/evidence lineage;
+- versioned proposition and cluster keys;
+- immutable belief revisions with an atomic current-head projection;
+- complete support links and separate deterministic utility metadata;
+- minimal `active`, `uncertain`, `historical`, and `unsupported` outcomes;
+- no graph write, retrieval, candidate rewrite, or online prompt effect.
+
+Detailed updated plan: `docs/GRAPH_MEMORY_PR5_AGENT_BRIEF.md`. It accounts for the
+implemented PR 3 structured post-processing boundary and PR 4 immutable verdict/score
+lifecycle. This document is planning only; PR 5 is not implemented yet.
 
 ### PR 6 — Minimal graph projection and explanation
 
@@ -4796,29 +4806,46 @@ PR 2 is complete when:
 9. Expand to 64 fixtures and complete human review metadata.
 10. Run full ingestion corpus and repository regressions.
 
-# Next action
+# Implemented PR 3/PR 4 architecture
 
-PR 0, PR 1, and PR 2 are implemented. PR 3 shadow extraction is implemented:
+PR 3 no longer treats the raw model response as a production candidate. The implemented
+boundary is:
 
-- schema v4 stores mentions, typed candidates, and exact candidate evidence;
-- `memory/extraction/` provides strict schemas, parser, prompts, and the text processor;
-- supported candidate kinds match the reviewed `text_v1` gold corpus, including `state`, `correction`, and `event`;
-- normalization schedules extraction only for direct user statements and exact API results;
-- PR 2 exposes an opt-in `extraction` subject that requires `--allow-network`;
-- extraction quality gates are active for the `extraction` subject;
-- extraction remains disabled by default and cannot affect Telegram answers.
+```text
+strict slim structured output
+  -> deterministic enrichment and exact-span resolution
+  -> strict semantic parser
+  -> deterministic contract/discourse/temporal post-processors
+  -> immutable persisted candidate and evidence
+```
 
-PR 3 is not release-qualified until a live model run passes smoke and full extraction eval.
-Use the existing `summarize` LLM profile by default (`MEMORY_EXTRACTION_MODEL_PROFILE=summarize`).
+The provider response-format cascade is shared through `memory/structured_output.py`.
+PR 4 verifies the final persisted candidate, not the raw provider payload and not an
+intermediate pre-postprocessor representation.
 
-The next engineering slice is PR 4 independent verification. Before automatic graph memory reaches users, later work still includes:
+PR 4 independent candidate verification is implemented:
 
-- code for all vertical slices;
-- gold fixtures and repeated evaluation;
-- model and prompt calibration;
-- historical backfill;
-- shadow operation;
-- canary rollout;
-- operational monitoring.
+- schema v5 adds candidate-targeted jobs, immutable verifier verdicts, and versioned scores;
+- `memory/verification/` provides deterministic preflight, independent support review,
+  risk-based adversarial review, strict structured output, and pure routing policy;
+- a bounded idempotent scheduler handles both new candidates and historical PR 3 backfill;
+- only a successful verifier decision can set `ready_for_resolution`;
+- policy changes can rescore stored verdicts without re-running extraction or verifier models;
+- source invalidation propagates to verdicts and scores;
+- `verification` is a separate opt-in eval subject and does not weaken extraction gates;
+- verification remains disabled by default and cannot affect Telegram answers.
 
-No additional foundational architecture stage is required before PR 4.
+The old Stage 2 multi-extractor grouping design is deferred. PR 3 currently has one
+extractor, so synthetic 1:1 grouping and a constant extractor-agreement score would be
+misleading. Immutable verdicts retain enough provenance to add genuine grouping later.
+
+PR 3 is not release-qualified until live smoke and full extraction evaluation pass.
+PR 4 is not release-qualified until:
+
+1. `verification_v1` lifecycle expectations receive truthful human sign-off;
+2. live smoke and full verification runs pass;
+3. the support/checker and adversarial model configuration is reviewed for sufficient
+   independence.
+
+The next engineering slice after those gates is PR 5 minimal entities, assertions, and
+beliefs. PR 5 may read only candidates in `ready_for_resolution`.

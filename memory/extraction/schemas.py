@@ -92,6 +92,11 @@ class CandidateStatus(StrEnum):
     NEEDS_CONTEXT = "needs_context"
     NEEDS_CONFIRMATION = "needs_confirmation"
     INSUFFICIENT = "insufficient"
+    READY_FOR_RESOLUTION = "ready_for_resolution"
+    CONTRADICTED = "contradicted"
+    REJECTED = "rejected"
+    SUPERSEDED = "superseded"
+    INVALIDATED = "invalidated"
 
 
 @dataclass(frozen=True, slots=True)

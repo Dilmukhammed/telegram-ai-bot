@@ -1,0 +1,210 @@
+{
+  "schema_version": "1",
+  "fixture_id": "calib_ru_selection_071",
+  "title": "Referential selection correction probe",
+  "tier": "smoke",
+  "language": "ru",
+  "criticality": "critical",
+  "slice_tags": [
+    "correction_followup",
+    "preference_constraint",
+    "multi_turn",
+    "hard_negative"
+  ],
+  "reference_time": "2026-07-10T12:00:00+05:00",
+  "timezone": "Asia/Tashkent",
+  "users": [
+    {
+      "user_alias": "u1",
+      "user_id": 2071,
+      "display_name": "Synthetic User",
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "m0",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "assistant",
+      "content": "Варианты: Hotel Aurora и Hotel Bristol.",
+      "content_type": "text",
+      "occurred_at": "2026-07-10T09:00:00+05:00",
+      "metadata": {}
+    },
+    {
+      "event_id": "m1",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Бронируй его.",
+      "content_type": "text",
+      "occurred_at": "2026-07-10T09:01:00+05:00",
+      "metadata": {}
+    },
+    {
+      "event_id": "m2",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Нет, второй.",
+      "content_type": "text",
+      "occurred_at": "2026-07-10T09:02:00+05:00",
+      "metadata": {}
+    }
+  ],
+  "expected": {
+    "sources": [
+      {
+        "source_event": "m0",
+        "source_type": "chat_message",
+        "source_ref_alias": "m0",
+        "authority_class": "assistant_generated",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m0"
+        },
+        "normalization_job_status": "done"
+      },
+      {
+        "source_event": "m1",
+        "source_type": "chat_message",
+        "source_ref_alias": "m1",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m1"
+        },
+        "normalization_job_status": "done"
+      },
+      {
+        "source_event": "m2",
+        "source_type": "chat_message",
+        "source_ref_alias": "m2",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m2"
+        },
+        "normalization_job_status": "done"
+      }
+    ],
+    "segments": [
+      {
+        "source_event": "m0",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Варианты: Hotel Aurora и Hotel Bristol.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m0"
+        }
+      },
+      {
+        "source_event": "m1",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Бронируй его.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m1"
+        }
+      },
+      {
+        "source_event": "m2",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Нет, второй.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m2"
+        }
+      }
+    ],
+    "mentions": [],
+    "candidates": [
+      {
+        "candidate_ref": "c1",
+        "kind": "correction",
+        "schema_name": "corrects_selection",
+        "schema_version": "1",
+        "arguments": [
+          {
+            "role": "subject",
+            "literal": "self"
+          },
+          {
+            "role": "old",
+            "literal": "Hotel Aurora"
+          },
+          {
+            "role": "new",
+            "literal": "Hotel Bristol"
+          }
+        ],
+        "attributes": {},
+        "polarity": "positive",
+        "epistemic": {
+          "mode": "asserted",
+          "speaker_commitment": "certain",
+          "scope": "proposition",
+          "alternatives": [],
+          "needs_confirmation": false
+        },
+        "temporal": null,
+        "status": "proposed",
+        "evidence": [
+          {
+            "source_event": "m0",
+            "relation": "introduces_alternatives",
+            "exact_quote": "Варианты: Hotel Aurora и Hotel Bristol.",
+            "char_start": 0,
+            "char_end": 39
+          },
+          {
+            "source_event": "m1",
+            "relation": "supports",
+            "exact_quote": "Бронируй его.",
+            "char_start": 0,
+            "char_end": 13
+          },
+          {
+            "source_event": "m2",
+            "relation": "corrects",
+            "exact_quote": "Нет, второй.",
+            "char_start": 0,
+            "char_end": 12
+          }
+        ]
+      }
+    ],
+    "forbidden_candidates": [
+      {
+        "kind": "preference",
+        "schema_name": "selected_option",
+        "arguments": [
+          {
+            "role": "value",
+            "literal": "Hotel Aurora"
+          }
+        ]
+      }
+    ],
+    "expect_abstention": false,
+    "forbidden_sources": [],
+    "forbidden_segments": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "Calibration probe."
+    ]
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "schema_version": "1",
+  "fixture_id": "verify4_en_schedule_233",
+  "title": "Student lesson schedule",
+  "tier": "smoke",
+  "language": "en",
+  "criticality": "critical",
+  "slice_tags": [
+    "tutoring_group",
+    "goal_task_deadline",
+    "temporal_precision"
+  ],
+  "reference_time": "2026-07-11T16:00:00+05:00",
+  "timezone": "Asia/Tashkent",
+  "users": [
+    {
+      "user_alias": "u1",
+      "user_id": 3303,
+      "display_name": "Synthetic User",
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "m1",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Maria has lessons on Tuesday and Thursday at 6pm.",
+      "content_type": "text",
+      "occurred_at": "2026-07-11T10:00:00+05:00",
+      "metadata": {}
+    }
+  ],
+  "expected": {
+    "sources": [
+      {
+        "source_event": "m1",
+        "source_type": "chat_message",
+        "source_ref_alias": "m1",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m1"
+        },
+        "normalization_job_status": "done"
+      }
+    ],
+    "segments": [
+      {
+        "source_event": "m1",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Maria has lessons on Tuesday and Thursday at 6pm.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m1"
+        }
+      }
+    ],
+    "mentions": [
+      {
+        "mention_id": "maria",
+        "source_event": "m1",
+        "mention_type": "person",
+        "surface_text": "Maria",
+        "char_start": 0,
+        "char_end": 5,
+        "normalized_hint": "Maria",
+        "pointer": {
+          "source_event": "m1",
+          "char_start": 0,
+          "char_end": 5
+        }
+      }
+    ],
+    "candidates": [
+      {
+        "candidate_ref": "c1",
+        "kind": "event",
+        "schema_name": "calendar_event",
+        "schema_version": "1",
+        "arguments": [
+          {
+            "role": "subject",
+            "mention_ref": "maria"
+          },
+          {
+            "role": "title",
+            "literal": "lessons"
+          }
+        ],
+        "attributes": {},
+        "polarity": "positive",
+        "epistemic": {
+          "alternatives": [],
+          "mode": "asserted",
+          "needs_confirmation": false,
+          "scope": "proposition",
+          "speaker_commitment": "certain",
+          "speaker_ref": null
+        },
+        "temporal": {
+          "event_time": "2026-07-14T18:00:00+05:00",
+          "original_text": "Tuesday",
+          "precision": "day",
+          "timezone": "Asia/Tashkent",
+          "valid_from": null,
+          "valid_to": null
+        },
+        "status": "proposed",
+        "evidence": [
+          {
+            "source_event": "m1",
+            "relation": "supports",
+            "exact_quote": "Maria has lessons on Tuesday and Thursday at 6pm.",
+            "char_start": 0,
+            "char_end": 49
+          }
+        ]
+      }
+    ],
+    "forbidden_candidates": [],
+    "expect_abstention": false,
+    "forbidden_sources": [],
+    "forbidden_segments": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "PR4 verification v3 scenario probe.",
+      "Gold calibrated from live extraction eval actual_signatures."
+    ]
+  }
+}

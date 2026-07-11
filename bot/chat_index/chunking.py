@@ -111,6 +111,7 @@ def chunk_message(
         return []
 
     meta = session_metadata(session)
+    source_at = message.source_at.isoformat() if message.source_at else None
     tool_ref = extract_tool_ref(message.content)
     chunks: list[dict[str, Any]] = []
     for index, piece in enumerate(
@@ -132,6 +133,7 @@ def chunk_message(
                 "tool_ref": tool_ref,
                 "chunk_index": index,
                 "text": piece,
+                "source_at": source_at,
                 **meta,
             }
         )

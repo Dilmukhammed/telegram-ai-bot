@@ -1,0 +1,132 @@
+{
+  "schema_version": "1",
+  "fixture_id": "verify4_en_quote_252",
+  "title": "Quoted student preference",
+  "tier": "smoke",
+  "language": "en",
+  "criticality": "critical",
+  "slice_tags": [
+    "wrong_speaker_hearsay",
+    "tutoring_group"
+  ],
+  "reference_time": "2026-07-11T16:00:00+05:00",
+  "timezone": "Asia/Tashkent",
+  "users": [
+    {
+      "user_alias": "u1",
+      "user_id": 3322,
+      "display_name": "Synthetic User",
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "m1",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Anna said, \"I love geometry.\"",
+      "content_type": "text",
+      "occurred_at": "2026-07-11T10:00:00+05:00",
+      "metadata": {}
+    }
+  ],
+  "expected": {
+    "sources": [
+      {
+        "source_event": "m1",
+        "source_type": "chat_message",
+        "source_ref_alias": "m1",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m1"
+        },
+        "normalization_job_status": "done"
+      }
+    ],
+    "segments": [
+      {
+        "source_event": "m1",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Anna said, \"I love geometry.\"",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m1"
+        }
+      }
+    ],
+    "mentions": [
+      {
+        "mention_id": "anna",
+        "source_event": "m1",
+        "mention_type": "person",
+        "surface_text": "Anna",
+        "char_start": 0,
+        "char_end": 4,
+        "normalized_hint": "Anna",
+        "pointer": {
+          "source_event": "m1",
+          "char_start": 0,
+          "char_end": 4
+        }
+      }
+    ],
+    "candidates": [
+      {
+        "candidate_ref": "c1",
+        "kind": "preference",
+        "schema_name": "prefers",
+        "schema_version": "1",
+        "arguments": [
+          {
+            "role": "subject",
+            "mention_ref": "anna"
+          },
+          {
+            "role": "value",
+            "literal": "geometry"
+          }
+        ],
+        "attributes": {},
+        "polarity": "positive",
+        "epistemic": {
+          "alternatives": [],
+          "mode": "quoted",
+          "needs_confirmation": false,
+          "scope": "proposition",
+          "speaker_commitment": "certain",
+          "speaker_ref": "anna"
+        },
+        "temporal": null,
+        "status": "proposed",
+        "evidence": [
+          {
+            "source_event": "m1",
+            "relation": "supports",
+            "exact_quote": "Anna said, \"I love geometry.\"",
+            "char_start": 0,
+            "char_end": 29
+          }
+        ]
+      }
+    ],
+    "forbidden_candidates": [],
+    "expect_abstention": false,
+    "forbidden_sources": [],
+    "forbidden_segments": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "PR4 verification v3 scenario probe.",
+      "Gold calibrated from live extraction eval actual_signatures."
+    ]
+  }
+}

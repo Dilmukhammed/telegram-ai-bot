@@ -13,6 +13,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
+from memory.extraction.prompts import PROMPT_VERSION
+
 
 CAPTURED_OUTPUT_SCHEMA_VERSION = "1"
 SUBJECT_OUTPUT_SCHEMA_VERSION = "1"
@@ -65,6 +67,8 @@ class SubjectOutput:
     pointer_checks: tuple[Mapping[str, Any], ...] = ()
     mentions: tuple[Mapping[str, Any], ...] = ()
     candidates: tuple[Mapping[str, Any], ...] = ()
+    verdicts: tuple[Mapping[str, Any], ...] = ()
+    candidate_scores: tuple[Mapping[str, Any], ...] = ()
     usage: Mapping[str, Any] = field(default_factory=dict)
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
@@ -81,6 +85,8 @@ class SubjectOutput:
             "pointer_checks",
             "mentions",
             "candidates",
+            "verdicts",
+            "candidate_scores",
         ):
             values = getattr(self, name)
             object.__setattr__(self, name, tuple(dict(value) for value in values))
@@ -118,6 +124,8 @@ class SubjectOutput:
             "pointer_checks": [dict(item) for item in self.pointer_checks],
             "mentions": [dict(item) for item in self.mentions],
             "candidates": [dict(item) for item in self.candidates],
+            "verdicts": [dict(item) for item in self.verdicts],
+            "candidate_scores": [dict(item) for item in self.candidate_scores],
             "usage": dict(self.usage),
             "metadata": dict(self.metadata),
         }
@@ -144,6 +152,8 @@ _CAPTURED_OPTIONAL = frozenset(
         "pointer_checks",
         "usage",
         "metadata",
+        "verdicts",
+        "candidate_scores",
     }
 )
 _OUTPUT_LIST_FIELDS = (
@@ -154,6 +164,8 @@ _OUTPUT_LIST_FIELDS = (
     "pointer_checks",
     "mentions",
     "candidates",
+    "verdicts",
+    "candidate_scores",
 )
 
 
@@ -262,8 +274,19 @@ class PR1IngestionSubject:
     subject_id = "pr1_ingestion"
     pipeline_id = "text_ingestion_v1"
 
-    def __init__(self, *, extraction_model: Any | None = None, timezone: str = "Asia/Tashkent") -> None:
+    def __init__(
+        self,
+        *,
+        extraction_model: Any | None = None,
+        verification_support_model: Any | None = None,
+        verification_adversarial_model: Any | None = None,
+        verification_policy_version: str = "verification_policy_v1",
+        timezone: str = "Asia/Tashkent",
+    ) -> None:
         self._extraction_model = extraction_model
+        self._verification_support_model = verification_support_model
+        self._verification_adversarial_model = verification_adversarial_model
+        self._verification_policy_version = verification_policy_version
         self._timezone = timezone
 
     async def run(self, case: Any, context: EvalContext) -> SubjectOutput:
@@ -313,6 +336,7 @@ class PR1IngestionSubject:
                         if self._extraction_model is not None
                         else "summarize"
                     ),
+                    verification_enabled=self._verification_support_model is not None,
                 )
                 chat_store = ChatStore(str(chat_path))
                 tool_store = ToolResultStore(str(tool_path))
@@ -359,6 +383,32 @@ class PR1IngestionSubject:
                         model=self._extraction_model,
                         timezone=self._timezone,
                     )
+                verification_scheduler = None
+                if self._verification_support_model is not None:
+                    from memory.verification.pipeline import register_candidate_verifier
+                    from memory.verification.scheduler import VerificationScheduler
+
+                    if self._verification_adversarial_model is None:
+                        raise ValueError("verification adversarial model is required")
+                    register_candidate_verifier(
+                        service.registry,
+                        service=service,
+                        support_model=self._verification_support_model,
+                        adversarial_model=self._verification_adversarial_model,
+                        policy_version=self._verification_policy_version,
+                    )
+                    verification_scheduler = VerificationScheduler(
+                        service=service,
+                        support_profile=str(
+                            getattr(self._verification_support_model, "model_profile", "checker")
+                        ),
+                        adversarial_profile=str(
+                            getattr(self._verification_adversarial_model, "model_profile", "agent")
+                        ),
+                        policy_version=self._verification_policy_version,
+                        interval_seconds=1.0,
+                        batch_size=100,
+                    )
                 set_text_ingest_sink(runtime.sink)
                 observer = ToolMemoryLifecycleObserver(runtime.sink)
                 tool_store.set_lifecycle_observer(observer)
@@ -394,6 +444,15 @@ class PR1IngestionSubject:
                     timeout_seconds=context.timeout_seconds,
                     poll_interval_seconds=context.poll_interval_seconds,
                 )
+                if verification_scheduler is not None:
+                    verification_scheduler.scan_once()
+                    await _wait_for_ingestion(
+                        service,
+                        runtime,
+                        expected_sources=expected_sources,
+                        timeout_seconds=context.timeout_seconds,
+                        poll_interval_seconds=context.poll_interval_seconds,
+                    )
                 collected = _collect_ingestion_output(
                     service=service,
                     chat_reader=chat_reader,
@@ -402,7 +461,13 @@ class PR1IngestionSubject:
                     aliases=aliases,
                     elapsed_seconds=time.monotonic() - started,
                     subject_type=(
-                        "extraction" if self._extraction_model is not None else "ingestion"
+                        "verification"
+                        if self._verification_support_model is not None
+                        else (
+                            "extraction"
+                            if self._extraction_model is not None
+                            else "ingestion"
+                        )
                     ),
                 )
                 return collected
@@ -548,11 +613,87 @@ class PR1IngestionSubject:
 class PR3ExtractionSubject(PR1IngestionSubject):
     """Run fixtures through real PR 1 ingestion and the production PR 3 processor."""
 
+    pipeline_id = PROMPT_VERSION
     subject_id = "pr3_extraction"
-    pipeline_id = "text_candidates_v1"
 
-    def __init__(self, model: Any, *, timezone: str = "Asia/Tashkent") -> None:
+    def __init__(
+        self,
+        model: Any,
+        *,
+        timezone: str = "Asia/Tashkent",
+    ) -> None:
         super().__init__(extraction_model=model, timezone=timezone)
+
+
+class PR4VerificationSubject(PR1IngestionSubject):
+    """Run the production PR3 pipeline followed by PR4 verification."""
+
+    pipeline_id = "candidate_verification_v3"
+    subject_id = "pr4_verification"
+
+    def __init__(
+        self,
+        extraction_model: Any,
+        support_model: Any,
+        adversarial_model: Any,
+        *,
+        policy_version: str = "verification_policy_v1",
+        timezone: str = "Asia/Tashkent",
+    ) -> None:
+        super().__init__(
+            extraction_model=extraction_model,
+            verification_support_model=support_model,
+            verification_adversarial_model=adversarial_model,
+            verification_policy_version=policy_version,
+            timezone=timezone,
+        )
+
+
+def _build_extraction_subject() -> PR3ExtractionSubject:
+    from config import get_settings
+    from llm import LLMClient
+    from memory.extraction.pipeline import LLMExtractionModel
+
+    settings = get_settings()
+    profile = settings.memory_extraction_model_profile
+    client = LLMClient(settings, profile=profile)
+    model = LLMExtractionModel(
+        client,
+        model_profile=profile,
+        max_tokens=settings.memory_extraction_max_tokens,
+    )
+    return PR3ExtractionSubject(model, timezone=settings.bot_timezone)
+
+
+def _build_verification_subject() -> PR4VerificationSubject:
+    from config import get_settings
+    from llm import LLMClient
+    from memory.extraction.pipeline import LLMExtractionModel
+    from memory.verification.pipeline import LLMVerificationModel
+
+    settings = get_settings()
+    extraction_profile = settings.memory_extraction_model_profile
+    support_profile = settings.memory_verification_support_model_profile
+    adversarial_profile = settings.memory_verification_adversarial_model_profile
+    return PR4VerificationSubject(
+        LLMExtractionModel(
+            LLMClient(settings, profile=extraction_profile),
+            model_profile=extraction_profile,
+            max_tokens=settings.memory_extraction_max_tokens,
+        ),
+        LLMVerificationModel(
+            LLMClient(settings, profile=support_profile),
+            model_profile=support_profile,
+            max_tokens=settings.memory_verification_max_tokens,
+        ),
+        LLMVerificationModel(
+            LLMClient(settings, profile=adversarial_profile),
+            model_profile=adversarial_profile,
+            max_tokens=settings.memory_verification_max_tokens,
+        ),
+        policy_version=settings.memory_verification_policy_version,
+        timezone=settings.bot_timezone,
+    )
 
 
 def create_subject(
@@ -570,19 +711,11 @@ def create_subject(
     if subject in {"extraction", "pr3_extraction"}:
         if not allow_network:
             raise ValueError("live extraction evaluation requires --allow-network")
-        from config import get_settings
-        from llm import LLMClient
-        from memory.extraction.pipeline import LLMExtractionModel
-
-        settings = get_settings()
-        profile = settings.memory_extraction_model_profile
-        client = LLMClient(settings, profile=profile)
-        model = LLMExtractionModel(
-            client,
-            model_profile=profile,
-            max_tokens=settings.memory_extraction_max_tokens,
-        )
-        return PR3ExtractionSubject(model, timezone=settings.bot_timezone)
+        return _build_extraction_subject()
+    if subject in {"verification", "pr4_verification"}:
+        if not allow_network:
+            raise ValueError("live verification evaluation requires --allow-network")
+        return _build_verification_subject()
     raise ValueError(f"unknown evaluation subject: {subject}")
 
 
@@ -593,6 +726,7 @@ def _eval_memory_config(
     *,
     extraction_enabled: bool = False,
     extraction_model_profile: str = "summarize",
+    verification_enabled: bool = False,
 ) -> Any:
     from memory.config import MemoryConfig
 
@@ -633,6 +767,14 @@ def _eval_memory_config(
         extraction_enabled=extraction_enabled,
         extraction_model_profile=extraction_model_profile,
         extraction_max_tokens=4096,
+        verification_enabled=verification_enabled,
+        verification_support_model_profile="extraction",
+        verification_adversarial_model_profile="agent",
+        verification_max_tokens=2048,
+        verification_scan_interval_seconds=1.0,
+        verification_scan_batch_size=100,
+        verification_context_chars=240,
+        verification_policy_version="verification_policy_v1",
     )
 
 
@@ -699,10 +841,28 @@ def _collect_ingestion_output(
             "SELECT * FROM memory_mentions ORDER BY segment_id, mention_id"
         ).fetchall()
         candidate_rows = conn.execute(
-            "SELECT * FROM memory_claim_candidates ORDER BY candidate_id"
+            (
+                """
+                SELECT * FROM memory_claim_candidates
+                WHERE status NOT IN ('superseded', 'invalidated')
+                ORDER BY candidate_id
+                """
+                if subject_type == "verification"
+                else """
+                SELECT * FROM memory_claim_candidates
+                WHERE status IN ('proposed', 'needs_confirmation')
+                ORDER BY candidate_id
+                """
+            )
         ).fetchall()
         evidence_rows = conn.execute(
             "SELECT * FROM memory_candidate_evidence ORDER BY candidate_id, segment_id, pointer_json"
+        ).fetchall()
+        verdict_rows = conn.execute(
+            "SELECT * FROM memory_candidate_verdicts ORDER BY candidate_id, role, verdict_id"
+        ).fetchall()
+        score_rows = conn.execute(
+            "SELECT * FROM memory_candidate_scores ORDER BY candidate_id, score_id"
         ).fetchall()
 
     sources = tuple(
@@ -832,6 +992,12 @@ def _collect_ingestion_output(
                         "has_literal": True,
                     }
                 )
+        verification_status = str(row["status"])
+        extraction_status = (
+            "needs_confirmation"
+            if _json_object(row["epistemic_json"]).get("needs_confirmation") is True
+            else "proposed"
+        )
         candidate_output.append(
             {
                 "candidate_ref": str(row["candidate_id"]),
@@ -843,10 +1009,47 @@ def _collect_ingestion_output(
                 "polarity": str(row["polarity"]),
                 "epistemic": _json_object(row["epistemic_json"]),
                 "temporal": _json_object(row["temporal_json"]) if row["temporal_json"] else None,
-                "status": str(row["status"]),
+                "status": (
+                    extraction_status
+                    if subject_type == "verification"
+                    else verification_status
+                ),
+                "verification_status": verification_status,
+                "acceptance_policy": row["acceptance_policy"],
                 "evidence": evidence_by_candidate.get(str(row["candidate_id"]), []),
             }
         )
+    verdict_output = tuple(
+        {
+            "verdict_id": str(row["verdict_id"]),
+            "candidate_id": str(row["candidate_id"]),
+            "role": str(row["role"]),
+            "verdict": str(row["verdict"]),
+            "evidence_directness": row["evidence_directness"],
+            "scope_errors": json.loads(str(row["scope_errors_json"])),
+            "ambiguities": json.loads(str(row["ambiguities_json"])),
+            "missing_context": json.loads(str(row["missing_context_json"])),
+            "verifier_name": str(row["verifier_name"]),
+            "verifier_version": str(row["verifier_version"]),
+            "prompt_version": str(row["prompt_version"]),
+            "model_profile": row["model_profile"],
+            "model_name": row["model_name"],
+            "raw_output": _json_object(row["output_json"]),
+            "status": str(row["status"]),
+        }
+        for row in verdict_rows
+    )
+    score_output = tuple(
+        {
+            "score_id": str(row["score_id"]),
+            "candidate_id": str(row["candidate_id"]),
+            "policy_version": str(row["policy_version"]),
+            "components": _json_object(row["components_json"]),
+            "route_status": str(row["route_status"]),
+            "status": str(row["status"]),
+        }
+        for row in score_rows
+    )
     pointer_checks: list[dict[str, Any]] = []
     for version in versions:
         source = source_by_id[version["source_id"]]
@@ -891,6 +1094,8 @@ def _collect_ingestion_output(
         pointer_checks=tuple(pointer_checks),
         mentions=tuple(mention_output),
         candidates=tuple(candidate_output),
+        verdicts=verdict_output,
+        candidate_scores=score_output,
         metadata={
             "event_aliases": {key: dict(value) for key, value in sorted(aliases.items())},
             "elapsed_seconds": elapsed_seconds,

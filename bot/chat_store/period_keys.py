@@ -109,3 +109,29 @@ def closed_period_keys(now: datetime, tz_name: str) -> dict[PeriodType, str]:
         "week": previous_week_key(local),
         "month": previous_month_key(local),
     }
+
+
+def period_date_span(period_type: PeriodType | str, period_key: str) -> tuple[date, date]:
+    """Inclusive local-date span covered by a period key."""
+    period_type = str(period_type).strip().lower()  # type: ignore[assignment]
+    key = parse_period_key(period_type, period_key)
+    if period_type == "day":
+        day = date.fromisoformat(key)
+        return day, day
+    if period_type == "week":
+        year_s, week_s = key.upper().split("-W", 1)
+        year = int(year_s)
+        week = int(week_s)
+        start = date.fromisocalendar(year, week, 1)
+        return start, start + timedelta(days=6)
+    if period_type == "month":
+        year_s, month_s = key.split("-", 1)
+        year = int(year_s)
+        month = int(month_s)
+        start = date(year, month, 1)
+        if month == 12:
+            end = date(year, 12, 31)
+        else:
+            end = date(year, month + 1, 1) - timedelta(days=1)
+        return start, end
+    raise ValueError(f"Unknown period_type: {period_type}")

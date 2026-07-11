@@ -9,7 +9,7 @@ from typing import Any, Literal
 from bot.chat_store.models import ChatSession, SessionStatus, SummaryStatus
 from bot.chat_store.schema import parse_dt, utc_now_iso
 
-ArchiveReason = Literal["reset", "start", "new_chat", "migration"]
+ArchiveReason = Literal["reset", "start", "new_chat", "migration", "day_boundary"]
 
 
 def _parse_metadata(raw: str | None) -> dict[str, Any]:

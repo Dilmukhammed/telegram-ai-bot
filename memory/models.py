@@ -156,6 +156,8 @@ class MemoryJob:
     lease_token: str | None
     lease_until: datetime | None
     model_profile: str | None = None
+    target_kind: str | None = None
+    target_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -169,6 +171,8 @@ class JobRequest:
     priority: int = 0
     max_attempts: int | None = None
     config_hash: str = ""
+    target_kind: str | None = None
+    target_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -236,6 +240,9 @@ class ProcessorOutput:
     lineage: tuple[LineageInput, ...] = ()
     new_mentions: tuple[Any, ...] = ()
     new_candidates: tuple[Any, ...] = ()
+    new_verdicts: tuple[Any, ...] = ()
+    new_candidate_scores: tuple[Any, ...] = ()
+    candidate_updates: tuple[Any, ...] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -248,6 +255,9 @@ class ProcessorOutput:
         object.__setattr__(self, "lineage", tuple(self.lineage))
         object.__setattr__(self, "new_mentions", tuple(self.new_mentions))
         object.__setattr__(self, "new_candidates", tuple(self.new_candidates))
+        object.__setattr__(self, "new_verdicts", tuple(self.new_verdicts))
+        object.__setattr__(self, "new_candidate_scores", tuple(self.new_candidate_scores))
+        object.__setattr__(self, "candidate_updates", tuple(self.candidate_updates))
 
 
 @dataclass(frozen=True)
@@ -270,6 +280,8 @@ class MemoryStatus:
     dead_job_count: int
     active_mention_count: int = 0
     candidates_by_status: Mapping[str, int] = field(default_factory=dict)
+    active_verdict_count: int = 0
+    active_candidate_score_count: int = 0
 
     def __post_init__(self) -> None:
         object.__setattr__(

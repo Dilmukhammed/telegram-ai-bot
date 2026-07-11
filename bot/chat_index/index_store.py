@@ -24,6 +24,7 @@ class ChatSearchChunk:
     session_started_at: str | None
     session_title: str | None
     session_summary: str | None
+    source_at: str | None
     embedding: list[float] | None
 
 
@@ -52,6 +53,7 @@ def _row_to_chunk(row: sqlite3.Row) -> ChatSearchChunk:
         session_started_at=row["session_started_at"],
         session_title=row["session_title"],
         session_summary=row["session_summary"],
+        source_at=row["source_at"] if "source_at" in row.keys() else None,
         embedding=embedding,
     )
 
@@ -67,10 +69,10 @@ def upsert_chunks(conn: sqlite3.Connection, chunks: list[dict[str, Any]]) -> int
             INSERT INTO chat_search_chunks (
                 user_id, session_id, source_type, source_key, turn_number,
                 seq_start, seq_end, tool_ref, chunk_index, text,
-                session_started_at, session_title, session_summary,
+                session_started_at, session_title, session_summary, source_at,
                 embedding_json, indexed_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
             ON CONFLICT(user_id, source_type, source_key, chunk_index) DO UPDATE SET
                 session_id = excluded.session_id,
                 turn_number = excluded.turn_number,
@@ -81,6 +83,7 @@ def upsert_chunks(conn: sqlite3.Connection, chunks: list[dict[str, Any]]) -> int
                 session_started_at = excluded.session_started_at,
                 session_title = excluded.session_title,
                 session_summary = excluded.session_summary,
+                source_at = excluded.source_at,
                 indexed_at = excluded.indexed_at
             """,
             (
@@ -97,6 +100,7 @@ def upsert_chunks(conn: sqlite3.Connection, chunks: list[dict[str, Any]]) -> int
                 chunk.get("session_started_at"),
                 chunk.get("session_title"),
                 chunk.get("session_summary"),
+                chunk.get("source_at"),
                 indexed_at,
             ),
         )
@@ -136,8 +140,15 @@ def load_chunks_for_search(
         query += " AND session_id = ?"
         params.append(session_id)
     if date:
-        query += " AND session_started_at IS NOT NULL AND substr(session_started_at, 1, 10) = ?"
-        params.append(date.strip()[:10])
+        day = date.strip()[:10]
+        query += (
+            " AND ("
+            "(source_at IS NOT NULL AND substr(source_at, 1, 10) = ?)"
+            " OR (source_at IS NULL AND session_started_at IS NOT NULL"
+            " AND substr(session_started_at, 1, 10) = ?)"
+            ")"
+        )
+        params.extend([day, day])
     query += " ORDER BY session_started_at DESC, chunk_id DESC"
     rows = conn.execute(query, params).fetchall()
     return [_row_to_chunk(row) for row in rows]

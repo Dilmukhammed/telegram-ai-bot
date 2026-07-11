@@ -199,6 +199,26 @@ def get_message_by_id(conn: sqlite3.Connection, message_id: int) -> ChatMessage 
     return row_to_message(row)
 
 
+def find_message_by_telegram_id(
+    conn: sqlite3.Connection,
+    user_id: int,
+    telegram_message_id: int,
+) -> ChatMessage | None:
+    row = conn.execute(
+        """
+        SELECT * FROM chat_messages
+        WHERE user_id = ?
+          AND CAST(json_extract(metadata_json, '$.telegram_message_id') AS INTEGER) = ?
+        ORDER BY message_id DESC
+        LIMIT 1
+        """,
+        (user_id, int(telegram_message_id)),
+    ).fetchone()
+    if row is None:
+        return None
+    return row_to_message(row)
+
+
 def get_message_for_user(
     conn: sqlite3.Connection,
     message_id: int,

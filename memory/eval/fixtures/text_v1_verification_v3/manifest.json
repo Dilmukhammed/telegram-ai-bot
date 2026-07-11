@@ -1,0 +1,70 @@
+{
+  "schema_version": "1",
+  "pack_id": "text_v1_verification_v3",
+  "pack_version": "1",
+  "fixtures": [
+    "cases/verify4_en_class_pref_260.json",
+    "cases/verify4_en_command_258.json",
+    "cases/verify4_en_game_241.json",
+    "cases/verify4_en_game_build_245.json",
+    "cases/verify4_en_game_item_243.json",
+    "cases/verify4_en_game_uncertain_247.json",
+    "cases/verify4_en_negation_250.json",
+    "cases/verify4_en_quote_252.json",
+    "cases/verify4_en_room_corr_254.json",
+    "cases/verify4_en_schedule_233.json",
+    "cases/verify4_en_textbook_236.json",
+    "cases/verify4_en_tool_lesson_256.json",
+    "cases/verify4_en_tutor_pref_239.json",
+    "cases/verify4_ru_book_corr_253.json",
+    "cases/verify4_ru_game_boss_246.json",
+    "cases/verify4_ru_game_level_244.json",
+    "cases/verify4_ru_game_quest_248.json",
+    "cases/verify4_ru_game_zone_242.json",
+    "cases/verify4_ru_group_231.json",
+    "cases/verify4_ru_group_add_234.json",
+    "cases/verify4_ru_hearsay_251.json",
+    "cases/verify4_ru_homework_pref_259.json",
+    "cases/verify4_ru_lesson_237.json",
+    "cases/verify4_ru_lesson_uncertain_255.json",
+    "cases/verify4_ru_material_ref_240.json",
+    "cases/verify4_ru_negation_249.json",
+    "cases/verify4_ru_question_257.json",
+    "cases/verify4_ru_sibling_class_238.json",
+    "cases/verify4_ru_student_232.json",
+    "cases/verify4_ru_tutor_235.json"
+  ],
+  "coverage": {
+    "fixture_count": 30,
+    "smoke_count": 30,
+    "language_minimums": {
+      "ru": 17,
+      "en": 13,
+      "mixed": 0
+    },
+    "slice_minimums": {
+      "tutoring_group": 19,
+      "game_session": 8,
+      "correction_followup": 2,
+      "negation": 2,
+      "uncertainty_alternative": 1,
+      "wrong_speaker_hearsay": 2,
+      "exact_tool_result": 1,
+      "goal_task_deadline": 6,
+      "preference_constraint": 4,
+      "hard_negative": 7,
+      "multi_turn": 6,
+      "irrelevant_abstention": 2
+    },
+    "smoke_slice_minimums": {
+      "tutoring_group": 5,
+      "game_session": 3,
+      "multi_turn": 1,
+      "exact_tool_result": 1
+    },
+    "multi_turn_minimum": 5,
+    "hard_negative_minimum": 7,
+    "require_reviewed": false
+  },
+  "pack_hash": "132bc22152b4768ba0fb627b4754013689096233b33c69783a752ab8420e9284"
+}

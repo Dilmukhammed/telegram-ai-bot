@@ -1,0 +1,207 @@
+{
+  "schema_version": "1",
+  "fixture_id": "calib_mixed_residence_070",
+  "title": "Cross-language residence correction probe",
+  "tier": "smoke",
+  "language": "mixed",
+  "criticality": "critical",
+  "slice_tags": [
+    "correction_followup",
+    "direct_attribute_relation",
+    "multi_turn",
+    "hard_negative"
+  ],
+  "reference_time": "2026-07-10T12:00:00+05:00",
+  "timezone": "Asia/Tashkent",
+  "users": [
+    {
+      "user_alias": "u1",
+      "user_id": 2070,
+      "display_name": "Synthetic User",
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "m1",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "I live in Berlin.",
+      "content_type": "text",
+      "occurred_at": "2026-07-10T09:00:00+05:00",
+      "metadata": {}
+    },
+    {
+      "event_id": "m2",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Нет, теперь я живу в Wien.",
+      "content_type": "text",
+      "occurred_at": "2026-07-10T09:01:00+05:00",
+      "metadata": {}
+    }
+  ],
+  "expected": {
+    "sources": [
+      {
+        "source_event": "m1",
+        "source_type": "chat_message",
+        "source_ref_alias": "m1",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m1"
+        },
+        "normalization_job_status": "done"
+      },
+      {
+        "source_event": "m2",
+        "source_type": "chat_message",
+        "source_ref_alias": "m2",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m2"
+        },
+        "normalization_job_status": "done"
+      }
+    ],
+    "segments": [
+      {
+        "source_event": "m1",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "I live in Berlin.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m1"
+        }
+      },
+      {
+        "source_event": "m2",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Нет, теперь я живу в Wien.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m2"
+        }
+      }
+    ],
+    "mentions": [
+      {
+        "mention_id": "berlin",
+        "source_event": "m1",
+        "mention_type": "place",
+        "surface_text": "Berlin",
+        "char_start": 10,
+        "char_end": 16,
+        "normalized_hint": "Berlin",
+        "pointer": {
+          "source_event": "m1",
+          "char_start": 10,
+          "char_end": 16
+        }
+      },
+      {
+        "mention_id": "wien",
+        "source_event": "m2",
+        "mention_type": "place",
+        "surface_text": "Wien",
+        "char_start": 21,
+        "char_end": 25,
+        "normalized_hint": "Wien",
+        "pointer": {
+          "source_event": "m2",
+          "char_start": 21,
+          "char_end": 25
+        }
+      }
+    ],
+    "candidates": [
+      {
+        "candidate_ref": "c1",
+        "kind": "correction",
+        "schema_name": "corrects_residence",
+        "schema_version": "1",
+        "arguments": [
+          {
+            "role": "subject",
+            "literal": "self"
+          },
+          {
+            "role": "old",
+            "mention_ref": "berlin"
+          },
+          {
+            "role": "new",
+            "mention_ref": "wien"
+          }
+        ],
+        "attributes": {},
+        "polarity": "positive",
+        "epistemic": {
+          "mode": "asserted",
+          "speaker_commitment": "certain",
+          "scope": "proposition",
+          "alternatives": [],
+          "needs_confirmation": false
+        },
+        "temporal": {
+          "original_text": "теперь",
+          "valid_from": "2026-07-10T09:01:00+05:00",
+          "valid_to": null,
+          "event_time": null,
+          "precision": "second",
+          "timezone": "Asia/Tashkent"
+        },
+        "status": "proposed",
+        "evidence": [
+          {
+            "source_event": "m1",
+            "relation": "supports",
+            "exact_quote": "I live in Berlin.",
+            "char_start": 0,
+            "char_end": 17
+          },
+          {
+            "source_event": "m2",
+            "relation": "corrects",
+            "exact_quote": "Нет, теперь я живу в Wien.",
+            "char_start": 0,
+            "char_end": 26
+          }
+        ]
+      }
+    ],
+    "forbidden_candidates": [
+      {
+        "kind": "relation",
+        "schema_name": "lives_in",
+        "arguments": [
+          {
+            "role": "place",
+            "literal": "Berlin"
+          }
+        ]
+      }
+    ],
+    "expect_abstention": false,
+    "forbidden_sources": [],
+    "forbidden_segments": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "Calibration probe."
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": "1",
+  "pack_id": "verification_v1",
+  "base_pack_id": "text_v1",
+  "review": {
+    "status": "reviewed",
+    "reviewed_by": "dimaa",
+    "reviewed_at": "2026-07-11T11:14:20+05:00",
+    "notes": [
+      "PR4 lifecycle expectations reviewed and approved by dimaa.",
+      "Live PR4 smoke candidate_verification_v3 passed 16/16 cases with no harness errors."
+    ]
+  },
+  "cases": {
+    "ru_relation_001": {"outcomes": [{"candidate_ref": "c1", "status": "ready_for_resolution", "verdict": "supported", "adversarial": false}], "forbid_unexpected_advancement": true},
+    "ru_preference_004": {"outcomes": [{"candidate_ref": "c1", "status": "ready_for_resolution", "verdict": "supported", "adversarial": false}], "forbid_unexpected_advancement": true},
+    "ru_goal_008": {"outcomes": [{"candidate_ref": "c1", "status": "ready_for_resolution", "verdict": "supported", "adversarial": true}], "forbid_unexpected_advancement": true},
+    "ru_negation_011": {"outcomes": [{"candidate_ref": "c1", "status": "ready_for_resolution", "verdict": "supported", "adversarial": true}], "forbid_unexpected_advancement": true},
+    "ru_uncertain_015": {"outcomes": [{"candidate_ref": "c1", "status": "ready_for_resolution", "verdict": "supported", "adversarial": true}], "forbid_unexpected_advancement": true},
+    "ru_correction_019": {"outcomes": [{"candidate_ref": "c1", "status": "ready_for_resolution", "verdict": "supported", "adversarial": true}], "forbid_unexpected_advancement": true},
+    "ru_followup_021": {"outcomes": [{"candidate_ref": "c1", "status": "ready_for_resolution", "verdict": "supported", "adversarial": true}], "forbid_unexpected_advancement": true},
+    "ru_hearsay_023": {"outcomes": [{"candidate_ref": "c1", "status": "ready_for_resolution", "verdict": "supported", "adversarial": true}], "forbid_unexpected_advancement": true},
+    "ru_question_026": {"outcomes": [], "forbid_unexpected_advancement": true},
+    "ru_tool_029": {"outcomes": [{"candidate_ref": "c1", "status": "ready_for_resolution", "verdict": "supported", "adversarial": true}], "forbid_unexpected_advancement": true},
+    "ru_tool_030": {"outcomes": [{"candidate_ref": "c1", "status": "ready_for_resolution", "verdict": "supported", "adversarial": false}], "forbid_unexpected_advancement": true},
+    "ru_state_031": {"outcomes": [{"candidate_ref": "c1", "status": "ready_for_resolution", "verdict": "supported", "adversarial": true}], "forbid_unexpected_advancement": true},
+    "en_negation_043": {"outcomes": [{"candidate_ref": "c1", "status": "ready_for_resolution", "verdict": "supported", "adversarial": true}], "forbid_unexpected_advancement": true},
+    "en_uncertain_047": {"outcomes": [{"candidate_ref": "c1", "status": "ready_for_resolution", "verdict": "supported", "adversarial": true}], "forbid_unexpected_advancement": true},
+    "en_tool_059": {"outcomes": [{"candidate_ref": "c1", "status": "ready_for_resolution", "verdict": "supported", "adversarial": false}], "forbid_unexpected_advancement": true},
+    "mixed_correction_063": {"outcomes": [{"candidate_ref": "c1", "status": "ready_for_resolution", "verdict": "supported", "adversarial": true}], "forbid_unexpected_advancement": true}
+  }
+}

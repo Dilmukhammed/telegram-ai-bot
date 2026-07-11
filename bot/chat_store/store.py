@@ -36,16 +36,25 @@ class ChatStore:
         self._memory_conn: sqlite3.Connection | None = None
         self._init_db()
 
+    @staticmethod
+    def _configure_connection(conn: sqlite3.Connection) -> None:
+        conn.execute("PRAGMA foreign_keys = ON")
+        conn.execute("PRAGMA journal_mode = WAL")
+        conn.execute("PRAGMA synchronous = NORMAL")
+        conn.execute("PRAGMA busy_timeout = 10000")
+
     def _connect(self) -> sqlite3.Connection:
         if self._db_path is None:
             if self._memory_conn is None:
-                self._memory_conn = sqlite3.connect(":memory:")
+                self._memory_conn = sqlite3.connect(":memory:", check_same_thread=False)
                 self._memory_conn.row_factory = sqlite3.Row
+                self._configure_connection(self._memory_conn)
                 self._init_db(connection=self._memory_conn)
             return self._memory_conn
 
-        conn = sqlite3.connect(self._db_path)
+        conn = sqlite3.connect(self._db_path, timeout=30.0)
         conn.row_factory = sqlite3.Row
+        self._configure_connection(conn)
         return conn
 
     def _init_db(self, connection: sqlite3.Connection | None = None) -> None:
@@ -203,6 +212,18 @@ class ChatStore:
             )
             conn.commit()
             return ids
+
+    def find_message_by_telegram_id(
+        self,
+        user_id: int,
+        telegram_message_id: int,
+    ) -> ChatMessage | None:
+        with self._connect() as conn:
+            return message_ops.find_message_by_telegram_id(
+                conn,
+                user_id,
+                telegram_message_id,
+            )
 
     def read_messages(
         self,

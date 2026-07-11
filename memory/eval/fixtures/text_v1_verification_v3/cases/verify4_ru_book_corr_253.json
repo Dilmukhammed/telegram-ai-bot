@@ -1,0 +1,112 @@
+{
+  "schema_version": "1",
+  "fixture_id": "verify4_ru_book_corr_253",
+  "title": "Textbook correction",
+  "tier": "smoke",
+  "language": "ru",
+  "criticality": "critical",
+  "slice_tags": [
+    "correction_followup",
+    "tutoring_group",
+    "multi_turn"
+  ],
+  "reference_time": "2026-07-11T16:00:00+05:00",
+  "timezone": "Asia/Tashkent",
+  "users": [
+    {
+      "user_alias": "u1",
+      "user_id": 3323,
+      "display_name": "Synthetic User",
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "m1",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Иван учится по Моро.",
+      "content_type": "text",
+      "occurred_at": "2026-07-11T10:00:00+05:00",
+      "metadata": {}
+    },
+    {
+      "event_id": "m2",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Исправление: теперь по Виленкину.",
+      "content_type": "text",
+      "occurred_at": "2026-07-11T10:01:00+05:00",
+      "metadata": {}
+    }
+  ],
+  "expected": {
+    "sources": [
+      {
+        "source_event": "m1",
+        "source_type": "chat_message",
+        "source_ref_alias": "m1",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m1"
+        },
+        "normalization_job_status": "done"
+      },
+      {
+        "source_event": "m2",
+        "source_type": "chat_message",
+        "source_ref_alias": "m2",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m2"
+        },
+        "normalization_job_status": "done"
+      }
+    ],
+    "segments": [
+      {
+        "source_event": "m1",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Иван учится по Моро.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m1"
+        }
+      },
+      {
+        "source_event": "m2",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Исправление: теперь по Виленкину.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m2"
+        }
+      }
+    ],
+    "mentions": [],
+    "candidates": [],
+    "forbidden_candidates": [],
+    "expect_abstention": true,
+    "forbidden_sources": [],
+    "forbidden_segments": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "PR4 verification v3 scenario probe.",
+      "Gold calibrated from live extraction eval actual_signatures."
+    ]
+  }
+}

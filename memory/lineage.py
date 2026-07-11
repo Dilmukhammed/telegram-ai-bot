@@ -156,6 +156,14 @@ def _assert_endpoint_owner(
             "SELECT user_id FROM memory_claim_candidates WHERE candidate_id = ?",
             record_id,
         ),
+        "candidate_verdict": (
+            "SELECT user_id FROM memory_candidate_verdicts WHERE verdict_id = ?",
+            record_id,
+        ),
+        "candidate_score": (
+            "SELECT user_id FROM memory_candidate_scores WHERE score_id = ?",
+            record_id,
+        ),
     }
     query_and_value = queries.get(kind)
     if query_and_value is None:

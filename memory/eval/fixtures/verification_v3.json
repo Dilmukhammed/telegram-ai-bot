@@ -1,0 +1,261 @@
+{
+  "schema_version": "1",
+  "pack_id": "verification_v3",
+  "base_pack_id": "text_v1_verification_v3",
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "PR4 verification v3 scenario pack (tutoring + game + core probes).",
+      "Run extraction calibration before treating verification expectations as final."
+    ]
+  },
+  "cases": {
+    "verify4_en_class_pref_260": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        },
+        {
+          "candidate_ref": "c2",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_en_command_258": {
+      "outcomes": [],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_en_game_241": {
+      "outcomes": [],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_en_game_build_245": {
+      "outcomes": [],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_en_game_item_243": {
+      "outcomes": [],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_en_game_uncertain_247": {
+      "outcomes": [],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_en_negation_250": {
+      "outcomes": [],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_en_quote_252": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_en_room_corr_254": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_en_schedule_233": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_en_textbook_236": {
+      "outcomes": [],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_en_tool_lesson_256": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": false
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_en_tutor_pref_239": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_ru_book_corr_253": {
+      "outcomes": [],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_ru_game_boss_246": {
+      "outcomes": [],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_ru_game_level_244": {
+      "outcomes": [],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_ru_game_quest_248": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_ru_game_zone_242": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_ru_group_231": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_ru_group_add_234": {
+      "outcomes": [],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_ru_hearsay_251": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_ru_homework_pref_259": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_ru_lesson_237": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_ru_lesson_uncertain_255": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_ru_material_ref_240": {
+      "outcomes": [],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_ru_negation_249": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_ru_question_257": {
+      "outcomes": [],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_ru_sibling_class_238": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_ru_student_232": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    },
+    "verify4_ru_tutor_235": {
+      "outcomes": [
+        {
+          "candidate_ref": "c1",
+          "status": "ready_for_resolution",
+          "verdict": "supported",
+          "adversarial": true
+        }
+      ],
+      "forbid_unexpected_advancement": true
+    }
+  }
+}

@@ -73,6 +73,54 @@ class MemorySegmentStore:
             )
         return result
 
+    def list_prior_chat_text_segments(
+        self,
+        *,
+        user_id: int,
+        before_occurred_at: str,
+        limit: int = 3,
+    ) -> list[MemorySegment]:
+        if limit < 1:
+            raise ValueError("limit must be >= 1")
+        with self._db.connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT seg.*
+                FROM memory_segments seg
+                JOIN memory_source_versions v ON v.source_version_id = seg.source_version_id
+                JOIN memory_sources s ON s.source_id = v.source_id
+                WHERE s.user_id = ?
+                  AND seg.segment_type = 'chat_text'
+                  AND seg.status = 'active'
+                  AND v.occurred_at < ?
+                ORDER BY v.occurred_at DESC, seg.ordinal DESC, seg.segment_id DESC
+                LIMIT ?
+                """,
+                (user_id, before_occurred_at, limit),
+            ).fetchall()
+        result: list[MemorySegment] = []
+        for row in rows:
+            created_at = parse_utc(row["created_at"])
+            if created_at is None:
+                raise ValueError(f"segment {row['segment_id']} has invalid created_at")
+            result.append(
+                MemorySegment(
+                    segment_id=str(row["segment_id"]),
+                    source_version_id=str(row["source_version_id"]),
+                    parent_segment_id=row["parent_segment_id"],
+                    segment_type=str(row["segment_type"]),
+                    ordinal=int(row["ordinal"]),
+                    text=row["text"],
+                    pointer=pointer_from_mapping(loads_json_object(row["pointer_json"])),
+                    normalizer_name=str(row["normalizer_name"]),
+                    normalizer_version=str(row["normalizer_version"]),
+                    input_hash=str(row["input_hash"]),
+                    created_at=created_at,
+                    status=SegmentStatus(str(row["status"])),
+                )
+            )
+        return list(reversed(result))
+
     def insert_segments_in_txn(
         self,
         conn: sqlite3.Connection,

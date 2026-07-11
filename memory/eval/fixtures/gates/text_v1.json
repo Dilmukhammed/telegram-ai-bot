@@ -4,7 +4,7 @@
   "gate_version": "2",
   "pack_id": "text_v1",
   "pack_version": "1",
-  "pack_hash": "4d07ad4649f0172117d89ad475e0d4f6ad04c3ea82bdae10453af42bb7853630",
+  "pack_hash": "cdd6197697b6d6120c3e1f6f79fb4a8fdca1fd7b2634b19305966a53968eb639",
   "subject_type": "all",
   "gates": [
     {
@@ -204,10 +204,92 @@
       "subjects": [
         "extraction"
       ]
+    },
+    {
+      "metric": "verification_fixtures_reviewed",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": true,
+      "subjects": [
+        "verification"
+      ]
+    },
+    {
+      "metric": "verification_precision",
+      "comparison": "gte",
+      "threshold": 0.98,
+      "active": true,
+      "subjects": [
+        "verification"
+      ]
+    },
+    {
+      "metric": "verification_recall",
+      "comparison": "gte",
+      "threshold": 0.95,
+      "active": true,
+      "subjects": [
+        "verification"
+      ]
+    },
+    {
+      "metric": "verifier_false_accept_rate",
+      "comparison": "lte",
+      "threshold": 0,
+      "active": true,
+      "subjects": [
+        "verification"
+      ]
+    },
+    {
+      "metric": "verifier_false_reject_rate",
+      "comparison": "lte",
+      "threshold": 0.02,
+      "active": true,
+      "subjects": [
+        "verification"
+      ]
+    },
+    {
+      "metric": "forbidden_advancement_count",
+      "comparison": "lte",
+      "threshold": 0,
+      "active": true,
+      "subjects": [
+        "verification"
+      ]
+    },
+    {
+      "metric": "ready_for_resolution_precision",
+      "comparison": "gte",
+      "threshold": 0.99,
+      "active": true,
+      "subjects": [
+        "verification"
+      ]
+    },
+    {
+      "metric": "verification_scope_accuracy",
+      "comparison": "gte",
+      "threshold": 0.98,
+      "active": true,
+      "subjects": [
+        "verification"
+      ]
+    },
+    {
+      "metric": "verification_job_completion",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": true,
+      "subjects": [
+        "verification"
+      ]
     }
   ],
   "hard_zero_failure_codes": [
     "fixture_invalid",
+    "forbidden_advancement",
     "pointer_owner_mismatch",
     "pointer_dereference_failed"
   ],

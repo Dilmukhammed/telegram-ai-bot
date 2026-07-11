@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Iterable
 
 from bot.chat_store.models import ChatSession, PeriodType
@@ -12,8 +12,8 @@ from bot.chat_store.period_keys import (
     current_period_keys,
     parse_period_key,
     period_key_for,
-    to_local_date,
 )
+from bot.chat_store.session_period import session_local_date_span, session_overlaps_period
 from bot.chat_store.summary import _parse_title_and_summary
 from config import Settings, get_settings
 from llm import LLMClient
@@ -40,12 +40,14 @@ def _sessions_for_period(
 ) -> list[ChatSession]:
     matched: list[ChatSession] = []
     for session in sessions:
-        anchor = session.started_at or session.last_message_at or session.created_at
-        if anchor is None:
+        if not session_overlaps_period(
+            session,
+            period_type=period_type,
+            period_key=period_key,
+            tz_name=tz_name,
+        ):
             continue
-        local_d = to_local_date(anchor, tz_name)
-        if period_key_for(local_d, period_type) == period_key:
-            matched.append(session)
+        matched.append(session)
     matched.sort(
         key=lambda s: (s.started_at or s.created_at).timestamp()
         if (s.started_at or s.created_at)
@@ -278,32 +280,40 @@ async def refresh_periods_for_session(store, session_id: str) -> None:
         return
 
     tz_name = settings.bot_timezone
-    anchor = session.started_at or session.last_message_at or session.created_at
-    if anchor is None:
+    span = session_local_date_span(session, tz_name)
+    if span is None:
         return
-    local_d = to_local_date(anchor, tz_name)
+    session_start, session_end = span
     now_keys = current_period_keys(datetime.now(timezone.utc), tz_name)
 
+    period_keys_by_type: dict[PeriodType, set[str]] = {t: set() for t in _PERIOD_TYPES}
+    cursor = session_start
+    while cursor <= session_end:
+        for period_type in _PERIOD_TYPES:
+            period_keys_by_type[period_type].add(
+                period_key_for(cursor, period_type)
+            )
+        cursor += timedelta(days=1)
+
     for period_type in _PERIOD_TYPES:
-        key = period_key_for(local_d, period_type)
-        # Skip still-open current period — wait until it closes.
-        if key == now_keys[period_type]:
-            continue
-        try:
-            await summarize_period(
-                store,
-                user_id=session.user_id,
-                period_type=period_type,
-                period_key=key,
-                force=True,
-            )
-        except Exception:
-            logger.exception(
-                "chat_period_summary refresh failed user=%s %s %s",
-                session.user_id,
-                period_type,
-                key,
-            )
+        for key in sorted(period_keys_by_type[period_type]):
+            if key == now_keys[period_type]:
+                continue
+            try:
+                await summarize_period(
+                    store,
+                    user_id=session.user_id,
+                    period_type=period_type,
+                    period_key=key,
+                    force=True,
+                )
+            except Exception:
+                logger.exception(
+                    "chat_period_summary refresh failed user=%s %s %s",
+                    session.user_id,
+                    period_type,
+                    key,
+                )
 
 
 def enqueue_period_refresh_for_session(store, session_id: str) -> asyncio.Task | None:

@@ -46,10 +46,13 @@ Boundaries use `BOT_TIMEZONE` (not UTC unless configured as UTC).
 
 Digests are built from **archived session summaries**.
 
-**When they become ready**
-1. **Boundary close (automatic):** after local midnight / ISO week roll / month roll (`BOT_TIMEZONE`), a background loop closes the previous day/week/month for all users.
-2. **After session archive:** closed periods for that session's date are refreshed.
-3. **On-demand:** `chat.period.summary` generates if missing.
+**Day boundary archive:** at local midnight the bot archives the active session (if non-empty) and starts a fresh one, so each closed day can get its own session summary and day digest.
+
+**When period digests become ready**
+1. **Day archive (automatic):** at local midnight, non-empty active sessions are archived (`CHAT_DAY_ARCHIVE_ENABLED`).
+2. **Boundary close (automatic):** after local midnight / ISO week roll / month roll (`BOT_TIMEZONE`), a background loop closes the previous day/week/month for all users.
+3. **After session archive:** closed periods for that session's date range are refreshed.
+4. **On-demand:** `chat.period.summary` generates if missing.
 
 Current open day/week/month may still be incomplete until the period closes.
 

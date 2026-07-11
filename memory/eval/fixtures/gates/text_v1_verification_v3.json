@@ -1,0 +1,168 @@
+{
+  "schema_version": "1",
+  "gate_id": "text_v1_verification_v3",
+  "gate_version": "1",
+  "pack_id": "text_v1_verification_v3",
+  "pack_version": "1",
+  "pack_hash": "132bc22152b4768ba0fb627b4754013689096233b33c69783a752ab8420e9284",
+  "subject_type": "all",
+  "gates": [
+    {
+      "metric": "fixture_schema_validity",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": true
+    },
+    {
+      "metric": "corpus_coverage",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": false
+    },
+    {
+      "metric": "release_fixtures_reviewed",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": false
+    },
+    {
+      "metric": "matching_metrics_golden",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": false
+    },
+    {
+      "metric": "deterministic_replay",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": false
+    },
+    {
+      "metric": "mention_precision",
+      "comparison": "gte",
+      "threshold": 0.8,
+      "active": true,
+      "subjects": [
+        "extraction"
+      ]
+    },
+    {
+      "metric": "candidate_precision",
+      "comparison": "gte",
+      "threshold": 0.8,
+      "active": true,
+      "subjects": [
+        "extraction"
+      ]
+    },
+    {
+      "metric": "candidate_recall",
+      "comparison": "gte",
+      "threshold": 0.7,
+      "active": true,
+      "subjects": [
+        "extraction"
+      ]
+    },
+    {
+      "metric": "unsupported_candidate_rate",
+      "comparison": "lte",
+      "threshold": 0.1,
+      "active": true,
+      "subjects": [
+        "extraction"
+      ]
+    },
+    {
+      "metric": "verification_fixtures_reviewed",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": false,
+      "subjects": [
+        "verification"
+      ]
+    },
+    {
+      "metric": "verification_precision",
+      "comparison": "gte",
+      "threshold": 0.85,
+      "active": true,
+      "subjects": [
+        "verification"
+      ]
+    },
+    {
+      "metric": "verification_recall",
+      "comparison": "gte",
+      "threshold": 0.8,
+      "active": true,
+      "subjects": [
+        "verification"
+      ]
+    },
+    {
+      "metric": "verifier_false_accept_rate",
+      "comparison": "lte",
+      "threshold": 0.05,
+      "active": true,
+      "subjects": [
+        "verification"
+      ]
+    },
+    {
+      "metric": "verifier_false_reject_rate",
+      "comparison": "lte",
+      "threshold": 0.1,
+      "active": true,
+      "subjects": [
+        "verification"
+      ]
+    },
+    {
+      "metric": "forbidden_advancement_count",
+      "comparison": "lte",
+      "threshold": 0,
+      "active": true,
+      "subjects": [
+        "verification"
+      ]
+    },
+    {
+      "metric": "ready_for_resolution_precision",
+      "comparison": "gte",
+      "threshold": 0.9,
+      "active": true,
+      "subjects": [
+        "verification"
+      ]
+    },
+    {
+      "metric": "verification_scope_accuracy",
+      "comparison": "gte",
+      "threshold": 0.85,
+      "active": true,
+      "subjects": [
+        "verification"
+      ]
+    },
+    {
+      "metric": "verification_job_completion",
+      "comparison": "gte",
+      "threshold": 1.0,
+      "active": true,
+      "subjects": [
+        "verification"
+      ]
+    }
+  ],
+  "hard_zero_failure_codes": [
+    "fixture_invalid",
+    "forbidden_advancement",
+    "pointer_owner_mismatch",
+    "pointer_dereference_failed"
+  ],
+  "minimum_slice_counts": {
+    "total": 30,
+    "tier:smoke": 30
+  }
+}

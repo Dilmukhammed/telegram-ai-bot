@@ -6,6 +6,7 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import Any, NoReturn, TypeVar
 
+from memory.extraction.enrich import enrich_extraction_payload, is_slim_extraction_payload
 from memory.extraction.schemas import (
     EXTRACTION_SCHEMA_VERSION,
     CandidateArgument,
@@ -139,8 +140,18 @@ def parse_extraction_output(
     *,
     segment_text: str,
     allow_candidates: bool = True,
+    timezone: str | None = None,
 ) -> ExtractionResult:
     payload = _loads_strict(raw) if isinstance(raw, str) else dict(raw)
+    if is_slim_extraction_payload(payload):
+        try:
+            payload = enrich_extraction_payload(
+                payload,
+                segment_text=segment_text,
+                timezone=timezone,
+            )
+        except ValueError as exc:
+            raise ExtractionParseError(str(exc)) from exc
     data = _strict(
         payload,
         "$",
@@ -248,7 +259,11 @@ def _parse_candidate(
     )
     if not evidence:
         _fail(f"{path}.evidence", "must contain at least one exact evidence span")
-    temporal = None if data["temporal"] is None else _parse_temporal(data["temporal"], f"{path}.temporal")
+    temporal = (
+        None
+        if data["temporal"] is None
+        else _parse_temporal(data["temporal"], f"{path}.temporal")
+    )
     hint_raw = data["canonical_hint"]
     hint = None if hint_raw is None else _text(hint_raw, f"{path}.canonical_hint")
     schema_version = _text(data["schema_version"], f"{path}.schema_version")

@@ -97,8 +97,10 @@ def make_job_id(
     prompt_version: str | None,
     input_hash: str,
     config_hash: str,
+    target_kind: str | None = None,
+    target_id: str | None = None,
 ) -> str:
-    return _digest(
+    parts: list[Any] = [
         "mjob",
         source_version_id,
         stage,
@@ -107,7 +109,10 @@ def make_job_id(
         prompt_version or "",
         input_hash,
         config_hash,
-    )
+    ]
+    if target_kind is not None or target_id is not None:
+        parts.extend((target_kind or "", target_id or ""))
+    return _digest(*parts)
 
 
 def make_lineage_id(
@@ -168,6 +173,35 @@ def make_candidate_id(
         extractor_version,
         prompt_version,
     )
+
+
+def make_verdict_id(
+    *,
+    candidate_id: str,
+    role: str,
+    verifier_name: str,
+    verifier_version: str,
+    prompt_version: str,
+    input_hash: str,
+) -> str:
+    return _digest(
+        "mver",
+        candidate_id,
+        role,
+        verifier_name,
+        verifier_version,
+        prompt_version,
+        input_hash,
+    )
+
+
+def make_score_id(
+    *,
+    candidate_id: str,
+    policy_version: str,
+    verdict_set_hash: str,
+) -> str:
+    return _digest("mscore", candidate_id, policy_version, verdict_set_hash)
 
 
 def make_run_id() -> str:

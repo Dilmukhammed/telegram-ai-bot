@@ -68,6 +68,7 @@ async def _process_chat_requests(
                 image_data_urls=image_data_urls,
                 telegram_message_id=message.message_id,
                 telegram_chat_id=message.chat.id,
+                telegram_message=message,
             )
             if not response.text:
                 raise RuntimeError("Empty response from agent")

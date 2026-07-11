@@ -1,0 +1,156 @@
+{
+  "schema_version": "1",
+  "fixture_id": "calib_ru_uncertain_067",
+  "title": "Uncertain employment probe",
+  "tier": "smoke",
+  "language": "ru",
+  "criticality": "critical",
+  "slice_tags": [
+    "uncertainty_alternative",
+    "direct_attribute_relation",
+    "hard_negative"
+  ],
+  "reference_time": "2026-07-10T12:00:00+05:00",
+  "timezone": "Asia/Tashkent",
+  "users": [
+    {
+      "user_alias": "u1",
+      "user_id": 2067,
+      "display_name": "Synthetic User",
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "m1",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Я не уверен, что Мария работает в Google.",
+      "content_type": "text",
+      "occurred_at": "2026-07-10T09:00:00+05:00",
+      "metadata": {}
+    }
+  ],
+  "expected": {
+    "sources": [
+      {
+        "source_event": "m1",
+        "source_type": "chat_message",
+        "source_ref_alias": "m1",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m1"
+        },
+        "normalization_job_status": "done"
+      }
+    ],
+    "segments": [
+      {
+        "source_event": "m1",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Я не уверен, что Мария работает в Google.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m1"
+        }
+      }
+    ],
+    "mentions": [
+      {
+        "mention_id": "maria",
+        "source_event": "m1",
+        "mention_type": "person",
+        "surface_text": "Мария",
+        "char_start": 17,
+        "char_end": 22,
+        "normalized_hint": "Мария",
+        "pointer": {
+          "source_event": "m1",
+          "char_start": 17,
+          "char_end": 22
+        }
+      },
+      {
+        "mention_id": "google",
+        "source_event": "m1",
+        "mention_type": "organization",
+        "surface_text": "Google",
+        "char_start": 34,
+        "char_end": 40,
+        "normalized_hint": "Google",
+        "pointer": {
+          "source_event": "m1",
+          "char_start": 34,
+          "char_end": 40
+        }
+      }
+    ],
+    "candidates": [
+      {
+        "candidate_ref": "c1",
+        "kind": "relation",
+        "schema_name": "works_at",
+        "schema_version": "1",
+        "arguments": [
+          {
+            "role": "person",
+            "mention_ref": "maria"
+          },
+          {
+            "role": "organization",
+            "mention_ref": "google"
+          }
+        ],
+        "attributes": {},
+        "polarity": "unknown",
+        "epistemic": {
+          "mode": "asserted",
+          "speaker_commitment": "uncertain",
+          "scope": "proposition",
+          "alternatives": [],
+          "needs_confirmation": true
+        },
+        "temporal": null,
+        "status": "needs_confirmation",
+        "evidence": [
+          {
+            "source_event": "m1",
+            "relation": "supports",
+            "exact_quote": "Я не уверен, что Мария работает в Google.",
+            "char_start": 0,
+            "char_end": 41
+          }
+        ]
+      }
+    ],
+    "forbidden_candidates": [
+      {
+        "kind": "relation",
+        "schema_name": "works_at",
+        "polarity": "positive"
+      },
+      {
+        "kind": "relation",
+        "schema_name": "works_at",
+        "polarity": "negative"
+      }
+    ],
+    "expect_abstention": false,
+    "forbidden_sources": [],
+    "forbidden_segments": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "Calibration probe."
+    ]
+  }
+}

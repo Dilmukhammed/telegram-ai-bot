@@ -27,6 +27,16 @@ def build_memory_status(db: MemoryDatabase, *, active_worker_count: int) -> Memo
             ).fetchone()["c"]
         )
         candidates_by_status = _count_group(conn, "memory_claim_candidates", "status")
+        active_verdict_count = int(
+            conn.execute(
+                "SELECT COUNT(*) AS c FROM memory_candidate_verdicts WHERE status = 'active'"
+            ).fetchone()["c"]
+        )
+        active_candidate_score_count = int(
+            conn.execute(
+                "SELECT COUNT(*) AS c FROM memory_candidate_scores WHERE status = 'active'"
+            ).fetchone()["c"]
+        )
         oldest_pending = conn.execute(
             """
             SELECT MIN(created_at) AS oldest
@@ -56,6 +66,8 @@ def build_memory_status(db: MemoryDatabase, *, active_worker_count: int) -> Memo
         dead_job_count=dead_job_count,
         active_mention_count=active_mention_count,
         candidates_by_status=candidates_by_status,
+        active_verdict_count=active_verdict_count,
+        active_candidate_score_count=active_candidate_score_count,
     )
 
 

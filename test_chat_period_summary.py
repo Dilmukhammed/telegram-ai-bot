@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, patch
 
 from bot.chat_store import reset_chat_store
+from bot.chat_store.day_archive import archive_active_sessions_for_closed_day
 from bot.chat_store.period_boundary import run_period_boundary_once
 from bot.chat_store.period_keys import (
     closed_period_keys,
@@ -62,6 +63,7 @@ class PeriodSummaryStoreTests(unittest.IsolatedAsyncioTestCase):
                 "CHAT_PERIOD_SUMMARY_ENABLED": "1",
                 "CHAT_PERIOD_SUMMARY_ON_SESSION_ARCHIVE": "0",
                 "CHAT_PERIOD_SUMMARY_BOUNDARY_ENABLED": "1",
+                "CHAT_DAY_ARCHIVE_ENABLED": "1",
                 "BOT_TIMEZONE": "UTC",
             },
             clear=False,
@@ -236,6 +238,31 @@ class PeriodSummaryStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(period.summary_status, "done")
         # LLM called once for day (week/month may also close if not marked).
         self.assertGreaterEqual(llm.chat_without_reasoning.await_count, 1)
+
+    async def test_day_archive_splits_active_session(self) -> None:
+        day = datetime(2026, 6, 3, 12, 0, tzinfo=timezone.utc)
+        session = self.store.get_or_create_active_session(self.user_id, opened_by="test")
+        self.store.append_messages(
+            session.session_id,
+            self.user_id,
+            [
+                {"role": "user", "content": "work on Tuesday"},
+                {"role": "assistant", "content": "done"},
+            ],
+            source_at_for_message=[day, day + timedelta(minutes=1)],
+        )
+        stats = await archive_active_sessions_for_closed_day(
+            self.store,
+            closed_day_key="2026-06-03",
+        )
+        self.assertEqual(stats["archived"], 1)
+        active = self.store.get_active_session(self.user_id)
+        self.assertIsNotNone(active)
+        assert active is not None
+        self.assertEqual(active.message_count, 0)
+        archived = self.store.list_sessions(self.user_id, status="archived", limit=10)
+        self.assertEqual(len(archived), 1)
+        self.assertEqual(archived[0].message_count, 2)
 
 
 if __name__ == "__main__":

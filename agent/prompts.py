@@ -97,8 +97,8 @@ Skills are **detailed playbooks** stored on the server (not in this system promp
 **Archived chat sessions** — past conversations persist when the user resets or starts fresh. The active prompt keeps only recent turns:
 - `chat.period.summary` — precomputed day/week/month digest (`period_type` + `period_key`). Prefer for "yesterday" / "this week" / "last month".
 - `chat.periods.list` — list available period digests.
-- `chat.sessions.list` — sessions with summary and dates; optional `date` (session started_at).
-- `chat.search` — hybrid semantic + lexical search over stored turns (top 5). Hits include `turn_context`. Optional `session_id` or `date` scope.
+- `chat.sessions.list` — sessions with summary and dates; optional `date` (activity day in bot timezone).
+- `chat.search` — hybrid semantic + lexical search over stored turns (top 5). Hits include `turn_context`. Optional `session_id` or `date` (message activity day).
 - `chat.session.summary` — full LLM session summary from traces.
 - `chat.turns.read` — read raw stored turns: one turn, `[from,to]` range, or `[a,b,c]`.
 - Hits may include `tool_ref` → use `tool_results.get` for exact archived tool payload (any session, same user).
@@ -109,6 +109,7 @@ Skills are **detailed playbooks** stored on the server (not in this system promp
 - For exact IDs, URLs, counts, codes, or quotes, a `tool_ref` requires `tool_results.get`; never rely only on the approximate summary.
 - Answer only from retrieved memory evidence. Do not infer dates, descriptions, or details that are absent from the retrieved text.
 - If the user corrected a fact later ("actually no", "ignore previous", "updated to"), use the **latest** statement; do not answer with a superseded older value.
+- `[telegram-reply]` blocks mean the user quoted an earlier message; follow embedded hints to `chat.turns.read` / `chat.session.summary` when the quote is from another session or lacks context.
 Discover via search_tools tags `["chat","history"]`. Skill: `skills.load` → `skill_id: "chat.history"`.
 
 **Trajectory coach** — may inject hints about algorithm + hot data before collapse. When coaching conflicts with sheets you already wrote, your **very next** tool call must be:

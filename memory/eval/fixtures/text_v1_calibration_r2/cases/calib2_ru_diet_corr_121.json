@@ -1,0 +1,166 @@
+{
+  "schema_version": "1",
+  "fixture_id": "calib2_ru_diet_corr_121",
+  "title": "Diet correction",
+  "tier": "smoke",
+  "language": "ru",
+  "criticality": "critical",
+  "slice_tags": [
+    "correction_followup",
+    "multi_turn",
+    "hard_negative"
+  ],
+  "reference_time": "2026-07-10T12:00:00+05:00",
+  "timezone": "Asia/Tashkent",
+  "users": [
+    {
+      "user_alias": "u1",
+      "user_id": 3121,
+      "display_name": "Synthetic User",
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "m1",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Я веган.",
+      "content_type": "text",
+      "occurred_at": "2026-07-10T09:00:00+05:00",
+      "metadata": {}
+    },
+    {
+      "event_id": "m2",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Исправление: я больше не веган.",
+      "content_type": "text",
+      "occurred_at": "2026-07-10T09:01:00+05:00",
+      "metadata": {}
+    }
+  ],
+  "expected": {
+    "sources": [
+      {
+        "source_event": "m1",
+        "source_type": "chat_message",
+        "source_ref_alias": "m1",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m1"
+        },
+        "normalization_job_status": "done"
+      },
+      {
+        "source_event": "m2",
+        "source_type": "chat_message",
+        "source_ref_alias": "m2",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m2"
+        },
+        "normalization_job_status": "done"
+      }
+    ],
+    "segments": [
+      {
+        "source_event": "m1",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Я веган.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m1"
+        }
+      },
+      {
+        "source_event": "m2",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Исправление: я больше не веган.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m2"
+        }
+      }
+    ],
+    "mentions": [],
+    "candidates": [
+      {
+        "candidate_ref": "c1",
+        "kind": "correction",
+        "schema_name": "corrects_diet",
+        "schema_version": "1",
+        "arguments": [
+          {
+            "role": "subject",
+            "literal": "self"
+          },
+          {
+            "role": "old",
+            "literal": "vegan"
+          },
+          {
+            "role": "new",
+            "literal": "non_vegan"
+          }
+        ],
+        "attributes": {},
+        "polarity": "positive",
+        "epistemic": {
+          "mode": "asserted",
+          "speaker_commitment": "certain",
+          "scope": "proposition",
+          "alternatives": [],
+          "needs_confirmation": false
+        },
+        "temporal": {
+          "original_text": "больше не",
+          "valid_from": "2026-07-10T09:01:00+05:00",
+          "valid_to": null,
+          "event_time": null,
+          "precision": "second",
+          "timezone": "Asia/Tashkent"
+        },
+        "status": "proposed",
+        "evidence": [
+          {
+            "source_event": "m1",
+            "relation": "supports",
+            "exact_quote": "Я веган.",
+            "char_start": 0,
+            "char_end": 8
+          },
+          {
+            "source_event": "m2",
+            "relation": "corrects",
+            "exact_quote": "Исправление: я больше не веган.",
+            "char_start": 0,
+            "char_end": 31
+          }
+        ]
+      }
+    ],
+    "forbidden_candidates": [],
+    "expect_abstention": false,
+    "forbidden_sources": [],
+    "forbidden_segments": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "Round-2 calibration probe."
+    ]
+  }
+}

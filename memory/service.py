@@ -26,6 +26,7 @@ from memory.processors import ProcessorRegistry, default_registry
 from memory.segments import MemorySegmentStore
 from memory.sources import MemorySourceStore
 from memory.status import build_memory_status
+from memory.verification.verdicts import MemoryVerificationStore
 from memory.worker import MemoryWorker
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,7 @@ class MemoryService:
         self._segments = MemorySegmentStore(self._db)
         self._mentions = MemoryMentionStore(self._db)
         self._candidates = MemoryCandidateStore(self._db)
+        self._verification = MemoryVerificationStore(self._db)
         self._sources = MemorySourceStore(self._db, jobs=self._jobs, lineage=self._lineage)
         self._registry = registry or default_registry()
         self._worker: MemoryWorker | None = None
@@ -80,6 +82,10 @@ class MemoryService:
     @property
     def candidates(self) -> MemoryCandidateStore:
         return self._candidates
+
+    @property
+    def verification(self) -> MemoryVerificationStore:
+        return self._verification
 
     @property
     def registry(self) -> ProcessorRegistry:
@@ -300,6 +306,25 @@ class MemoryService:
                     user_id=job.user_id,
                     extraction_run_id=run_id,
                     mention_ids=mention_ids,
+                    lineage_store=self._lineage,
+                )
+            if (
+                output.new_verdicts
+                or output.new_candidate_scores
+                or output.candidate_updates
+            ):
+                if job.target_kind != "candidate" or not job.target_id:
+                    raise ValueError(
+                        "verification output requires a candidate-targeted job"
+                    )
+                self._verification.insert_outputs_in_txn(
+                    conn,
+                    user_id=job.user_id,
+                    verification_run_id=run_id,
+                    target_candidate_id=job.target_id,
+                    verdicts=output.new_verdicts,
+                    scores=output.new_candidate_scores,
+                    updates=output.candidate_updates,
                     lineage_store=self._lineage,
                 )
             for request in output.next_jobs:

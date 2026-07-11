@@ -1,0 +1,186 @@
+{
+  "schema_version": "1",
+  "fixture_id": "calib_ru_hearsay_069",
+  "title": "Hearsay job loss probe",
+  "tier": "smoke",
+  "language": "ru",
+  "criticality": "critical",
+  "slice_tags": [
+    "wrong_speaker_hearsay",
+    "uncertainty_alternative",
+    "hard_negative",
+    "multi_turn"
+  ],
+  "reference_time": "2026-07-10T12:00:00+05:00",
+  "timezone": "Asia/Tashkent",
+  "users": [
+    {
+      "user_alias": "u1",
+      "user_id": 2069,
+      "display_name": "Synthetic User",
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "m1",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "assistant",
+      "content": "Новости о Петре?",
+      "content_type": "text",
+      "occurred_at": "2026-07-10T09:00:00+05:00",
+      "metadata": {}
+    },
+    {
+      "event_id": "m2",
+      "kind": "chat_message",
+      "user_alias": "u1",
+      "role": "user",
+      "content": "Коллега говорит, что Петр уволился.",
+      "content_type": "text",
+      "occurred_at": "2026-07-10T09:01:00+05:00",
+      "metadata": {}
+    }
+  ],
+  "expected": {
+    "sources": [
+      {
+        "source_event": "m1",
+        "source_type": "chat_message",
+        "source_ref_alias": "m1",
+        "authority_class": "assistant_generated",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m1"
+        },
+        "normalization_job_status": "done"
+      },
+      {
+        "source_event": "m2",
+        "source_type": "chat_message",
+        "source_ref_alias": "m2",
+        "authority_class": "user_direct_statement",
+        "content_hash_rule": "chat_content_hash",
+        "source_version_count": 1,
+        "pointer": {
+          "source_event": "m2"
+        },
+        "normalization_job_status": "done"
+      }
+    ],
+    "segments": [
+      {
+        "source_event": "m1",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Новости о Петре?",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m1"
+        }
+      },
+      {
+        "source_event": "m2",
+        "segment_type": "chat_text",
+        "ordinal": 0,
+        "text": "Коллега говорит, что Петр уволился.",
+        "normalizer_version": "1",
+        "pointer": {
+          "source_event": "m2"
+        }
+      }
+    ],
+    "mentions": [
+      {
+        "mention_id": "reporter",
+        "source_event": "m2",
+        "mention_type": "person",
+        "surface_text": "Коллега",
+        "char_start": 0,
+        "char_end": 7,
+        "normalized_hint": "коллега",
+        "pointer": {
+          "source_event": "m2",
+          "char_start": 0,
+          "char_end": 7
+        }
+      },
+      {
+        "mention_id": "petr",
+        "source_event": "m2",
+        "mention_type": "person",
+        "surface_text": "Петр",
+        "char_start": 21,
+        "char_end": 25,
+        "normalized_hint": "Петр",
+        "pointer": {
+          "source_event": "m2",
+          "char_start": 21,
+          "char_end": 25
+        }
+      }
+    ],
+    "candidates": [
+      {
+        "candidate_ref": "c1",
+        "kind": "event",
+        "schema_name": "left_job",
+        "schema_version": "1",
+        "arguments": [
+          {
+            "role": "person",
+            "mention_ref": "petr"
+          }
+        ],
+        "attributes": {},
+        "polarity": "unknown",
+        "epistemic": {
+          "mode": "reported",
+          "speaker_commitment": "possible",
+          "scope": "proposition",
+          "alternatives": [],
+          "needs_confirmation": true,
+          "speaker_ref": "reporter"
+        },
+        "temporal": null,
+        "status": "needs_confirmation",
+        "evidence": [
+          {
+            "source_event": "m2",
+            "relation": "supports",
+            "exact_quote": "Коллега говорит, что Петр уволился.",
+            "char_start": 0,
+            "char_end": 35
+          }
+        ]
+      }
+    ],
+    "forbidden_candidates": [
+      {
+        "kind": "event",
+        "schema_name": "left_job",
+        "polarity": "positive"
+      },
+      {
+        "kind": "event",
+        "schema_name": "left_job",
+        "polarity": "negative"
+      }
+    ],
+    "expect_abstention": false,
+    "forbidden_sources": [],
+    "forbidden_segments": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "Calibration probe."
+    ]
+  }
+}

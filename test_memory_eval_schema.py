@@ -507,7 +507,7 @@ class CheckedInCorpusTests(unittest.TestCase):
         self.assertTrue(all(case.review.status.value == "reviewed" for case in pack.fixtures))
         self.assertEqual(
             pack.pack_hash,
-            "4d07ad4649f0172117d89ad475e0d4f6ad04c3ea82bdae10453af42bb7853630",
+            "cdd6197697b6d6120c3e1f6f79fb4a8fdca1fd7b2634b19305966a53968eb639",
         )
 
 

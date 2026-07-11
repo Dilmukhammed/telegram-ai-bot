@@ -65,6 +65,24 @@ class LLMClientReasoningTests(unittest.TestCase):
         self.assertIn("reasoning_effort", agent._completion_kwargs(messages=[]))
         self.assertNotIn("reasoning_effort", summarize._completion_kwargs(messages=[]))
 
+    def test_extraction_profile_uses_summarize_backend_with_reasoning(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {
+                "SUMMARIZE_MODEL": "accounts/fireworks/models/deepseek-v4-flash",
+                "REASONING_EFFORT": "medium",
+            },
+            clear=False,
+        ):
+            settings = get_settings()
+        extraction = LLMClient(settings, profile="extraction")
+        kwargs = extraction._completion_kwargs(messages=[])
+        self.assertEqual(
+            kwargs["model"],
+            "accounts/fireworks/models/deepseek-v4-flash",
+        )
+        self.assertEqual(kwargs["reasoning_effort"], "medium")
+
     def test_thorough_profiles_use_dedicated_model_env(self) -> None:
         with patch.dict(
             "os.environ",
