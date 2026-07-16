@@ -22,6 +22,8 @@ _TOOL_GROUP_TAGS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("exa.", ("web", "search")),
     ("browser.profile.", ("browser", "auth")),
     ("browser.cookies.", ("browser", "auth")),
+    ("browser.network.", ("browser", "web")),
+    ("browser.storage.", ("browser", "web")),
     ("browser.tabs.", ("browser", "web")),
     ("browser.", ("browser", "web")),
     ("telegram.", ("telegram", "bot")),

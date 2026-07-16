@@ -90,7 +90,7 @@ class BrowserToolsMockedTests(unittest.IsolatedAsyncioTestCase):
         reset_browser_profile_store_for_tests()
 
     async def test_tool_count_and_discovery(self) -> None:
-        self.assertEqual(len(BROWSER_TOOLS), 44)
+        self.assertEqual(len(BROWSER_TOOLS), 63)
         names = {t.name for t in BROWSER_TOOLS}
         self.assertIn("browser.session_open", names)
         self.assertIn("browser.screenshot", names)
@@ -98,6 +98,10 @@ class BrowserToolsMockedTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("browser.download", names)
         self.assertIn("browser.evaluate", names)
         self.assertIn("browser.cookies.get", names)
+        self.assertIn("browser.drag", names)
+        self.assertIn("browser.storage.get", names)
+        self.assertIn("browser.network.last", names)
+        self.assertIn("browser.console", names)
         self.assertEqual(tags_for_tool_name("browser.navigate"), ("browser", "web"))
         self.assertEqual(skill_id_for_tool_name("browser.navigate"), "browser")
         self.assertEqual(tags_for_tool_name("browser.tabs.list"), ("browser", "web"))

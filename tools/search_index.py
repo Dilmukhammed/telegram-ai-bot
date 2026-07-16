@@ -233,6 +233,14 @@ TOOL_ALIASES: dict[str, tuple[str, ...]] = {
         "run javascript evaluate js in browser page",
         "not snapshot click not python code",
     ),
+    "browser.network.last": (
+        "browser network requests responses log recent",
+        "not exa web_search not download file",
+    ),
+    "browser.storage.get": (
+        "localStorage sessionStorage get browser storage key",
+        "not cookies not workspace files",
+    ),
     "agent.wait": (
         "sleep pause delay wait seconds backoff retry upload processing",
         "not browser.wait selector not exa search",

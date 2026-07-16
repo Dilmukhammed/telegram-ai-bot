@@ -21,6 +21,9 @@ logger = logging.getLogger(__name__)
 
 _REF_RE = re.compile(r"^e\d+$")
 _EVAL_MAX_CHARS = 8_000
+_NETWORK_MAX = 80
+_CONSOLE_MAX = 80
+_PAGE_ERROR_MAX = 40
 
 
 @dataclass
@@ -32,11 +35,109 @@ class PlaywrightSession:
     frame: Any | None = None
     refs: dict[str, str] = field(default_factory=dict)
     next_ref: int = 1
+    network_events: list[dict[str, Any]] = field(default_factory=list)
+    console_messages: list[dict[str, Any]] = field(default_factory=list)
+    page_error_messages: list[dict[str, Any]] = field(default_factory=list)
+    _diag_attached: set[int] = field(default_factory=set)
 
     @property
     def target(self) -> Any:
         """Active frame or page for locators/evaluate."""
         return self.frame if self.frame is not None else self.page
+
+
+def _ring_append(buf: list[dict[str, Any]], item: dict[str, Any], max_n: int) -> None:
+    buf.append(item)
+    overflow = len(buf) - max_n
+    if overflow > 0:
+        del buf[:overflow]
+
+
+def _attach_page_diagnostics(session: PlaywrightSession, page: Any) -> None:
+    page_id = id(page)
+    if page_id in session._diag_attached:
+        return
+    session._diag_attached.add(page_id)
+
+    def on_request(request: Any) -> None:
+        try:
+            _ring_append(
+                session.network_events,
+                {
+                    "type": "request",
+                    "method": getattr(request, "method", None),
+                    "url": getattr(request, "url", None),
+                    "resource_type": getattr(request, "resource_type", None),
+                },
+                _NETWORK_MAX,
+            )
+        except Exception:
+            pass
+
+    def on_response(response: Any) -> None:
+        try:
+            req = getattr(response, "request", None)
+            _ring_append(
+                session.network_events,
+                {
+                    "type": "response",
+                    "status": getattr(response, "status", None),
+                    "url": getattr(response, "url", None),
+                    "method": getattr(req, "method", None) if req else None,
+                    "resource_type": getattr(req, "resource_type", None) if req else None,
+                },
+                _NETWORK_MAX,
+            )
+        except Exception:
+            pass
+
+    def on_console(msg: Any) -> None:
+        try:
+            text = str(getattr(msg, "text", "") or "")
+            clipped, _ = truncate_text(text, 500)
+            _ring_append(
+                session.console_messages,
+                {
+                    "type": str(getattr(msg, "type", "") or ""),
+                    "text": clipped,
+                },
+                _CONSOLE_MAX,
+            )
+        except Exception:
+            pass
+
+    def on_page_error(exc: Any) -> None:
+        try:
+            text = str(exc)
+            clipped, _ = truncate_text(text, 800)
+            _ring_append(
+                session.page_error_messages,
+                {"message": clipped},
+                _PAGE_ERROR_MAX,
+            )
+        except Exception:
+            pass
+
+    on = getattr(page, "on", None)
+    if not callable(on):
+        return
+    on("request", on_request)
+    on("response", on_response)
+    on("console", on_console)
+    on("pageerror", on_page_error)
+
+
+def _ensure_context_diagnostics(session: PlaywrightSession) -> None:
+    for page in list(session.context.pages):
+        _attach_page_diagnostics(session, page)
+
+    def on_new_page(page: Any) -> None:
+        _attach_page_diagnostics(session, page)
+
+    try:
+        session.context.on("page", on_new_page)
+    except Exception:
+        logger.debug("context.on(page) failed", exc_info=True)
 
 
 async def connect_session(*, websocket_url: str, api_key: str) -> PlaywrightSession:
@@ -72,12 +173,14 @@ async def connect_session(*, websocket_url: str, api_key: str) -> PlaywrightSess
             )
         except Exception:
             logger.debug("viewport set failed", exc_info=True)
-        return PlaywrightSession(
+        session = PlaywrightSession(
             playwright=playwright,
             browser=browser,
             context=context,
             page=page,
         )
+        _ensure_context_diagnostics(session)
+        return session
     except Exception:
         await playwright.stop()
         raise
@@ -787,3 +890,267 @@ async def pdf(session: PlaywrightSession, *, landscape: bool = False) -> bytes:
 def png_to_data_url(png: bytes) -> str:
     encoded = base64.b64encode(png).decode("ascii")
     return f"data:image/png;base64,{encoded}"
+
+
+async def _ref_center(session: PlaywrightSession, ref: str) -> tuple[float, float]:
+    locator = await _locator(session, ref)
+    box = await locator.bounding_box(timeout=15_000)
+    if not box:
+        raise BrowserNavigationError(f"Element {ref} has no bounding box")
+    return box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+
+
+async def drag(
+    session: PlaywrightSession,
+    source_ref: str,
+    target_ref: str,
+) -> dict[str, Any]:
+    source = await _locator(session, source_ref)
+    target = await _locator(session, target_ref)
+    await source.drag_to(target, timeout=30_000)
+    return {"source_ref": source_ref, "target_ref": target_ref, "url": session.page.url}
+
+
+async def focus(session: PlaywrightSession, ref: str) -> dict[str, Any]:
+    locator = await _locator(session, ref)
+    await locator.focus(timeout=15_000)
+    return {"ref": ref}
+
+
+async def keydown(session: PlaywrightSession, key: str) -> dict[str, Any]:
+    await session.page.keyboard.down(key)
+    return {"key": key, "action": "down"}
+
+
+async def keyup(session: PlaywrightSession, key: str) -> dict[str, Any]:
+    await session.page.keyboard.up(key)
+    return {"key": key, "action": "up"}
+
+
+async def mouse_move(
+    session: PlaywrightSession,
+    *,
+    x: float | None = None,
+    y: float | None = None,
+    ref: str | None = None,
+    steps: int = 1,
+) -> dict[str, Any]:
+    if ref is not None:
+        x, y = await _ref_center(session, ref)
+    if x is None or y is None:
+        raise ValueError("Provide x+y or ref")
+    await session.page.mouse.move(float(x), float(y), steps=max(1, min(int(steps), 50)))
+    return {"x": x, "y": y, "ref": ref}
+
+
+async def mouse_down(
+    session: PlaywrightSession,
+    *,
+    button: str = "left",
+    click_count: int = 1,
+) -> dict[str, Any]:
+    await session.page.mouse.down(button=button, click_count=max(1, int(click_count)))
+    return {"button": button, "action": "down"}
+
+
+async def mouse_up(
+    session: PlaywrightSession,
+    *,
+    button: str = "left",
+    click_count: int = 1,
+) -> dict[str, Any]:
+    await session.page.mouse.up(button=button, click_count=max(1, int(click_count)))
+    return {"button": button, "action": "up"}
+
+
+async def storage_get(
+    session: PlaywrightSession,
+    *,
+    area: str,
+    key: str | None = None,
+) -> dict[str, Any]:
+    if area not in {"local", "session"}:
+        raise ValueError("area must be local|session")
+    store = "localStorage" if area == "local" else "sessionStorage"
+    if key is None:
+        raw = await session.page.evaluate(
+            f"() => JSON.stringify(Object.fromEntries(Object.entries({store})))"
+        )
+        data = json.loads(raw or "{}")
+        text = json.dumps(data, ensure_ascii=False)
+        clipped, truncated = truncate_text(text, _EVAL_MAX_CHARS)
+        return {
+            "area": area,
+            "count": len(data) if isinstance(data, dict) else 0,
+            "items": json.loads(clipped) if not truncated else None,
+            "json": clipped if truncated else None,
+            "truncated": truncated,
+        }
+    value = await session.page.evaluate(
+        f"(k) => {store}.getItem(k)",
+        str(key),
+    )
+    if isinstance(value, str):
+        value, _ = truncate_text(value, _EVAL_MAX_CHARS)
+    return {"area": area, "key": key, "value": value}
+
+
+async def storage_set(
+    session: PlaywrightSession,
+    *,
+    area: str,
+    key: str,
+    value: str,
+) -> dict[str, Any]:
+    if area not in {"local", "session"}:
+        raise ValueError("area must be local|session")
+    store = "localStorage" if area == "local" else "sessionStorage"
+    await session.page.evaluate(
+        f"([k, v]) => {{ {store}.setItem(k, v); }}",
+        [str(key), str(value)],
+    )
+    return {"area": area, "key": key, "set": True}
+
+
+async def set_viewport(
+    session: PlaywrightSession,
+    *,
+    width: int,
+    height: int,
+) -> dict[str, Any]:
+    width = max(200, min(int(width), 3840))
+    height = max(200, min(int(height), 2160))
+    await session.page.set_viewport_size({"width": width, "height": height})
+    return {"width": width, "height": height}
+
+
+async def set_geolocation(
+    session: PlaywrightSession,
+    *,
+    latitude: float,
+    longitude: float,
+    accuracy: float | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "latitude": float(latitude),
+        "longitude": float(longitude),
+    }
+    if accuracy is not None:
+        payload["accuracy"] = float(accuracy)
+    await session.context.set_geolocation(payload)
+    try:
+        await session.context.grant_permissions(["geolocation"])
+    except Exception:
+        logger.debug("grant geolocation permission failed", exc_info=True)
+    return {"geolocation": payload}
+
+
+async def set_locale(session: PlaywrightSession, locale: str) -> dict[str, Any]:
+    locale = str(locale).strip()
+    if not locale:
+        raise ValueError("locale is required")
+    client = await session.context.new_cdp_session(session.page)
+    try:
+        await client.send("Emulation.setLocaleOverride", {"locale": locale})
+    finally:
+        try:
+            await client.detach()
+        except Exception:
+            pass
+    return {"locale": locale}
+
+
+async def set_timezone(session: PlaywrightSession, timezone_id: str) -> dict[str, Any]:
+    timezone_id = str(timezone_id).strip()
+    if not timezone_id:
+        raise ValueError("timezone_id is required")
+    client = await session.context.new_cdp_session(session.page)
+    try:
+        await client.send("Emulation.setTimezoneOverride", {"timezoneId": timezone_id})
+    finally:
+        try:
+            await client.detach()
+        except Exception:
+            pass
+    return {"timezone_id": timezone_id}
+
+
+async def grant_permissions(
+    session: PlaywrightSession,
+    permissions: list[str],
+    *,
+    origin: str | None = None,
+) -> dict[str, Any]:
+    perms = [str(p) for p in permissions]
+    if origin:
+        await session.context.grant_permissions(perms, origin=origin)
+    else:
+        await session.context.grant_permissions(perms)
+    return {"granted": perms, "origin": origin}
+
+
+async def clear_permissions(session: PlaywrightSession) -> dict[str, Any]:
+    await session.context.clear_permissions()
+    return {"cleared": True}
+
+
+async def network_last(session: PlaywrightSession, *, limit: int = 20) -> dict[str, Any]:
+    _ensure_context_diagnostics(session)
+    limit = max(1, min(int(limit), _NETWORK_MAX))
+    events = session.network_events[-limit:]
+    return {"count": len(events), "events": list(events)}
+
+
+async def network_wait(
+    session: PlaywrightSession,
+    *,
+    url: str | None = None,
+    glob: str | None = None,
+    regex: str | None = None,
+    timeout_ms: int = 30_000,
+) -> dict[str, Any]:
+    timeout_ms = max(100, min(timeout_ms, 120_000))
+    pattern: Any
+    if url:
+        pattern = url
+    elif glob:
+        pattern = glob
+    elif regex:
+        pattern = re.compile(regex)
+    else:
+        raise ValueError("url, glob, or regex is required")
+
+    response = await session.page.wait_for_response(pattern, timeout=timeout_ms)
+    return {
+        "url": response.url,
+        "status": response.status,
+        "ok": response.ok,
+    }
+
+
+async def console_messages(
+    session: PlaywrightSession,
+    *,
+    limit: int = 30,
+    clear: bool = False,
+) -> dict[str, Any]:
+    _ensure_context_diagnostics(session)
+    limit = max(1, min(int(limit), _CONSOLE_MAX))
+    msgs = list(session.console_messages[-limit:])
+    if clear:
+        session.console_messages.clear()
+    return {"count": len(msgs), "messages": msgs}
+
+
+async def page_errors(
+    session: PlaywrightSession,
+    *,
+    limit: int = 20,
+    clear: bool = False,
+) -> dict[str, Any]:
+    _ensure_context_diagnostics(session)
+    limit = max(1, min(int(limit), _PAGE_ERROR_MAX))
+    errs = list(session.page_error_messages[-limit:])
+    if clear:
+        session.page_error_messages.clear()
+    return {"count": len(errs), "errors": errs}

@@ -1,6 +1,6 @@
 ---
 skill_id: browser
-description: Steel cloud browser — cookies, tabs, snapshot/refs, forms, files, evaluate
+description: Steel cloud browser — cookies, tabs, forms, files, storage, network, evaluate
 tags: browser, web
 ---
 
@@ -21,6 +21,7 @@ Google **web UI** login inside Steel is often blocked (`browser may not be secur
 | Login / profile / cookies | `{"mode":"catalog","tags":["browser","auth"]}` |
 | Tabs | `{"mode":"catalog","tags":["browser","tabs"]}` |
 | Downloads / uploads | `{"mode":"catalog","tags":["browser","files"]}` |
+| Network / console | `{"mode":"catalog","tags":["browser","network"]}` or `diagnostics` |
 
 ## Google / hard sites: cookie seed (preferred)
 
@@ -58,15 +59,19 @@ Works for many non-Google sites. Google sign-in page often fails.
 
 ```
 1. browser.session_open({purpose:"automation"})
-2. browser.navigate → snapshot → click/type/fill/select_option/check
+2. browser.navigate → snapshot → click/type/fill/select_option/check/drag/focus
 3. Tabs: tabs.list / tabs.new / tabs.switch / tabs.close; back/forward/reload
-4. Wait: browser.wait | wait_for_url | wait_for_load (DOM); agent.wait (wall clock)
+4. Wait: browser.wait | wait_for_url | wait_for_load | network.wait; agent.wait (wall clock)
 5. Inspect: get_attribute / get_value / is_visible / is_enabled
-6. Files: upload (path/file_ref) | download (click ref → file_ref)
-7. Frames: frame_switch; JS: evaluate / evaluate_on_ref (capped)
-8. Cookies: cookies.get/set/clear/export (session); profile.import_cookies (persist seed)
-9. browser.screenshot / get_content / pdf → telegram.send_file({file_ref})
-10. browser.session_close()  # ALWAYS
+6. Pointer/keys: mouse_move/down/up, keydown/keyup (low-level); press for single keys
+7. Files: upload (path/file_ref) | download (click ref → file_ref)
+8. Emulation: set_viewport / set_geolocation / set_locale / set_timezone / grant_permissions
+9. Storage: storage.get / storage.set (local|session)
+10. Diagnostics: network.last, console, page_errors
+11. Frames: frame_switch; JS: evaluate / evaluate_on_ref (capped)
+12. Cookies: cookies.get/set/clear/export; profile.import_cookies (persist seed)
+13. browser.screenshot / get_content / pdf → telegram.send_file({file_ref})
+14. browser.session_close()  # ALWAYS
 ```
 
 ## Rules
@@ -75,4 +80,5 @@ Works for many non-Google sites. Google sign-in page often fails.
 - After cookie import, always `session_close` to persist.
 - Re-snapshot after navigation (refs go stale).
 - Prefer refs over raw CSS/JS when possible.
+- Network log is metadata only (no response bodies).
 - Launch sessions max ~15 minutes.

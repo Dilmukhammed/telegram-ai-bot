@@ -1,6 +1,6 @@
 # Browser tools — advanced expansion
 
-Status: P1 implemented locally (44 `browser.*` tools). DO deploy pending (SSH timeout).  
+Status: P2 implemented locally (63 `browser.*` tools). Push/deploy next.  
 Backend: Steel Cloud + Playwright CDP. Prefix: `browser.*`.  
 Existing core stays: session/profile/cookies import, navigate/snapshot/click/type/fill/press/scroll/wait, get_content/screenshot/pdf, `agent.wait`.
 
@@ -79,7 +79,7 @@ Shared rules for all new tools:
 
 ---
 
-## P2 — power
+## P2 — power (implementing)
 
 | Tool | Notes |
 |------|--------|
@@ -90,10 +90,10 @@ Shared rules for all new tools:
 | `browser.storage.get` / `storage.set` | `{area:local\|session, key, value?}` |
 | `browser.set_viewport` | `{width,height}` |
 | `browser.set_geolocation` | `{latitude,longitude}` |
-| `browser.set_locale` / `browser.set_timezone` | |
+| `browser.set_locale` / `browser.set_timezone` | CDP Emulation overrides |
 | `browser.grant_permissions` / `clear_permissions` | |
-| `browser.network.last` | last N reqs; redact |
-| `browser.network.wait` | url pattern |
+| `browser.network.last` | last N reqs; metadata only |
+| `browser.network.wait` | url / glob / regex |
 | `browser.console` / `browser.page_errors` | diagnostics |
 
 ---
@@ -128,6 +128,7 @@ Shared rules for all new tools:
 ## Wiring
 
 - Code: `tools/builtins/browser/` — `playwright_bridge.py` + `tab_tools.py`, `interaction_tools.py`, `file_tools.py`, `inspect_tools.py`, `cookie_tools.py`, `frame_eval_tools.py`
-- Register in `BROWSER_TOOLS` (44 tools)
-- Discovery: tags `browser`/`web` (+ `tabs`, `files`, `cookies`/`auth`)
+- Register in `BROWSER_TOOLS` (63 = P1 44 + P2 19)
+- Modules: `+ power_tools.py`, `state_tools.py`, `diagnostics_tools.py`
+- Discovery: tags `browser`/`web` (+ `tabs`, `files`, `cookies`/`auth`, `network`, `storage`)
 - Skill: `skills/builtins/browser/SKILL.md`

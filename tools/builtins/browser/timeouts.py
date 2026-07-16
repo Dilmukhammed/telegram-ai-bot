@@ -15,6 +15,8 @@ def handler_timeout_for_browser_tool(tool_name: str) -> float:
         "browser.tabs.new",
         "browser.wait_for_url",
         "browser.wait_for_load",
+        "browser.network.wait",
+        "browser.drag",
     }:
         return settings.browser_handler_timeout_navigate
     if tool_name == "browser.snapshot":
