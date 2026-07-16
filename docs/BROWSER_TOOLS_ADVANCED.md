@@ -1,6 +1,6 @@
 # Browser tools — advanced expansion
 
-Status: P3 live pending deploy (69 `browser.*` tools).  
+Status: P3 live on DO (`10479c8`, 69 `browser.*` tools). Advanced plan complete.  
 Backend: Steel Cloud + Playwright CDP. Prefix: `browser.*`.  
 Existing core stays: session/profile/cookies import, navigate/snapshot/click/type/fill/press/scroll/wait, get_content/screenshot/pdf, `agent.wait`.
 
