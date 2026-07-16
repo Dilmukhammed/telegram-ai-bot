@@ -1,6 +1,6 @@
 # Browser tools — advanced expansion
 
-Status: P2 implemented locally (63 `browser.*` tools). Push/deploy next.  
+Status: P2 live on DO (`16556b8`, 63 `browser.*` tools).  
 Backend: Steel Cloud + Playwright CDP. Prefix: `browser.*`.  
 Existing core stays: session/profile/cookies import, navigate/snapshot/click/type/fill/press/scroll/wait, get_content/screenshot/pdf, `agent.wait`.
 
