@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from memory.db import MemoryDatabase, dumps_json, loads_json_object, parse_utc, utc_now_iso
 from memory.ids import make_source_id, make_source_version_id, normalize_source_ref
@@ -21,6 +21,14 @@ from memory.models import (
     SourceVersionStatus,
 )
 from memory.pointers import pointer_from_mapping, pointer_to_mapping, replace_pointer_source_version
+from memory.resolution.rebuild import (
+    invalidate_resolution_artifacts_in_txn,
+    rebuild_ready_candidates,
+)
+
+if TYPE_CHECKING:
+    from memory.config import MemoryConfig
+    from memory.service import MemoryService
 
 logger = logging.getLogger(__name__)
 
@@ -30,10 +38,20 @@ class MemoryOwnershipError(PermissionError):
 
 
 class MemorySourceStore:
-    def __init__(self, db: MemoryDatabase, *, jobs: MemoryJobQueue, lineage: MemoryLineageStore) -> None:
+    def __init__(
+        self,
+        db: MemoryDatabase,
+        *,
+        jobs: MemoryJobQueue,
+        lineage: MemoryLineageStore,
+        config: "MemoryConfig | None" = None,
+        service: "MemoryService | None" = None,
+    ) -> None:
         self._db = db
         self._jobs = jobs
         self._lineage = lineage
+        self._config = config
+        self._service = service
 
     def register(
         self,
@@ -340,6 +358,8 @@ class MemorySourceStore:
                 parent_id=source_id,
                 user_id=user_id,
             )
+            candidate_ids: list[str] = []
+            mention_ids: list[str] = []
             for record in descendants:
                 if record.child_kind == "segment":
                     updated = conn.execute(
@@ -364,6 +384,7 @@ class MemorySourceStore:
                     )
                     inactive_descendant_count += int(updated.rowcount)
                 elif record.child_kind == "mention":
+                    mention_ids.append(record.child_id)
                     updated = conn.execute(
                         """
                         UPDATE memory_mentions
@@ -374,6 +395,7 @@ class MemorySourceStore:
                     )
                     inactive_descendant_count += int(updated.rowcount)
                 elif record.child_kind == "candidate":
+                    candidate_ids.append(record.child_id)
                     updated = conn.execute(
                         """
                         UPDATE memory_claim_candidates
@@ -422,6 +444,13 @@ class MemorySourceStore:
                             user_id,
                         ),
                     )
+            if candidate_ids or mention_ids:
+                invalidate_resolution_artifacts_in_txn(
+                    conn,
+                    user_id=user_id,
+                    candidate_ids=candidate_ids,
+                    mention_ids=mention_ids,
+                )
 
         logger.info(
             "memory_source_invalidated",
@@ -436,6 +465,28 @@ class MemorySourceStore:
                 "status": SourceStatus.INVALIDATED.value,
             },
         )
+        if (
+            self._config is not None
+            and self._config.resolution_relink_on_invalidation
+            and self._service is not None
+            and (candidate_ids or mention_ids)
+        ):
+            rebuild_ready_candidates(
+                self._service,
+                user_id=user_id,
+                required_verification_policy=self._config.required_verification_policy_version,
+                support_profile=self._config.resolution_link_support_model_profile,
+                adversarial_profile=self._config.resolution_link_adversarial_model_profile,
+                candidate_generation_enabled=(
+                    self._config.resolution_candidate_generation_enabled
+                ),
+                fuzzy_blocking_enabled=self._config.resolution_fuzzy_blocking_enabled,
+                fuzzy_min_trigram=self._config.resolution_fuzzy_min_trigram,
+                cross_language_enabled=self._config.resolution_cross_language_enabled,
+                cluster_critic_enabled=self._config.resolution_cluster_critic_enabled,
+                merge_events_enabled=self._config.resolution_merge_events_enabled,
+                max_candidates=self._config.resolution_max_candidates,
+            )
         return InvalidationResult(
             source_id=source_id,
             invalidated_version_ids=tuple(invalidated_version_ids),

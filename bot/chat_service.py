@@ -320,6 +320,17 @@ class ChatService:
             user_id,
             _content_snippet(prepared_text),
         )
+        # PR8: shadow retrieval runs in parallel and must never mutate messages.
+        try:
+            from memory.retrieval import schedule_shadow_preflight
+
+            schedule_shadow_preflight(
+                user_id=user_id,
+                query=prepared_text,
+                query_time=message_at,
+            )
+        except Exception:
+            logger.exception("memory_shadow_schedule_failed user_id=%s", user_id)
         result = await self._agent.run(
             prepared_text,
             history=history,

@@ -244,7 +244,7 @@ class Temporal:
 @dataclass(frozen=True, slots=True)
 class GoldCandidate:
     candidate_ref: str
-    kind: CandidateKind
+    kind: str
     schema_name: str
     schema_version: str
     arguments: tuple[CandidateArgument, ...]
@@ -276,7 +276,7 @@ class ForbiddenArgument:
 
 @dataclass(frozen=True, slots=True)
 class ForbiddenCandidate:
-    kind: CandidateKind | None = None
+    kind: str | None = None
     schema_name: str | None = None
     schema_version: str | None = None
     polarity: Polarity | None = None

@@ -322,13 +322,17 @@ class FixtureSchemaTests(unittest.TestCase):
         with self.assertRaisesRegex(FixtureValidationError, "dangling source event"):
             parse_fixture(value)
 
-    def test_stage2_entity_attribute_kind_is_canonical(self) -> None:
+    def test_stage2_kinds_are_free_nonempty_labels(self) -> None:
         value = _fixture()
         value["expected"]["candidates"][0]["kind"] = "entity_attribute"
         fixture = parse_fixture(value)
-        self.assertEqual(fixture.expected.candidates[0].kind.value, "entity_attribute")
+        self.assertEqual(fixture.expected.candidates[0].kind, "entity_attribute")
 
         value["expected"]["candidates"][0]["kind"] = "attribute"
+        fixture = parse_fixture(value)
+        self.assertEqual(fixture.expected.candidates[0].kind, "attribute")
+
+        value["expected"]["candidates"][0]["kind"] = "   "
         with self.assertRaises(FixtureValidationError):
             parse_fixture(value)
 

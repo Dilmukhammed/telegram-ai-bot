@@ -1,0 +1,4 @@
+{"child":"kartoffelsalat","child_aliases":["картофельный салат","potato salad"],"op":"cuisine_of","parent":"german_cuisine","parent_aliases":["немецкая","german","deutsch"],"language":"de"}
+{"child":"sushi","child_aliases":["суши"],"op":"cuisine_of","parent":"japanese_cuisine","parent_aliases":["японская","japanese"],"language":"en"}
+{"child":"pasta","child_aliases":["паста","spaghetti"],"op":"cuisine_of","parent":"italian_cuisine","parent_aliases":["итальянская","italian"],"language":"en"}
+{"child":"pizza","child_aliases":["пицца"],"op":"cuisine_of","parent":"italian_cuisine","parent_aliases":["итальянская","italian"],"language":"en"}

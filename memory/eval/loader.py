@@ -13,7 +13,6 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from memory.eval.schemas import (
     CandidateArgument,
-    CandidateKind,
     ChatMessageEvent,
     ChatRole,
     CoverageRequirements,
@@ -108,6 +107,10 @@ def _name(value: Any, path: str) -> str:
     if not _NAME_RE.fullmatch(result):
         _fail(path, "must contain only letters, digits, dot, underscore, or hyphen")
     return result
+
+
+def _free_label(value: Any, path: str) -> str:
+    return _string(value, path).strip()
 
 
 def _integer(value: Any, path: str, *, minimum: int = 0) -> int:
@@ -361,7 +364,7 @@ def _mention(value: Any, path: str) -> GoldMention:
     return GoldMention(
         mention_id=_name(obj["mention_id"], f"{path}.mention_id"),
         source_event=_name(obj["source_event"], f"{path}.source_event"),
-        mention_type=_name(obj["mention_type"], f"{path}.mention_type"),
+        mention_type=_free_label(obj["mention_type"], f"{path}.mention_type"),
         surface_text=_string(obj["surface_text"], f"{path}.surface_text"),
         char_start=start,
         char_end=end,
@@ -377,7 +380,7 @@ def _argument(value: Any, path: str) -> CandidateArgument:
     if has_mention == has_literal:
         _fail(path, "must contain exactly one of mention_ref or literal")
     return CandidateArgument(
-        role=_name(obj["role"], f"{path}.role"),
+        role=_free_label(obj["role"], f"{path}.role"),
         mention_ref=(
             _name(obj["mention_ref"], f"{path}.mention_ref") if has_mention else None
         ),
@@ -505,8 +508,8 @@ def _candidate(value: Any, path: str) -> GoldCandidate:
     )
     return GoldCandidate(
         candidate_ref=_name(obj["candidate_ref"], f"{path}.candidate_ref"),
-        kind=_enum(CandidateKind, obj["kind"], f"{path}.kind"),
-        schema_name=_name(obj["schema_name"], f"{path}.schema_name"),
+        kind=_free_label(obj["kind"], f"{path}.kind"),
+        schema_name=_free_label(obj["schema_name"], f"{path}.schema_name"),
         schema_version=_name(obj["schema_version"], f"{path}.schema_version"),
         arguments=tuple(
             _argument(item, f"{path}.arguments[{index}]")
@@ -539,7 +542,7 @@ def _forbidden_argument(value: Any, path: str) -> ForbiddenArgument:
     if len(choices) != 1:
         _fail(path, "must contain exactly one reference, surface_text, or literal")
     return ForbiddenArgument(
-        role=_name(obj["role"], f"{path}.role"),
+        role=_free_label(obj["role"], f"{path}.role"),
         mention_ref=(
             _name(obj["mention_ref"], f"{path}.mention_ref")
             if "mention_ref" in obj
@@ -573,12 +576,12 @@ def _forbidden_candidate(value: Any, path: str) -> ForbiddenCandidate:
         _fail(path, "must constrain at least one field")
     return ForbiddenCandidate(
         kind=(
-            _enum(CandidateKind, obj["kind"], f"{path}.kind")
+            _free_label(obj["kind"], f"{path}.kind")
             if "kind" in obj
             else None
         ),
         schema_name=(
-            _name(obj["schema_name"], f"{path}.schema_name")
+            _free_label(obj["schema_name"], f"{path}.schema_name")
             if "schema_name" in obj
             else None
         ),

@@ -164,6 +164,34 @@ def _assert_endpoint_owner(
             "SELECT user_id FROM memory_candidate_scores WHERE score_id = ?",
             record_id,
         ),
+        "entity": (
+            "SELECT user_id FROM memory_entities WHERE entity_id = ?",
+            record_id,
+        ),
+        "entity_alias": (
+            "SELECT user_id FROM memory_entity_aliases WHERE alias_id = ?",
+            record_id,
+        ),
+        "mention_link": (
+            "SELECT user_id FROM memory_mention_links WHERE link_id = ?",
+            record_id,
+        ),
+        "assertion": (
+            "SELECT user_id FROM memory_assertions WHERE assertion_id = ?",
+            record_id,
+        ),
+        "belief": (
+            "SELECT user_id FROM memory_beliefs WHERE belief_id = ?",
+            record_id,
+        ),
+        "belief_revision": (
+            "SELECT user_id FROM memory_belief_revisions WHERE belief_revision_id = ?",
+            record_id,
+        ),
+        "resolution_verdict": (
+            "SELECT user_id FROM memory_resolution_verdicts WHERE resolution_verdict_id = ?",
+            record_id,
+        ),
     }
     query_and_value = queries.get(kind)
     if query_and_value is None:

@@ -28,3 +28,6 @@ _ym_snake.json
 data/memory_eval_runs/*.jsonl
 data/memory_eval_runs/*.err
 data/memory_eval_runs/*.out
+
+data/graph_lab/
+

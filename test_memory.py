@@ -1202,6 +1202,37 @@ class ConfigTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_memory_config(_test_config(worker_concurrency=0))
 
+    def test_validate_memory_config_stage_dependencies(self) -> None:
+        with self.assertRaises(ValueError):
+            validate_memory_config(
+                _test_config(worker_enabled=False, extraction_enabled=True)
+            )
+        with self.assertRaises(ValueError):
+            validate_memory_config(
+                _test_config(
+                    worker_enabled=True,
+                    verification_enabled=False,
+                    resolution_enabled=True,
+                )
+            )
+        with self.assertRaises(ValueError):
+            validate_memory_config(
+                _test_config(
+                    worker_enabled=True,
+                    verification_enabled=True,
+                    resolution_enabled=False,
+                    graph_enabled=True,
+                )
+            )
+        validate_memory_config(
+            _test_config(
+                worker_enabled=True,
+                verification_enabled=True,
+                resolution_enabled=True,
+                graph_enabled=True,
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

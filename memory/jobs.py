@@ -148,6 +148,68 @@ class MemoryJobQueue:
         )
         return EnqueueResult(job_id=job_id, created=True)
 
+    def reopen_terminal_job(
+        self,
+        job_id: str,
+        *,
+        user_id: int,
+        reason: str = "rebuild",
+    ) -> bool:
+        """Reset a terminal job to pending for deterministic rebuild."""
+        with self._db.transaction(immediate=True) as conn:
+            row = conn.execute(
+                """
+                SELECT user_id, status FROM memory_jobs WHERE job_id = ?
+                """,
+                (job_id,),
+            ).fetchone()
+            if row is None:
+                return False
+            if int(row["user_id"]) != user_id:
+                raise MemoryJobOwnershipError("job belongs to another user")
+            if str(row["status"]) not in {
+                JobStatus.DONE.value,
+                JobStatus.FAILED.value,
+                JobStatus.DEAD.value,
+                JobStatus.CANCELLED.value,
+            }:
+                return False
+            now = utc_now_iso()
+            updated = conn.execute(
+                """
+                UPDATE memory_jobs
+                SET status = ?, attempts = 0, lease_owner = NULL, lease_token = NULL,
+                    lease_until = NULL, last_error = NULL, not_before = ?,
+                    updated_at = ?
+                WHERE job_id = ? AND user_id = ?
+                  AND status IN (?, ?, ?, ?)
+                """,
+                (
+                    JobStatus.PENDING.value,
+                    now,
+                    now,
+                    job_id,
+                    user_id,
+                    JobStatus.DONE.value,
+                    JobStatus.FAILED.value,
+                    JobStatus.DEAD.value,
+                    JobStatus.CANCELLED.value,
+                ),
+            )
+            if int(updated.rowcount) != 1:
+                return False
+        logger.info(
+            "memory_job_reopened",
+            extra={
+                "event": "memory_job_reopened",
+                "job_id": job_id,
+                "user_id": user_id,
+                "reason": reason,
+                "status": JobStatus.PENDING.value,
+            },
+        )
+        return True
+
     @staticmethod
     def log_enqueued(
         *,
@@ -648,10 +710,12 @@ def _validate_job_request(request: JobRequest) -> None:
     if (request.target_kind is None) != (request.target_id is None):
         raise ValueError("target_kind and target_id must be provided together")
     if request.target_kind is not None:
-        if request.target_kind != "candidate":
+        if request.target_kind not in {"candidate", "summary", "belief"}:
             raise ValueError(f"unsupported job target kind: {request.target_kind!r}")
         if not str(request.target_id).strip():
             raise ValueError("target_id must be non-empty")
+        if request.target_kind == "belief":
+            return
 
 
 def _row_to_job(row: Any) -> MemoryJob:

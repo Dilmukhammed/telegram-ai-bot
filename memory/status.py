@@ -37,6 +37,26 @@ def build_memory_status(db: MemoryDatabase, *, active_worker_count: int) -> Memo
                 "SELECT COUNT(*) AS c FROM memory_candidate_scores WHERE status = 'active'"
             ).fetchone()["c"]
         )
+        assertion_count = _safe_count(conn, "memory_assertions")
+        belief_head_count = _safe_count(conn, "memory_belief_heads")
+        active_graph_edge_count = _safe_count(
+            conn,
+            "graph_edges",
+            where="status = 'active'",
+        )
+        summary_dirty_backlog = _safe_count(conn, "graph_summary_dirty")
+        summary_counts = _count_group(conn, "graph_summaries", "status")
+        active_community_count = _safe_count(
+            conn,
+            "graph_communities",
+            where="status = 'active'",
+        )
+        attachment_dirty_backlog = _safe_count(conn, "memory_attachment_dirty")
+        attachment_events_active = _safe_count(
+            conn,
+            "memory_attachment_events",
+            where="status = 'active'",
+        )
         oldest_pending = conn.execute(
             """
             SELECT MIN(created_at) AS oldest
@@ -68,7 +88,28 @@ def build_memory_status(db: MemoryDatabase, *, active_worker_count: int) -> Memo
         candidates_by_status=candidates_by_status,
         active_verdict_count=active_verdict_count,
         active_candidate_score_count=active_candidate_score_count,
+        assertion_count=assertion_count,
+        belief_head_count=belief_head_count,
+        active_graph_edge_count=active_graph_edge_count,
+        summary_dirty_backlog=summary_dirty_backlog,
+        summaries_by_status=summary_counts,
+        active_community_count=active_community_count,
+        attachment_dirty_backlog=attachment_dirty_backlog,
+        attachment_events_active=attachment_events_active,
     )
+
+
+def _safe_count(conn, table: str, *, where: str | None = None) -> int:
+    exists = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+        (table,),
+    ).fetchone()
+    if exists is None:
+        return 0
+    sql = f"SELECT COUNT(*) AS c FROM {table}"
+    if where:
+        sql = f"{sql} WHERE {where}"
+    return int(conn.execute(sql).fetchone()["c"])
 
 
 def _count_group(conn, table: str, column: str) -> dict[str, int]:

@@ -243,6 +243,7 @@ class ProcessorOutput:
     new_verdicts: tuple[Any, ...] = ()
     new_candidate_scores: tuple[Any, ...] = ()
     candidate_updates: tuple[Any, ...] = ()
+    resolution_batch: Any | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -282,6 +283,14 @@ class MemoryStatus:
     candidates_by_status: Mapping[str, int] = field(default_factory=dict)
     active_verdict_count: int = 0
     active_candidate_score_count: int = 0
+    assertion_count: int = 0
+    belief_head_count: int = 0
+    active_graph_edge_count: int = 0
+    summary_dirty_backlog: int = 0
+    summaries_by_status: Mapping[str, int] = field(default_factory=dict)
+    active_community_count: int = 0
+    attachment_dirty_backlog: int = 0
+    attachment_events_active: int = 0
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -298,6 +307,11 @@ class MemoryStatus:
             self,
             "candidates_by_status",
             MappingProxyType(dict(self.candidates_by_status)),
+        )
+        object.__setattr__(
+            self,
+            "summaries_by_status",
+            MappingProxyType(dict(self.summaries_by_status)),
         )
 
 

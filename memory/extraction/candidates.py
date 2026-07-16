@@ -51,6 +51,32 @@ class CandidateInput:
     cross_segment_mention_ids: Mapping[tuple[str, str], str] = field(default_factory=dict)
 
 
+def _looks_like_correction_candidate(candidate: CandidateInput) -> bool:
+    return _stored_candidate_looks_like_correction(
+        kind=candidate.kind,
+        arguments=[{"role": argument.role} for argument in candidate.arguments],
+        evidence_relations=[evidence.relation for evidence in candidate.evidence],
+    )
+
+
+def _stored_candidate_looks_like_correction(
+    *,
+    kind: str,
+    arguments: Sequence[Any],
+    evidence_relations: Sequence[str],
+) -> bool:
+    if "correct" in kind.casefold():
+        return True
+    roles = {
+        str(item.get("role") or "").casefold()
+        for item in arguments
+        if isinstance(item, Mapping)
+    }
+    if "old" in roles and "new" in roles:
+        return True
+    return any(relation == "corrects" for relation in evidence_relations)
+
+
 class MemoryCandidateStore:
     def __init__(self, db: MemoryDatabase) -> None:
         self._db = db
@@ -215,30 +241,59 @@ class MemoryCandidateStore:
         support_segment_ids = {
             evidence.segment_id
             for candidate in candidates
-            if candidate.kind == "correction"
+            if _looks_like_correction_candidate(candidate)
             for evidence in candidate.evidence
             if evidence.relation == "supports" and evidence.segment_id != candidate.segment_id
         }
         if support_segment_ids:
             placeholders = ",".join("?" for _ in support_segment_ids)
-            conn.execute(
+            rows = conn.execute(
                 f"""
-                UPDATE memory_claim_candidates
-                SET status = 'superseded', updated_at = ?
-                WHERE user_id = ?
-                  AND candidate_kind != 'correction'
-                  AND status IN (
+                SELECT c.candidate_id, c.candidate_kind, c.arguments_json
+                FROM memory_claim_candidates AS c
+                WHERE c.user_id = ?
+                  AND c.status IN (
                       'proposed', 'needs_confirmation', 'ready_for_resolution',
                       'insufficient', 'contradicted'
                   )
-                  AND candidate_id IN (
+                  AND c.candidate_id IN (
                     SELECT DISTINCT candidate_id
                     FROM memory_candidate_evidence
                     WHERE segment_id IN ({placeholders})
                   )
                 """,
-                (now, user_id, *sorted(support_segment_ids)),
-            )
+                (user_id, *sorted(support_segment_ids)),
+            ).fetchall()
+            to_supersede: list[str] = []
+            for row in rows:
+                evidence_relations = [
+                    str(item["relation"])
+                    for item in conn.execute(
+                        """
+                        SELECT evidence_relation AS relation
+                        FROM memory_candidate_evidence
+                        WHERE candidate_id = ?
+                        """,
+                        (row["candidate_id"],),
+                    ).fetchall()
+                ]
+                if _stored_candidate_looks_like_correction(
+                    kind=str(row["candidate_kind"] or ""),
+                    arguments=_loads_array(row["arguments_json"]),
+                    evidence_relations=evidence_relations,
+                ):
+                    continue
+                to_supersede.append(str(row["candidate_id"]))
+            if to_supersede:
+                id_placeholders = ",".join("?" for _ in to_supersede)
+                conn.execute(
+                    f"""
+                    UPDATE memory_claim_candidates
+                    SET status = 'superseded', updated_at = ?
+                    WHERE candidate_id IN ({id_placeholders})
+                    """,
+                    (now, *to_supersede),
+                )
         return resolved
 
     def list_for_user(

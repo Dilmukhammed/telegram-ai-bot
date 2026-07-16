@@ -56,6 +56,7 @@ class CandidateKind(StrEnum):
     STATE = "state"
     CORRECTION = "correction"
     EVENT = "event"
+    DOCUMENT_ASSERTION = "document_assertion"
 
 
 class Polarity(StrEnum):
@@ -102,7 +103,7 @@ class CandidateStatus(StrEnum):
 @dataclass(frozen=True, slots=True)
 class MentionDraft:
     mention_ref: str
-    mention_type: MentionType
+    mention_type: str
     surface_text: str
     char_start: int
     char_end: int
@@ -149,12 +150,13 @@ class EvidenceSpan:
     exact_quote: str
     char_start: int
     char_end: int
+    source_segment_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
 class CandidateDraft:
     candidate_ref: str
-    kind: CandidateKind
+    kind: str
     schema_name: str
     schema_version: str
     arguments: tuple[CandidateArgument, ...]

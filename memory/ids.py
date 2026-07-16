@@ -204,6 +204,237 @@ def make_score_id(
     return _digest("mscore", candidate_id, policy_version, verdict_set_hash)
 
 
+def make_entity_id(
+    *,
+    user_id: int,
+    entity_type: str,
+    identity_key: str,
+    resolver_version: str,
+) -> str:
+    return _digest("ment", user_id, entity_type, identity_key, resolver_version)
+
+
+def make_alias_id(
+    *,
+    user_id: int,
+    entity_id: str,
+    normalized_alias: str,
+    source_mention_id: str | None,
+) -> str:
+    return _digest(
+        "malias",
+        user_id,
+        entity_id,
+        normalized_alias,
+        source_mention_id or "",
+    )
+
+
+def make_mention_link_id(
+    *,
+    mention_id: str,
+    entity_id: str,
+    resolver_version: str,
+) -> str:
+    return _digest("mlink", mention_id, entity_id, resolver_version)
+
+
+def make_assertion_id(
+    *,
+    candidate_id: str,
+    assertion_schema_version: str,
+    resolver_version: str,
+) -> str:
+    return _digest("ma", candidate_id, assertion_schema_version, resolver_version)
+
+
+def make_belief_id(*, user_id: int, proposition_key: str) -> str:
+    return _digest("mb", user_id, proposition_key)
+
+
+def make_belief_revision_id(
+    *,
+    belief_id: str,
+    input_set_hash: str,
+    reconciliation_policy_version: str,
+    utility_policy_version: str,
+) -> str:
+    return _digest(
+        "mbr",
+        belief_id,
+        input_set_hash,
+        reconciliation_policy_version,
+        utility_policy_version,
+    )
+
+
+def make_resolution_verdict_id(
+    *,
+    mention_id: str,
+    proposed_entity_id: str,
+    role: str,
+    critic_name: str,
+    critic_version: str,
+    prompt_version: str,
+    input_hash: str,
+) -> str:
+    return _digest(
+        "mrver",
+        mention_id,
+        proposed_entity_id,
+        role,
+        critic_name,
+        critic_version,
+        prompt_version,
+        input_hash,
+    )
+
+
+def make_resolution_event_id(
+    *,
+    user_id: int,
+    op: str,
+    winner_entity_id: str,
+    loser_entity_id: str,
+    evidence_hash: str,
+    resolver_version: str,
+) -> str:
+    return _digest(
+        "mres",
+        user_id,
+        op,
+        winner_entity_id,
+        loser_entity_id,
+        evidence_hash,
+        resolver_version,
+    )
+
+
+def make_alias_equivalence_id(
+    *,
+    user_id: int,
+    entity_type: str,
+    normalized_alias_a: str,
+    normalized_alias_b: str,
+    source: str,
+) -> str:
+    left, right = sorted((normalized_alias_a, normalized_alias_b))
+    return _digest("mequiv", user_id, entity_type, left, right, source)
+
+
+def make_graph_node_id(
+    *,
+    user_id: int,
+    node_type: str,
+    source_record_id: str,
+) -> str:
+    return _digest("gn", user_id, node_type, source_record_id)
+
+
+def make_graph_edge_id(
+    *,
+    user_id: int,
+    belief_id: str,
+    from_node_id: str,
+    to_node_id: str,
+    edge_type: str,
+) -> str:
+    return _digest("ge", user_id, belief_id, from_node_id, to_node_id, edge_type)
+
+
+def make_graph_outbox_event_id(
+    *,
+    user_id: int,
+    belief_id: str,
+    operation: str,
+    payload_hash: str,
+) -> str:
+    return _digest("go", user_id, belief_id, operation, payload_hash)
+
+
+def make_summary_id(
+    *,
+    user_id: int,
+    summary_type: str,
+    target_id: str,
+    input_hash: str,
+    prompt_version: str,
+) -> str:
+    return _digest(
+        "gsum",
+        user_id,
+        summary_type,
+        target_id,
+        input_hash,
+        prompt_version,
+    )
+
+
+def make_community_id(
+    *,
+    user_id: int,
+    community_type: str,
+    seed_node_id: str,
+    detector_version: str,
+    input_hash: str,
+) -> str:
+    return _digest(
+        "gcomm",
+        user_id,
+        community_type,
+        seed_node_id,
+        detector_version,
+        input_hash,
+    )
+
+
+def make_summary_dirty_id(
+    *,
+    user_id: int,
+    summary_type: str,
+    target_id: str,
+) -> str:
+    return _digest("gsdirty", user_id, summary_type, target_id)
+
+
+def make_attachment_event_id(
+    *,
+    user_id: int,
+    op: str,
+    source_entity_id: str,
+    target_entity_id: str,
+    evidence_hash: str,
+    attachment_version: str,
+) -> str:
+    return _digest(
+        "matt",
+        user_id,
+        op,
+        source_entity_id,
+        target_entity_id,
+        evidence_hash,
+        attachment_version,
+    )
+
+
+def make_attachment_negative_id(
+    *,
+    user_id: int,
+    source_entity_id: str,
+    op: str,
+    target_entity_id: str,
+) -> str:
+    return _digest("mattneg", user_id, source_entity_id, op, target_entity_id)
+
+
+def make_attachment_dirty_id(
+    *,
+    user_id: int,
+    belief_id: str,
+) -> str:
+    return _digest("mattdirty", user_id, belief_id)
+
+
 def make_run_id() -> str:
     return f"mrun_{secrets.token_hex(16)}"
 

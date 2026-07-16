@@ -1,6 +1,7 @@
 # Graph Memory PR 5 — Detailed Implementation Plan
 
-Status: **planning only; do not implement yet**.
+Status: **MVP A1 implemented (generic free-field resolution); critics wave in progress / landed.**
+Closed `SCHEMA_CONTRACTS` catalog deferred — resolution uses role/mention/literal heuristics.
 
 PR 5 is the first Stage 3 slice. It consumes final persisted PR 3 candidates that passed
 independent PR 4 verification and produces user-scoped entities, immutable assertions, and

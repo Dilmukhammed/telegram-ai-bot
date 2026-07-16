@@ -1,0 +1,127 @@
+{
+  "schema_version": "1",
+  "pack_id": "resolution_v1",
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "Offline PR5/PR7 MVP hard gates and lifecycle expectations.",
+      "Live critic corpus remains separate; this pack is deterministic/unit-backed.",
+      "PR7 cases are draft until human sign-off; covered by unit/integration tests."
+    ]
+  },
+  "hard_gates": {
+    "eligible_assertion_recall": 1.0,
+    "non_ready_consumed": 0,
+    "false_person_merge": 0,
+    "cross_user_leakage": 0,
+    "critic_forbidden_merge": 0,
+    "active_belief_without_support": 0,
+    "graph_writes": 0
+  },
+  "cases": {
+    "root_self_preference": {
+      "expect_assertion": true,
+      "expect_root_self": true,
+      "expect_person_merge": false,
+      "expect_belief_status": "active",
+      "expect_utility": "durable",
+      "non_ready_consumed": false,
+      "notes": [
+        "self literal maps to root user entity"
+      ]
+    },
+    "person_name_non_merge": {
+      "expect_assertion": true,
+      "expect_root_self": false,
+      "expect_person_merge": false,
+      "expect_belief_status": "active",
+      "expect_utility": "deferred",
+      "non_ready_consumed": false,
+      "notes": [
+        "equal person names stay provisional"
+      ]
+    },
+    "org_alias_critic_accept": {
+      "expect_assertion": true,
+      "expect_root_self": false,
+      "expect_person_merge": false,
+      "expect_belief_status": "active",
+      "expect_utility": "durable",
+      "non_ready_consumed": false,
+      "notes": [
+        "exact alias reuse only after support+adversarial supported"
+      ]
+    },
+    "org_alias_critic_veto": {
+      "expect_assertion": true,
+      "expect_root_self": false,
+      "expect_person_merge": false,
+      "expect_belief_status": "active",
+      "expect_utility": "deferred",
+      "non_ready_consumed": false,
+      "notes": [
+        "adversarial contradicted keeps provisional entity"
+      ]
+    },
+    "non_ready_not_consumed": {
+      "expect_assertion": false,
+      "expect_root_self": false,
+      "expect_person_merge": false,
+      "expect_belief_status": null,
+      "expect_utility": null,
+      "non_ready_consumed": false,
+      "notes": [
+        "proposed candidates never create assertions"
+      ]
+    },
+    "invalidation_clears_assertion": {
+      "expect_assertion": false,
+      "expect_root_self": true,
+      "expect_person_merge": false,
+      "expect_belief_status": "unsupported",
+      "expect_utility": "deferred",
+      "non_ready_consumed": false,
+      "notes": [
+        "source invalidate marks assertion invalidated and belief unsupported"
+      ]
+    },
+    "correction_winner_promotes": {
+      "expect_assertion": true,
+      "expect_root_self": true,
+      "expect_person_merge": false,
+      "expect_belief_status": "active",
+      "expect_utility": "durable",
+      "non_ready_consumed": false,
+      "notes": [
+        "PR7: corrects_preference historicalizes old domain assertion and promotes winner durable",
+        "covered by test_correction_promotes_winner_and_historicalizes_loser"
+      ]
+    },
+    "cessation_ready_negative": {
+      "expect_assertion": true,
+      "expect_root_self": true,
+      "expect_person_merge": false,
+      "expect_belief_status": "active",
+      "expect_utility": "durable",
+      "non_ready_consumed": false,
+      "notes": [
+        "PR7: ready negative with linked prior historicalizes positive; head becomes active negative",
+        "covered by test_cessation_historicalizes_prior_positive"
+      ]
+    },
+    "polarity_conflict_uncertain": {
+      "expect_assertion": true,
+      "expect_root_self": true,
+      "expect_person_merge": false,
+      "expect_belief_status": "uncertain",
+      "expect_utility": "deferred",
+      "non_ready_consumed": false,
+      "notes": [
+        "active positive + negative without cessation apply → uncertain/polarity_conflict",
+        "covered by BeliefReconcileTests.test_polarity_conflict_is_uncertain"
+      ]
+    }
+  }
+}

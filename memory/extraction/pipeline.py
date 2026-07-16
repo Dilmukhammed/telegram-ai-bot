@@ -2,34 +2,18 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import json
-import re
-from dataclasses import replace
-from datetime import datetime
-from typing import TYPE_CHECKING, Any, Mapping, Protocol, Sequence, runtime_checkable
-from zoneinfo import ZoneInfo
+from typing import TYPE_CHECKING, Any, Protocol, Sequence, runtime_checkable
 
 from memory.extraction.candidates import CandidateEvidenceInput, CandidateInput
-from memory.extraction.contracts import candidate_contract_violations, normalize_candidate_contracts
 from memory.extraction.mentions import MentionInput
 from memory.extraction.generation import ModelGeneration
 from memory.extraction.prompts import PROMPT_VERSION
 from memory.extraction.strategies import generate_segment_extraction_with_trace
 from memory.extraction.schemas import (
-    CandidateArgument,
     CandidateDraft,
-    CandidateKind,
-    CandidateStatus,
-    Epistemic,
-    EpistemicMode,
-    EpistemicScope,
     EvidenceSpan,
     ExtractionResult,
     MentionDraft,
-    MentionType,
-    Polarity,
-    SpeakerCommitment,
-    Temporal,
     thaw_json,
 )
 from memory.ids import canonical_json
@@ -45,12 +29,22 @@ if TYPE_CHECKING:
 CANDIDATE_EXTRACT_STAGE = "candidate_extract"
 TEXT_EXTRACTOR_NAME = "text_candidate_extractor"
 TEXT_EXTRACTOR_VERSION = "1"
-SUPPORTED_SEGMENT_TYPES = frozenset({"chat_text", "tool_payload"})
+SUPPORTED_SEGMENT_TYPES = frozenset(
+    {
+        "chat_text",
+        "tool_payload",
+        "document_paragraph",
+        "document_heading",
+        "document_table",
+        "document_table_cell",
+    }
+)
 ALLOWED_CANDIDATE_AUTHORITIES = frozenset(
     {
         "user_direct_statement",
         "tool_api_result",
         "authoritative_api_result",
+        "user_supplied_document",
     }
 )
 
@@ -229,14 +223,8 @@ class TextExtractionProcessor:
                 for mention in result.mentions
             )
             candidate_inputs.extend(
-                _stitch_correction_candidates(
-                    self._service,
-                    context,
-                    segment,
-                    prior_segments,
-                    result.candidates,
-                    result.mentions,
-                )
+                _candidate_input(context, segment, candidate, prior_segments=prior_segments)
+                for candidate in result.candidates
             )
 
         return ProcessorOutput(
@@ -284,6 +272,8 @@ def apply_segment_post_processors_with_trace(
     timezone: str,
     prior_segments: Sequence[MemorySegment],
 ) -> tuple[ExtractionResult, list[dict[str, Any]]]:
+    """Generic path: drop prior-only re-extracts, then temporal normalize."""
+    del authority_class
     trace: list[dict[str, Any]] = []
 
     def record(name: str, before: ExtractionResult, after: ExtractionResult) -> ExtractionResult:
@@ -295,10 +285,29 @@ def apply_segment_post_processors_with_trace(
         return after
 
     before = result
-    result = normalize_candidate_contracts(result)
-    result = record("normalize_candidate_contracts", before, result)
-    violations = candidate_contract_violations(result)
-    trace.append({"name": "validate_candidate_contracts", "violations": violations})
+    result = _drop_prior_only_candidates(
+        result,
+        segment_text=segment_text,
+        prior_segments=prior_segments,
+    )
+    result = record("drop_prior_only_candidates", before, result)
+
+    before = result
+    result = _ensure_explicit_correction_candidate(
+        result,
+        segment_text=segment_text,
+        prior_segments=prior_segments,
+    )
+    result = record("ensure_explicit_correction_candidate", before, result)
+
+    before = result
+    result = _attach_correction_prior_support(
+        result,
+        segment_text=segment_text,
+        prior_segments=prior_segments,
+    )
+    result = record("attach_correction_prior_support", before, result)
+
     before = result
     result = _normalize_explicit_temporal_cues(
         result,
@@ -307,122 +316,238 @@ def apply_segment_post_processors_with_trace(
         timezone=timezone,
     )
     result = record("normalize_explicit_temporal_cues", before, result)
-    before = result
-    result = _normalize_calendar_tool_temporal(
-        result,
-        segment_text=segment_text,
-        authority_class=authority_class,
-        timezone=timezone,
-    )
-    result = record("normalize_calendar_tool_temporal", before, result)
-    before = result
-    result = _synthesize_calendar_tool_event(
-        result,
-        segment_text=segment_text,
-        authority_class=authority_class,
-        timezone=timezone,
-    )
-    result = record("synthesize_calendar_tool_event", before, result)
-    before = result
-    result = _synthesize_open_task_event(
-        result,
-        segment_text=segment_text,
-        authority_class=authority_class,
-    )
-    result = record("synthesize_open_task_event", before, result)
-    before = result
-    result = _normalize_user_uncertainty(result, segment_text=segment_text)
-    result = record("normalize_user_uncertainty", before, result)
-    before = result
-    result = _normalize_possibility_commitment(result, segment_text=segment_text)
-    result = record("normalize_possibility_commitment", before, result)
-    before = result
-    result = _normalize_considered_plan(result, segment_text=segment_text)
-    result = record("normalize_considered_plan", before, result)
-    before = result
-    result = _normalize_habitual_preference(result, segment_text=segment_text)
-    result = record("normalize_habitual_preference", before, result)
-    before = result
-    result = _filter_context_scoped_command(result, segment_text=segment_text)
-    result = record("filter_context_scoped_command", before, result)
-    before = result
-    result = _normalize_reminder_task(result, segment_text=segment_text)
-    result = record("normalize_reminder_task", before, result)
-    before = result
-    result = _normalize_explicit_intention(result, segment_text=segment_text)
-    result = record("normalize_explicit_intention", before, result)
-    before = result
-    result = _normalize_deadline_event(result, segment_text=segment_text)
-    result = record("normalize_deadline_event", before, result)
-    before = result
-    result = _normalize_intolerance_ontology(result, segment_text=segment_text)
-    result = record("normalize_intolerance_ontology", before, result)
-    before = result
-    result = _synthesize_explicit_kinship(result, segment_text=segment_text)
-    result = record("synthesize_explicit_kinship", before, result)
-    before = result
-    result = _normalize_reported_belief(result, segment_text=segment_text)
-    result = record("normalize_reported_belief", before, result)
-    before = result
-    result = _normalize_no_longer_employment(
-        result,
-        segment_text=segment_text,
-        occurred_at=occurred_at,
-        timezone=timezone,
-    )
-    result = record("normalize_no_longer_employment", before, result)
-    before = result
-    result = _synthesize_direct_works_at(result, segment_text=segment_text)
-    result = record("synthesize_direct_works_at", before, result)
-    before = result
-    result = _bootstrap_residence_place_mentions(result, segment_text=segment_text)
-    result = record("bootstrap_residence_place_mentions", before, result)
-    before = result
-    result = _bootstrap_correction_place_mentions(
-        result,
-        segment_text=segment_text,
-        prior_segments=prior_segments,
-    )
-    result = record("bootstrap_correction_place_mentions", before, result)
-    before = result
-    result = _promote_correction_candidate(
-        result,
-        segment_text=segment_text,
-        prior_segments=prior_segments,
-    )
-    result = record("promote_correction_candidate", before, result)
-    before = result
-    result = _normalize_explicit_temporal_cues(
-        result,
-        segment_text=segment_text,
-        occurred_at=occurred_at,
-        timezone=timezone,
-    )
-    result = record("normalize_explicit_temporal_cues_final", before, result)
-    before = result
-    from memory.extraction.discourse import normalize_discourse
-
-    result = normalize_discourse(
-        result,
-        segment_text=segment_text,
-        prior_segments=prior_segments,
-    )
-    result = record("normalize_discourse", before, result)
-    before = result
-    result = normalize_candidate_contracts(result)
-    result = record("normalize_candidate_contracts_final", before, result)
-    trace.append(
-        {
-            "name": "validate_candidate_contracts_final",
-            "violations": candidate_contract_violations(result),
-        }
-    )
     return result, trace
 
 
-def _local_occurred_at(occurred_at: str, timezone: str) -> str:
-    return datetime.fromisoformat(occurred_at).astimezone(ZoneInfo(timezone)).isoformat()
+_CORRECTION_MARKERS = (
+    "correction:",
+    "correction -",
+    "исправление:",
+    "исправление -",
+    "исправление —",
+)
 
+
+def _has_correction_marker(segment_text: str) -> bool:
+    lower = segment_text.casefold()
+    return any(marker in lower for marker in _CORRECTION_MARKERS)
+
+
+def _ensure_explicit_correction_candidate(
+    result: ExtractionResult,
+    *,
+    segment_text: str,
+    prior_segments: Sequence[MemorySegment],
+) -> ExtractionResult:
+    """If the user explicitly marks a correction but the LLM skips it, synthesize one."""
+    from memory.extraction.schemas import (
+        CandidateArgument,
+        CandidateStatus,
+        Epistemic,
+        EpistemicMode,
+        EpistemicScope,
+        Polarity,
+        SpeakerCommitment,
+    )
+
+    if not _has_correction_marker(segment_text):
+        return result
+    if any(_looks_like_correction_draft(item) for item in result.candidates):
+        return result
+    # list_prior returns oldest→newest; attach to the most recent prior.
+    usable_priors = [
+        prior
+        for prior in prior_segments
+        if str(getattr(prior, "text", "") or "").strip()
+    ]
+    if not usable_priors:
+        return result
+    prior_text = str(usable_priors[-1].text or "").strip()
+    if not segment_text:
+        return result
+    candidate = CandidateDraft(
+        candidate_ref="c_auto_correction",
+        kind="correction",
+        schema_name="correction",
+        schema_version="1",
+        arguments=(
+            CandidateArgument(role="old", literal=prior_text[:160], has_literal=True),
+            CandidateArgument(role="new", literal=segment_text.strip()[:160], has_literal=True),
+        ),
+        attributes={},
+        polarity=Polarity.POSITIVE,
+        epistemic=Epistemic(
+            mode=EpistemicMode.ASSERTED,
+            speaker_commitment=SpeakerCommitment.CERTAIN,
+            scope=EpistemicScope.PROPOSITION,
+        ),
+        temporal=None,
+        status=CandidateStatus.PROPOSED,
+        evidence=(
+            EvidenceSpan(
+                relation="corrects",
+                exact_quote=segment_text,
+                char_start=0,
+                char_end=len(segment_text),
+            ),
+        ),
+        canonical_hint=None,
+    )
+    return ExtractionResult(
+        schema_version=result.schema_version,
+        abstain=False,
+        mentions=result.mentions,
+        candidates=tuple((*result.candidates, candidate)),
+    )
+
+def _looks_like_correction_draft(candidate: CandidateDraft) -> bool:
+    if "correct" in candidate.kind.casefold() or "correct" in candidate.schema_name.casefold():
+        return True
+    roles = {argument.role.casefold() for argument in candidate.arguments}
+    if "old" in roles and "new" in roles:
+        return True
+    return any(evidence.relation == "corrects" for evidence in candidate.evidence)
+
+
+def _attach_correction_prior_support(
+    result: ExtractionResult,
+    *,
+    segment_text: str,
+    prior_segments: Sequence[MemorySegment],
+) -> ExtractionResult:
+    """Attach supports evidence on the latest prior segment for correction candidates.
+
+    Insert-time supersede requires supports on a segment other than the correction's
+    own segment. The LLM only quotes the current segment; we deterministically link
+    the most recent prior chat segment as the superseded support context.
+    """
+    # list_prior returns oldest→newest; supersede against the most recent prior.
+    usable_priors = [
+        prior
+        for prior in prior_segments
+        if str(getattr(prior, "text", "") or "").strip()
+        and str(getattr(prior, "segment_id", "") or "").strip()
+    ]
+    if result.abstain or not result.candidates or not usable_priors:
+        return result
+    prior = usable_priors[-1]
+    prior_text = str(prior.text or "")
+    prior_id = str(prior.segment_id)
+    updated: list[CandidateDraft] = []
+    changed = False
+    for candidate in result.candidates:
+        if not _looks_like_correction_draft(candidate):
+            updated.append(candidate)
+            continue
+        evidence = list(candidate.evidence)
+        if any(item.source_segment_id == prior_id for item in evidence):
+            updated.append(candidate)
+            continue
+        # Prefer marking the current-segment quote as corrects when missing.
+        normalized_current: list[EvidenceSpan] = []
+        saw_corrects = any(item.relation == "corrects" for item in evidence)
+        for item in evidence:
+            if (
+                not saw_corrects
+                and item.source_segment_id is None
+                and item.exact_quote in segment_text
+                and item.relation == "supports"
+            ):
+                normalized_current.append(
+                    EvidenceSpan(
+                        relation="corrects",
+                        exact_quote=item.exact_quote,
+                        char_start=item.char_start,
+                        char_end=item.char_end,
+                        source_segment_id=item.source_segment_id,
+                    )
+                )
+                saw_corrects = True
+                changed = True
+            else:
+                normalized_current.append(item)
+        normalized_current.append(
+            EvidenceSpan(
+                relation="supports",
+                exact_quote=prior_text,
+                char_start=0,
+                char_end=len(prior_text),
+                source_segment_id=prior_id,
+            )
+        )
+        changed = True
+        updated.append(
+            CandidateDraft(
+                candidate_ref=candidate.candidate_ref,
+                kind=candidate.kind,
+                schema_name=candidate.schema_name,
+                schema_version=candidate.schema_version,
+                arguments=candidate.arguments,
+                attributes=candidate.attributes,
+                polarity=candidate.polarity,
+                epistemic=candidate.epistemic,
+                temporal=candidate.temporal,
+                status=candidate.status,
+                evidence=tuple(normalized_current),
+                canonical_hint=candidate.canonical_hint,
+            )
+        )
+    if not changed:
+        return result
+    return ExtractionResult(
+        schema_version=result.schema_version,
+        abstain=False,
+        mentions=result.mentions,
+        candidates=tuple(updated),
+    )
+
+def _drop_prior_only_candidates(
+    result: ExtractionResult,
+    *,
+    segment_text: str,
+    prior_segments: Sequence[MemorySegment],
+) -> ExtractionResult:
+    """Drop candidates whose evidence quotes appear only in prior text, not current."""
+    prior_texts = [
+        str(getattr(prior, "text", "") or "")
+        for prior in prior_segments
+        if str(getattr(prior, "text", "") or "").strip()
+    ]
+    if not prior_texts or result.abstain or not result.candidates:
+        return result
+    current = segment_text
+    kept: list[CandidateDraft] = []
+    for candidate in result.candidates:
+        quotes = [
+            str(evidence.exact_quote or "").strip()
+            for evidence in candidate.evidence
+            if str(evidence.exact_quote or "").strip()
+        ]
+        if not quotes:
+            kept.append(candidate)
+            continue
+        in_current = any(quote in current for quote in quotes)
+        only_in_prior = (not in_current) and all(
+            any(quote in prior for prior in prior_texts) for quote in quotes
+        )
+        if only_in_prior:
+            continue
+        kept.append(candidate)
+    if len(kept) == len(result.candidates):
+        return result
+    if not kept:
+        return ExtractionResult(
+            schema_version=result.schema_version,
+            abstain=True,
+            mentions=(),
+            candidates=(),
+        )
+    return ExtractionResult(
+        schema_version=result.schema_version,
+        abstain=False,
+        mentions=result.mentions,
+        candidates=tuple(kept),
+    )
 
 def _normalize_explicit_temporal_cues(
     result: ExtractionResult,
@@ -438,1039 +563,6 @@ def _normalize_explicit_temporal_cues(
         segment_text=segment_text,
         occurred_at=occurred_at,
         timezone=timezone,
-    )
-
-
-def _normalize_calendar_tool_temporal(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-    authority_class: str,
-    timezone: str,
-) -> ExtractionResult:
-    if authority_class != "tool_api_result" or not result.candidates:
-        return result
-    try:
-        payload = json.loads(segment_text)
-    except json.JSONDecodeError:
-        return result
-    if not isinstance(payload, dict):
-        return result
-    flight = payload.get("flight")
-    departure = payload.get("departure")
-    if isinstance(flight, str) and isinstance(departure, str):
-        try:
-            departure_time = datetime.fromisoformat(departure).isoformat(timespec="seconds")
-        except ValueError:
-            return result
-        candidates = tuple(
-            replace(
-                candidate,
-                arguments=(
-                    CandidateArgument(role="subject", literal="self", has_literal=True),
-                    CandidateArgument(role="title", literal=flight, has_literal=True),
-                ),
-                temporal=Temporal(
-                    original_text=departure,
-                    valid_from=None,
-                    valid_to=None,
-                    event_time=departure_time,
-                    precision="second",
-                    timezone=timezone,
-                ),
-            )
-            if candidate.kind.value == "event" and candidate.schema_name == "calendar_event"
-            else candidate
-            for candidate in result.candidates
-        )
-        return replace(result, candidates=candidates)
-    date_value = payload.get("date")
-    time_value = payload.get("time")
-    if not isinstance(date_value, str) or not isinstance(time_value, str):
-        return result
-
-    local = datetime.fromisoformat(f"{date_value}T{time_value}:00").replace(
-        tzinfo=ZoneInfo(timezone)
-    )
-    offset = local.strftime("%z")
-    offset = f"{offset[:3]}:{offset[3:]}"
-    event_time = f"{date_value}T{time_value}:00{offset}"
-    original_text = f"{date_value} {time_value}"
-
-    candidates: list[CandidateDraft] = []
-    for candidate in result.candidates:
-        if candidate.kind.value == "event" and candidate.schema_name == "calendar_event":
-            candidates.append(
-                replace(
-                    candidate,
-                    temporal=Temporal(
-                        original_text=original_text,
-                        valid_from=None,
-                        valid_to=None,
-                        event_time=event_time,
-                        precision="minute",
-                        timezone=timezone,
-                    ),
-                )
-            )
-        else:
-            candidates.append(candidate)
-    return replace(result, candidates=tuple(candidates))
-
-
-def _synthesize_calendar_tool_event(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-    authority_class: str,
-    timezone: str,
-) -> ExtractionResult:
-    from memory.extraction.schemas import CandidateStatus, Epistemic, EpistemicMode, EpistemicScope, Polarity
-
-    if authority_class != "tool_api_result":
-        return result
-    try:
-        payload = json.loads(segment_text)
-    except json.JSONDecodeError:
-        return result
-    if not isinstance(payload, dict):
-        return result
-    flight = payload.get("flight")
-    departure = payload.get("departure")
-    if isinstance(flight, str) and isinstance(departure, str):
-        if result.candidates and any(
-            candidate.kind.value == "event" and candidate.schema_name == "calendar_event"
-            for candidate in result.candidates
-        ):
-            return result
-        try:
-            departure_time = datetime.fromisoformat(departure).isoformat(timespec="seconds")
-        except ValueError:
-            return result
-        return replace(
-            result,
-            abstain=False,
-            candidates=(
-                CandidateDraft(
-                    candidate_ref="c1",
-                    kind=CandidateKind.EVENT,
-                    schema_name="calendar_event",
-                    schema_version="1",
-                    arguments=(
-                        CandidateArgument(role="subject", literal="self", has_literal=True),
-                        CandidateArgument(role="title", literal=flight, has_literal=True),
-                    ),
-                    attributes={},
-                    polarity=Polarity.POSITIVE,
-                    epistemic=Epistemic(
-                        mode=EpistemicMode.RETRIEVED,
-                        speaker_commitment=SpeakerCommitment.CERTAIN,
-                        scope=EpistemicScope.PROPOSITION,
-                    ),
-                    temporal=Temporal(
-                        original_text=departure,
-                        valid_from=None,
-                        valid_to=None,
-                        event_time=departure_time,
-                        precision="second",
-                        timezone=timezone,
-                    ),
-                    status=CandidateStatus.PROPOSED,
-                    evidence=(EvidenceSpan("supports", segment_text, 0, len(segment_text)),),
-                ),
-            ),
-        )
-    title = payload.get("event") or payload.get("title")
-    date_value = payload.get("date")
-    time_value = payload.get("time")
-    if not isinstance(title, str) or not isinstance(date_value, str) or not isinstance(time_value, str):
-        return result
-    if result.candidates and any(
-        candidate.kind.value == "event" and candidate.schema_name == "calendar_event"
-        for candidate in result.candidates
-    ):
-        return result
-    local = datetime.fromisoformat(f"{date_value}T{time_value}:00").replace(
-        tzinfo=ZoneInfo(timezone)
-    )
-    offset = local.strftime("%z")
-    offset = f"{offset[:3]}:{offset[3:]}"
-    event_time = f"{date_value}T{time_value}:00{offset}"
-    original_text = f"{date_value} {time_value}"
-    return replace(
-        result,
-        abstain=False,
-        candidates=(
-            CandidateDraft(
-                candidate_ref="c1",
-                kind=CandidateKind.EVENT,
-                schema_name="calendar_event",
-                schema_version="1",
-                arguments=(
-                    CandidateArgument(role="subject", literal="self", has_literal=True),
-                    CandidateArgument(role="title", literal=title, has_literal=True),
-                ),
-                attributes={},
-                polarity=Polarity.POSITIVE,
-                epistemic=Epistemic(
-                    mode=EpistemicMode.RETRIEVED,
-                    speaker_commitment=SpeakerCommitment.CERTAIN,
-                    scope=EpistemicScope.PROPOSITION,
-                ),
-                temporal=Temporal(
-                    original_text=original_text,
-                    valid_from=None,
-                    valid_to=None,
-                    event_time=event_time,
-                    precision="minute",
-                    timezone=timezone,
-                ),
-                status=CandidateStatus.PROPOSED,
-                evidence=(
-                    EvidenceSpan(
-                        relation="supports",
-                        exact_quote=segment_text,
-                        char_start=0,
-                        char_end=len(segment_text),
-                    ),
-                ),
-            ),
-        ),
-    )
-
-
-def _synthesize_open_task_event(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-    authority_class: str,
-) -> ExtractionResult:
-    from memory.extraction.schemas import CandidateStatus, Epistemic, EpistemicMode, EpistemicScope, Polarity
-
-    if authority_class != "tool_api_result":
-        return result
-    try:
-        payload = json.loads(segment_text)
-    except json.JSONDecodeError:
-        return result
-    if not isinstance(payload, dict):
-        return result
-    title = payload.get("title")
-    status = payload.get("status")
-    if not isinstance(title, str):
-        return result
-    if status not in {None, "needsAction", "open", "created"}:
-        return result
-    schema_name = "open_task" if status in {None, "needsAction", "open"} else "created_task"
-    if result.candidates and any(
-        candidate.kind.value == "task" and candidate.schema_name in {"open_task", "created_task"}
-        for candidate in result.candidates
-    ):
-        return result
-    return replace(
-        result,
-        abstain=False,
-        candidates=(
-            CandidateDraft(
-                candidate_ref="c1",
-                kind=CandidateKind.TASK,
-                schema_name=schema_name,
-                schema_version="1",
-                arguments=(
-                    CandidateArgument(role="subject", literal="self", has_literal=True),
-                    CandidateArgument(role="title", literal=title, has_literal=True),
-                ),
-                attributes={},
-                polarity=Polarity.POSITIVE,
-                epistemic=Epistemic(
-                    mode=EpistemicMode.RETRIEVED,
-                    speaker_commitment=SpeakerCommitment.CERTAIN,
-                    scope=EpistemicScope.PROPOSITION,
-                ),
-                temporal=None,
-                status=CandidateStatus.PROPOSED,
-                evidence=(
-                    EvidenceSpan(
-                        relation="supports",
-                        exact_quote=segment_text,
-                        char_start=0,
-                        char_end=len(segment_text),
-                    ),
-                ),
-            ),
-        ),
-    )
-
-
-_USER_UNCERTAINTY_MARKERS = (
-    "не уверен",
-    "неуверен",
-    "not sure",
-    "i'm not sure",
-    "i am not sure",
-)
-
-
-def _normalize_user_uncertainty(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-) -> ExtractionResult:
-    from memory.extraction.schemas import CandidateStatus, EpistemicMode, EpistemicScope, Polarity
-
-    folded = segment_text.casefold()
-    if not any(marker in folded for marker in _USER_UNCERTAINTY_MARKERS):
-        return result
-    if not result.mentions:
-        bootstrapped = _bootstrap_uncertain_works_at(result, segment_text=segment_text)
-        if bootstrapped is not None:
-            result = bootstrapped
-    has_uncertain_works_at = any(
-        candidate.schema_name == "works_at"
-        and candidate.polarity.value == "unknown"
-        and candidate.epistemic.speaker_commitment.value == "uncertain"
-        for candidate in result.candidates
-    )
-    if not result.candidates or not has_uncertain_works_at:
-        synthesized = _synthesize_uncertain_works_at(result, segment_text=segment_text)
-        if synthesized is not None:
-            result = synthesized
-    if not result.candidates:
-        return result
-    candidates: list[CandidateDraft] = []
-    for candidate in result.candidates:
-        epistemic = candidate.epistemic
-        if epistemic.mode.value == "asserted":
-            candidates.append(
-                replace(
-                    candidate,
-                    polarity=Polarity.UNKNOWN,
-                    status=CandidateStatus.NEEDS_CONFIRMATION,
-                    epistemic=replace(
-                        epistemic,
-                        speaker_commitment=SpeakerCommitment.UNCERTAIN,
-                        needs_confirmation=True,
-                    ),
-                )
-            )
-        else:
-            candidates.append(candidate)
-    return replace(result, candidates=tuple(candidates))
-
-
-_REPORTED_BELIEF_MARKERS = (
-    "думает",
-    "говорит",
-    "сказал",
-    "считает",
-    " thinks ",
-    " says ",
-    " said ",
-    " believes ",
-)
-
-_DIRECT_QUOTE_MARKS = ('"', "“", "”", "«", "»")
-
-
-def _reported_participants(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-) -> tuple[ExtractionResult, MentionDraft, MentionDraft] | None:
-    """Find the reporter and proposition subject in explicit reported speech."""
-    match = re.match(
-        r"\s*(?P<reporter>[\w'-]+(?:\s+[\w'-]+)?)\s+"
-        r"(?:said|says|thinks|believes|сказал|сказала|говорит|думает|считает)"
-        r"\s*,?\s+(?:that|что)\s+"
-        r"(?P<subject>[A-ZА-ЯЁ][\w'-]*)\b",
-        segment_text,
-        re.IGNORECASE,
-    )
-    if match is None:
-        return None
-
-    mentions = list(result.mentions)
-
-    def ensure_mention(group: str, local_ref: str) -> MentionDraft:
-        start, end = match.span(group)
-        surface = segment_text[start:end]
-        existing = next(
-            (
-                mention
-                for mention in mentions
-                if mention.mention_type is MentionType.PERSON
-                and mention.char_start == start
-                and mention.char_end == end
-            ),
-            None,
-        )
-        if existing is not None:
-            return existing
-        mention = MentionDraft(
-            mention_ref=local_ref,
-            mention_type=MentionType.PERSON,
-            surface_text=surface,
-            char_start=start,
-            char_end=end,
-            normalized_hint=surface,
-        )
-        mentions.append(mention)
-        return mention
-
-    reporter = ensure_mention("reporter", "reported_speaker")
-    subject = ensure_mention("subject", "reported_subject")
-    return replace(result, mentions=tuple(mentions)), reporter, subject
-
-
-def _normalize_reported_belief(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-) -> ExtractionResult:
-    from memory.extraction.schemas import CandidateStatus, EpistemicMode, Polarity
-
-    folded = f" {segment_text.casefold()} "
-    if not any(marker in folded for marker in _REPORTED_BELIEF_MARKERS):
-        return result
-    # Explicit quotation marks are handled as quoted speech downstream.  A
-    # reporting verb alone must not flatten a direct quote into hearsay.
-    if any(mark in segment_text for mark in _DIRECT_QUOTE_MARKS):
-        return result
-    participants = _reported_participants(result, segment_text=segment_text)
-    reporter: MentionDraft | None = None
-    subject: MentionDraft | None = None
-    if participants is not None:
-        result, reporter, subject = participants
-    if not result.candidates:
-        synthesized = _synthesize_reported_event(
-            result,
-            segment_text=segment_text,
-            reporter=reporter,
-            subject=subject,
-        )
-        if synthesized is not None:
-            return synthesized
-    candidates: list[CandidateDraft] = []
-    for candidate in result.candidates:
-        epistemic = candidate.epistemic
-        if participants is not None or epistemic.mode.value == "reported":
-            arguments = list(candidate.arguments)
-            if subject is not None:
-                subject_index = next(
-                    (
-                        index
-                        for index, argument in enumerate(arguments)
-                        if argument.role in {"subject", "person"}
-                    ),
-                    None,
-                )
-                if subject_index is not None:
-                    arguments[subject_index] = CandidateArgument(
-                        role=arguments[subject_index].role,
-                        mention_ref=subject.mention_ref,
-                        has_literal=False,
-                    )
-            kind = candidate.kind
-            schema_name = candidate.schema_name
-            if subject is not None and (
-                "командировк" in folded or "business trip" in folded
-            ):
-                kind = CandidateKind.EVENT
-                schema_name = "attends"
-                arguments = [
-                    CandidateArgument(
-                        role="subject",
-                        mention_ref=subject.mention_ref,
-                        has_literal=False,
-                    ),
-                    CandidateArgument(
-                        role="event",
-                        literal=(
-                            "командировка"
-                            if "командировк" in folded
-                            else "business trip"
-                        ),
-                        has_literal=True,
-                    ),
-                ]
-            candidates.append(
-                replace(
-                    candidate,
-                    kind=kind,
-                    schema_name=schema_name,
-                    arguments=tuple(arguments),
-                    polarity=Polarity.UNKNOWN,
-                    status=CandidateStatus.NEEDS_CONFIRMATION,
-                    epistemic=replace(
-                        epistemic,
-                        mode=EpistemicMode.REPORTED,
-                        speaker_commitment=SpeakerCommitment.POSSIBLE,
-                        needs_confirmation=True,
-                        speaker_ref=(
-                            reporter.mention_ref
-                            if reporter is not None
-                            else epistemic.speaker_ref
-                        ),
-                    ),
-                )
-            )
-        else:
-            candidates.append(candidate)
-    return replace(result, candidates=tuple(candidates))
-
-
-_POSSIBILITY_MARKERS = (
-    " might ",
-    " maybe ",
-    " possibly ",
-    " возможно ",
-    " возможно,",
-)
-
-_PROBABLE_MARKERS = (
-    " probably ",
-    " вероятно ",
-)
-
-
-def _normalize_possibility_commitment(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-) -> ExtractionResult:
-    folded = f" {segment_text.casefold()} "
-    probable = any(marker in folded for marker in _PROBABLE_MARKERS)
-    possible = any(marker in folded for marker in _POSSIBILITY_MARKERS)
-    if not probable and not possible:
-        return result
-    target = SpeakerCommitment.PROBABLE if probable else SpeakerCommitment.POSSIBLE
-    candidates: list[CandidateDraft] = []
-    for candidate in result.candidates:
-        epistemic = candidate.epistemic
-        if (
-            epistemic.mode.value == "asserted"
-            and candidate.polarity.value == "unknown"
-            and epistemic.speaker_commitment.value in {"uncertain", "possible", "probable"}
-        ):
-            candidates.append(
-                replace(
-                    candidate,
-                    epistemic=replace(
-                        epistemic,
-                        speaker_commitment=target,
-                    ),
-                )
-            )
-        else:
-            candidates.append(candidate)
-    return replace(result, candidates=tuple(candidates))
-
-
-def _normalize_considered_plan(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-) -> ExtractionResult:
-    """Keep tentative first-person plans distinct from confident predictions."""
-    if re.search(r"^\s*(?:думаю\s+\w+ть|i(?:'m| am) thinking (?:of|about))", segment_text, re.I) is None:
-        return result
-    candidates = tuple(
-        replace(
-            candidate,
-            polarity=Polarity.UNKNOWN,
-            status=CandidateStatus.NEEDS_CONFIRMATION,
-            epistemic=replace(
-                candidate.epistemic,
-                mode=EpistemicMode.ASSERTED,
-                speaker_commitment=SpeakerCommitment.POSSIBLE,
-                needs_confirmation=True,
-                speaker_ref=None,
-            ),
-        )
-        if candidate.schema_name == "moves_to"
-        else candidate
-        for candidate in result.candidates
-    )
-    return replace(result, candidates=candidates)
-
-
-def _normalize_habitual_preference(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-) -> ExtractionResult:
-    match = re.search(
-        r"(?:\bпью\s+только\s+|\bi\s+only\s+drink\s+)(?P<value>[^.]+)",
-        segment_text,
-        re.I,
-    )
-    if match is None:
-        return result
-    value = match.group("value").strip()
-    candidate_ref = result.candidates[0].candidate_ref if result.candidates else "c1"
-    candidate = CandidateDraft(
-        candidate_ref=candidate_ref,
-        kind=CandidateKind.PREFERENCE,
-        schema_name="prefers",
-        schema_version="1",
-        arguments=(
-            CandidateArgument(role="subject", literal="self", has_literal=True),
-            CandidateArgument(role="value", literal=value, has_literal=True),
-        ),
-        attributes={},
-        polarity=Polarity.POSITIVE,
-        epistemic=Epistemic(
-            mode=EpistemicMode.ASSERTED,
-            speaker_commitment=SpeakerCommitment.CERTAIN,
-            scope=EpistemicScope.PROPOSITION,
-        ),
-        temporal=None,
-        status=CandidateStatus.PROPOSED,
-        evidence=(EvidenceSpan("supports", segment_text, 0, len(segment_text)),),
-    )
-    return replace(result, abstain=False, candidates=(candidate,))
-
-
-def _filter_context_scoped_command(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-) -> ExtractionResult:
-    """Do not persist one-shot action commands as durable user preferences."""
-    if re.match(
-        r"^\s*(?:book|reserve|find|order|show|забронируй|найди|закажи|покажи)\b",
-        segment_text,
-        re.I,
-    ) is None:
-        return result
-    return replace(result, abstain=True, mentions=(), candidates=())
-
-
-def _normalize_reminder_task(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-) -> ExtractionResult:
-    match = re.search(
-        r"\bremind\s+me\s+to\s+(?P<title>.+?)(?:\s+next\s+week)?[.!]?\s*$",
-        segment_text,
-        re.I,
-    )
-    if match is None:
-        return result
-    title = re.sub(r"^(\w+\s+)my\s+", r"\1", match.group("title").strip(), flags=re.I)
-    candidate_ref = result.candidates[0].candidate_ref if result.candidates else "c1"
-    temporal = next(
-        (candidate.temporal for candidate in result.candidates if candidate.temporal is not None),
-        None,
-    )
-    candidate = CandidateDraft(
-        candidate_ref=candidate_ref,
-        kind=CandidateKind.TASK,
-        schema_name="created_task",
-        schema_version="1",
-        arguments=(
-            CandidateArgument(role="subject", literal="self", has_literal=True),
-            CandidateArgument(role="title", literal=title, has_literal=True),
-        ),
-        attributes={},
-        polarity=Polarity.POSITIVE,
-        epistemic=Epistemic(
-            mode=EpistemicMode.ASSERTED,
-            speaker_commitment=SpeakerCommitment.CERTAIN,
-            scope=EpistemicScope.PROPOSITION,
-        ),
-        temporal=temporal,
-        status=CandidateStatus.PROPOSED,
-        evidence=(EvidenceSpan("supports", segment_text, 0, len(segment_text)),),
-    )
-    return replace(result, abstain=False, candidates=(candidate,))
-
-
-def _normalize_explicit_intention(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-) -> ExtractionResult:
-    match = re.search(
-        r"^\s*(?:собираюсь|планирую|i\s+plan\s+to|i\s+intend\s+to)\s+(?P<title>.+?)\s*[.!]?$",
-        segment_text,
-        re.I,
-    )
-    if match is None:
-        return result
-    temporal = next(
-        (candidate.temporal for candidate in result.candidates if candidate.temporal is not None),
-        None,
-    )
-    title = match.group("title").strip()
-    if temporal is not None and temporal.original_text:
-        cue_start = title.casefold().rfind(temporal.original_text.casefold())
-        if cue_start > 0:
-            title = title[:cue_start].rstrip(" ,;:-")
-    title = re.sub(
-        r"\s+(?:"
-        r"в\s+(?:январе|феврале|марте|апреле|мае|июне|июле|августе|сентябре|октябре|ноябре|декабре)"
-        r"|(?:осенью|зимой|весной|летом)"
-        r"|(?:next|this)\s+(?:week|month|year|spring|summer|autumn|fall|winter)"
-        r")$",
-        "",
-        title,
-        flags=re.I,
-    ).rstrip(" ,;:-")
-    candidate_ref = result.candidates[0].candidate_ref if result.candidates else "c1"
-    candidate = CandidateDraft(
-        candidate_ref=candidate_ref,
-        kind=CandidateKind.TASK,
-        schema_name="created_task",
-        schema_version="1",
-        arguments=(
-            CandidateArgument(role="subject", literal="self", has_literal=True),
-            CandidateArgument(role="title", literal=title, has_literal=True),
-        ),
-        attributes={},
-        polarity=Polarity.POSITIVE,
-        epistemic=Epistemic(
-            mode=EpistemicMode.ASSERTED,
-            speaker_commitment=SpeakerCommitment.CERTAIN,
-            scope=EpistemicScope.PROPOSITION,
-        ),
-        temporal=temporal,
-        status=CandidateStatus.PROPOSED,
-        evidence=(EvidenceSpan("supports", segment_text, 0, len(segment_text)),),
-    )
-    return replace(result, abstain=False, mentions=(), candidates=(candidate,))
-
-
-def _normalize_deadline_event(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-) -> ExtractionResult:
-    match = re.search(
-        r"\b(?P<title>дедлайн(?:\s+по\s+[^—–:\d]+?)?)\s*(?:[—–:]|\s+на\s+)",
-        segment_text,
-        re.I,
-    )
-    if match is None:
-        match = re.search(
-            r"\b(?P<title>[^.]*?deadline)\s*(?:is|:|[—–-])",
-            segment_text,
-            re.I,
-        )
-    if match is None:
-        return result
-    temporal = next(
-        (candidate.temporal for candidate in result.candidates if candidate.temporal is not None),
-        None,
-    )
-    candidate_ref = result.candidates[0].candidate_ref if result.candidates else "c1"
-    candidate = CandidateDraft(
-        candidate_ref=candidate_ref,
-        kind=CandidateKind.EVENT,
-        schema_name="calendar_event",
-        schema_version="1",
-        arguments=(
-            CandidateArgument(role="subject", literal="self", has_literal=True),
-            CandidateArgument(
-                role="title",
-                literal=match.group("title").strip(),
-                has_literal=True,
-            ),
-        ),
-        attributes={},
-        polarity=Polarity.POSITIVE,
-        epistemic=Epistemic(
-            mode=EpistemicMode.ASSERTED,
-            speaker_commitment=SpeakerCommitment.CERTAIN,
-            scope=EpistemicScope.PROPOSITION,
-        ),
-        temporal=temporal,
-        status=CandidateStatus.PROPOSED,
-        evidence=(EvidenceSpan("supports", segment_text, 0, len(segment_text)),),
-    )
-    return replace(result, abstain=False, candidates=(candidate,))
-
-
-def _normalize_intolerance_ontology(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-) -> ExtractionResult:
-    if re.search(r"\b(?:непереносим\w*|intoleran\w*)\b", segment_text, re.I) is None:
-        return result
-    candidates: list[CandidateDraft] = []
-    for candidate in result.candidates:
-        if candidate.schema_name != "allergic_to":
-            candidates.append(candidate)
-            continue
-        allergen = next(
-            (argument for argument in candidate.arguments if argument.role == "allergen"),
-            None,
-        )
-        if allergen is None:
-            candidates.append(candidate)
-            continue
-        candidates.append(
-            replace(
-                candidate,
-                kind=CandidateKind.PREFERENCE,
-                schema_name="dietary_constraint",
-                arguments=(
-                    CandidateArgument(role="subject", literal="self", has_literal=True),
-                    replace(allergen, role="excluded"),
-                ),
-            )
-        )
-    return replace(result, candidates=tuple(candidates))
-
-
-def _synthesize_explicit_kinship(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-) -> ExtractionResult:
-    match = re.search(
-        r"\bмоя\s+(?:сестра|брат)\s+(?P<name>[А-ЯЁ][А-Яа-яЁё'-]+)\b",
-        segment_text,
-        re.I,
-    )
-    if match is None:
-        match = re.search(
-            r"\bmy\s+(?:sister|brother)\s+(?P<name>[A-Z][A-Za-z'-]+)\b",
-            segment_text,
-            re.I,
-        )
-    if match is None:
-        return result
-    start, end = match.span("name")
-    person = next(
-        (
-            mention
-            for mention in result.mentions
-            if mention.mention_type is MentionType.PERSON
-            and mention.char_start == start
-            and mention.char_end == end
-        ),
-        None,
-    )
-    mentions = list(result.mentions)
-    if person is None:
-        surface = segment_text[start:end]
-        person = MentionDraft(
-            mention_ref="named_sibling",
-            mention_type=MentionType.PERSON,
-            surface_text=surface,
-            char_start=start,
-            char_end=end,
-            normalized_hint=surface,
-        )
-        mentions.append(person)
-    if any(candidate.schema_name == "sibling_of" for candidate in result.candidates):
-        candidates = tuple(
-            replace(
-                candidate,
-                arguments=(
-                    CandidateArgument(
-                        role="person",
-                        mention_ref=person.mention_ref,
-                        has_literal=False,
-                    ),
-                    CandidateArgument(role="related_to", literal="self", has_literal=True),
-                ),
-            )
-            if candidate.schema_name == "sibling_of"
-            else candidate
-            for candidate in result.candidates
-        )
-        return replace(result, mentions=tuple(mentions), candidates=candidates)
-    used_refs = {candidate.candidate_ref for candidate in result.candidates}
-    index = 1
-    while f"c{index}" in used_refs:
-        index += 1
-    sibling = CandidateDraft(
-        candidate_ref=f"c{index}",
-        kind=CandidateKind.RELATION,
-        schema_name="sibling_of",
-        schema_version="1",
-        arguments=(
-            CandidateArgument(
-                role="person",
-                mention_ref=person.mention_ref,
-                has_literal=False,
-            ),
-            CandidateArgument(role="related_to", literal="self", has_literal=True),
-        ),
-        attributes={},
-        polarity=Polarity.POSITIVE,
-        epistemic=Epistemic(
-            mode=EpistemicMode.ASSERTED,
-            speaker_commitment=SpeakerCommitment.CERTAIN,
-            scope=EpistemicScope.PROPOSITION,
-        ),
-        temporal=None,
-        status=CandidateStatus.PROPOSED,
-        evidence=(EvidenceSpan("supports", segment_text, 0, len(segment_text)),),
-    )
-    return replace(
-        result,
-        abstain=False,
-        mentions=tuple(mentions),
-        candidates=(*result.candidates, sibling),
-    )
-
-
-def _bootstrap_residence_place_mentions(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-) -> ExtractionResult:
-    if any(mention.mention_type.value == "place" for mention in result.mentions):
-        return result
-    place = _extract_place_literal(segment_text)
-    if place is None:
-        return result
-    start = segment_text.casefold().find(place.casefold())
-    if start < 0:
-        return result
-    surface = segment_text[start : start + len(place)]
-    return replace(
-        result,
-        mentions=(
-            *result.mentions,
-            MentionDraft(
-                mention_ref="place",
-                mention_type=MentionType.PLACE,
-                surface_text=surface,
-                char_start=start,
-                char_end=start + len(surface),
-                normalized_hint=None,
-            ),
-        ),
-    )
-
-
-def _bootstrap_correction_place_mentions(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-    prior_segments: Sequence[MemorySegment],
-) -> ExtractionResult:
-    folded = segment_text.casefold()
-    if not any(marker in folded for marker in _CORRECTION_MARKERS):
-        return result
-    return _bootstrap_residence_place_mentions(result, segment_text=segment_text)
-
-
-def _bootstrap_uncertain_works_at(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-) -> ExtractionResult | None:
-    if result.mentions:
-        return None
-    folded = segment_text.casefold()
-    if not any(marker in folded for marker in _USER_UNCERTAINTY_MARKERS):
-        return None
-    match = re.search(
-        r".*(?:не уверен|not sure),?\s+что\s+(.+?)\s+работает\s+в\s+(.+?)\.?\s*$",
-        segment_text,
-        flags=re.IGNORECASE,
-    )
-    if match is None:
-        match = re.search(
-            r".*(?:not sure|i am not sure|i'm not sure),?\s+that\s+(.+?)\s+works?\s+at\s+(.+?)\.?\s*$",
-            segment_text,
-            flags=re.IGNORECASE,
-        )
-    if match is None:
-        return None
-    person_surface = match.group(1).strip()
-    org_surface = match.group(2).strip()
-    person_start = segment_text.find(person_surface)
-    org_start = segment_text.find(org_surface, person_start + len(person_surface))
-    if person_start < 0 or org_start < 0:
-        return None
-    return replace(
-        result,
-        mentions=(
-            MentionDraft(
-                mention_ref="ivan",
-                mention_type=MentionType.PERSON,
-                surface_text=person_surface,
-                char_start=person_start,
-                char_end=person_start + len(person_surface),
-                normalized_hint=None,
-            ),
-            MentionDraft(
-                mention_ref="acme",
-                mention_type=MentionType.ORGANIZATION,
-                surface_text=org_surface,
-                char_start=org_start,
-                char_end=org_start + len(org_surface),
-                normalized_hint=None,
-            ),
-        ),
-    )
-
-
-def _synthesize_uncertain_works_at(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-) -> ExtractionResult | None:
-    from memory.extraction.schemas import CandidateStatus, Epistemic, EpistemicMode, EpistemicScope, Polarity
-
-    person = next((m for m in result.mentions if m.mention_type.value == "person"), None)
-    organization = next(
-        (m for m in result.mentions if m.mention_type.value == "organization"),
-        None,
-    )
-    if person is None or organization is None:
-        return None
-    if "работает в" not in segment_text.casefold() and "works at" not in segment_text.casefold():
-        return None
-    return replace(
-        result,
-        abstain=False,
-        candidates=(
-            CandidateDraft(
-                candidate_ref="c1",
-                kind=CandidateKind.RELATION,
-                schema_name="works_at",
-                schema_version="1",
-                arguments=(
-                    CandidateArgument(
-                        role="person",
-                        mention_ref=person.mention_ref,
-                        has_literal=False,
-                    ),
-                    CandidateArgument(
-                        role="organization",
-                        mention_ref=organization.mention_ref,
-                        has_literal=False,
-                    ),
-                ),
-                attributes={},
-                polarity=Polarity.UNKNOWN,
-                epistemic=Epistemic(
-                    mode=EpistemicMode.ASSERTED,
-                    speaker_commitment=SpeakerCommitment.UNCERTAIN,
-                    scope=EpistemicScope.PROPOSITION,
-                    needs_confirmation=True,
-                ),
-                temporal=None,
-                status=CandidateStatus.NEEDS_CONFIRMATION,
-                evidence=(
-                    EvidenceSpan(
-                        relation="supports",
-                        exact_quote=segment_text,
-                        char_start=0,
-                        char_end=len(segment_text),
-                    ),
-                ),
-            ),
-        ),
     )
 
 
@@ -1529,7 +621,7 @@ def _mention_input(
     return MentionInput(
         local_ref=mention.mention_ref,
         segment_id=segment.segment_id,
-        mention_type=mention.mention_type.value,
+        mention_type=mention.mention_type,
         surface_text=mention.surface_text,
         normalized_hint=mention.normalized_hint,
         pointer=_span_pointer(segment.pointer, mention.char_start, mention.char_end),
@@ -1539,297 +631,42 @@ def _mention_input(
     )
 
 
-def _synthesize_reported_event(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-    reporter: MentionDraft | None = None,
-    subject: MentionDraft | None = None,
-) -> ExtractionResult | None:
-    from memory.extraction.schemas import CandidateStatus, Epistemic, EpistemicMode, EpistemicScope, Polarity
-
-    people = sorted(
-        (m for m in result.mentions if m.mention_type.value == "person"),
-        key=lambda mention: mention.char_start,
-    )
-    if reporter is None or subject is None:
-        if len(people) < 2:
-            return None
-        reporter = people[0]
-        subject = people[1]
-    folded = segment_text.casefold()
-    left_job = any(marker in folded for marker in ("уволился", "left", "quit"))
-    business_trip = "командировк" in folded or "business trip" in folded
-    if not left_job and not business_trip:
-        return None
-    schema_name = "left_job" if left_job else "attends"
-    arguments = (
-        (
-            CandidateArgument(
-                role="person",
-                mention_ref=subject.mention_ref,
-                has_literal=False,
-            ),
-        )
-        if left_job
-        else (
-            CandidateArgument(
-                role="subject",
-                mention_ref=subject.mention_ref,
-                has_literal=False,
-            ),
-            CandidateArgument(
-                role="event",
-                literal="командировка" if "командировк" in folded else "business trip",
-                has_literal=True,
-            ),
-        )
-    )
-    return replace(
-        result,
-        abstain=False,
-        candidates=(
-            CandidateDraft(
-                candidate_ref="c1",
-                kind=CandidateKind.EVENT,
-                schema_name=schema_name,
-                schema_version="1",
-                arguments=arguments,
-                attributes={},
-                polarity=Polarity.UNKNOWN,
-                epistemic=Epistemic(
-                    mode=EpistemicMode.REPORTED,
-                    speaker_commitment=SpeakerCommitment.POSSIBLE,
-                    scope=EpistemicScope.PROPOSITION,
-                    needs_confirmation=True,
-                    speaker_ref=reporter.mention_ref,
-                ),
-                temporal=None,
-                status=CandidateStatus.NEEDS_CONFIRMATION,
-                evidence=(
-                    EvidenceSpan(
-                        relation="supports",
-                        exact_quote=segment_text,
-                        char_start=0,
-                        char_end=len(segment_text),
-                    ),
-                ),
-            ),
-        ),
-    )
-
-
-_CROSS_SEGMENT_PLACE_PREFIX = "$seg:"
-
-
-def _cross_segment_place_ref(segment_id: str) -> str:
-    return f"{_CROSS_SEGMENT_PLACE_PREFIX}{segment_id}:place"
-
-
-def _is_cross_segment_place_ref(mention_ref: str) -> bool:
-    return mention_ref.startswith(_CROSS_SEGMENT_PLACE_PREFIX)
-
-
-def _normalize_no_longer_employment(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-    occurred_at: str | None,
-    timezone: str,
-) -> ExtractionResult:
-    from memory.extraction.schemas import CandidateStatus, Epistemic, EpistemicMode, EpistemicScope, Polarity
-
-    folded = segment_text.casefold()
-    if "no longer work" not in folded and "no longer works" not in folded:
-        return result
-    organization = next(
-        (m for m in result.mentions if m.mention_type.value == "organization"),
-        None,
-    )
-    if organization is None:
-        return result
-    local_occurred_at = (
-        _local_occurred_at(occurred_at, timezone) if occurred_at is not None else None
-    )
-    temporal = None
-    if local_occurred_at is not None:
-        marker = "no longer"
-        start = folded.index(marker)
-        cue = segment_text[start : start + len(marker)]
-        temporal = Temporal(
-            original_text=cue,
-            valid_from=None,
-            valid_to=local_occurred_at,
-            event_time=None,
-            precision="second",
-            timezone=timezone,
-        )
-    candidates: list[CandidateDraft] = []
-    for candidate in result.candidates:
-        if candidate.kind.value == "event" and candidate.schema_name == "left_job":
-            candidates.append(
-                CandidateDraft(
-                    candidate_ref=candidate.candidate_ref,
-                    kind=CandidateKind.RELATION,
-                    schema_name="works_at",
-                    schema_version="1",
-                    arguments=(
-                        CandidateArgument(role="person", literal="self", has_literal=True),
-                        CandidateArgument(
-                            role="organization",
-                            mention_ref=organization.mention_ref,
-                            has_literal=False,
-                        ),
-                    ),
-                    attributes={},
-                    polarity=Polarity.NEGATIVE,
-                    epistemic=Epistemic(
-                        mode=EpistemicMode.ASSERTED,
-                        speaker_commitment=SpeakerCommitment.CERTAIN,
-                        scope=EpistemicScope.PROPOSITION,
-                    ),
-                    temporal=temporal or candidate.temporal,
-                    status=CandidateStatus.PROPOSED,
-                    evidence=candidate.evidence,
-                    canonical_hint=candidate.canonical_hint,
-                )
-            )
-        elif (
-            candidate.kind.value == "relation"
-            and candidate.schema_name == "works_at"
-            and candidate.polarity.value == "positive"
-        ):
-            candidates.append(
-                replace(
-                    candidate,
-                    polarity=Polarity.NEGATIVE,
-                    temporal=temporal or candidate.temporal,
-                )
-            )
-        else:
-            candidates.append(candidate)
-    if candidates:
-        return replace(result, candidates=tuple(candidates))
-    return replace(
-        result,
-        abstain=False,
-        candidates=(
-            CandidateDraft(
-                candidate_ref="c1",
-                kind=CandidateKind.RELATION,
-                schema_name="works_at",
-                schema_version="1",
-                arguments=(
-                    CandidateArgument(role="person", literal="self", has_literal=True),
-                    CandidateArgument(
-                        role="organization",
-                        mention_ref=organization.mention_ref,
-                        has_literal=False,
-                    ),
-                ),
-                attributes={},
-                polarity=Polarity.NEGATIVE,
-                epistemic=Epistemic(
-                    mode=EpistemicMode.ASSERTED,
-                    speaker_commitment=SpeakerCommitment.CERTAIN,
-                    scope=EpistemicScope.PROPOSITION,
-                ),
-                temporal=temporal,
-                status=CandidateStatus.PROPOSED,
-                evidence=(
-                    EvidenceSpan(
-                        relation="supports",
-                        exact_quote=segment_text,
-                        char_start=0,
-                        char_end=len(segment_text),
-                    ),
-                ),
-            ),
-        ),
-    )
-
-
-def _synthesize_direct_works_at(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-) -> ExtractionResult:
-    from memory.extraction.schemas import CandidateStatus, Epistemic, EpistemicMode, EpistemicScope, Polarity
-
-    if result.candidates:
-        return result
-    folded = segment_text.casefold()
-    if "работает в" not in folded and "works at" not in folded and "work at" not in folded:
-        return result
-    person = next((m for m in result.mentions if m.mention_type.value == "person"), None)
-    organization = next(
-        (m for m in result.mentions if m.mention_type.value == "organization"),
-        None,
-    )
-    if person is None or organization is None:
-        return result
-    return replace(
-        result,
-        abstain=False,
-        candidates=(
-            CandidateDraft(
-                candidate_ref="c1",
-                kind=CandidateKind.RELATION,
-                schema_name="works_at",
-                schema_version="1",
-                arguments=(
-                    CandidateArgument(
-                        role="person",
-                        mention_ref=person.mention_ref,
-                        has_literal=False,
-                    ),
-                    CandidateArgument(
-                        role="organization",
-                        mention_ref=organization.mention_ref,
-                        has_literal=False,
-                    ),
-                ),
-                attributes={},
-                polarity=Polarity.POSITIVE,
-                epistemic=Epistemic(
-                    mode=EpistemicMode.ASSERTED,
-                    speaker_commitment=SpeakerCommitment.CERTAIN,
-                    scope=EpistemicScope.PROPOSITION,
-                ),
-                temporal=None,
-                status=CandidateStatus.PROPOSED,
-                evidence=(
-                    EvidenceSpan(
-                        relation="supports",
-                        exact_quote=segment_text,
-                        char_start=0,
-                        char_end=len(segment_text),
-                    ),
-                ),
-            ),
-        ),
-    )
-
-
 def _candidate_input(
     context: ProcessorContext,
     segment: MemorySegment,
     candidate: CandidateDraft,
+    *,
+    prior_segments: Sequence[MemorySegment] = (),
 ) -> CandidateInput:
-    evidence = tuple(
-        CandidateEvidenceInput(
-            segment_id=segment.segment_id,
-            relation=item.relation,
-            pointer=_span_pointer(segment.pointer, item.char_start, item.char_end),
-            exact_quote=item.exact_quote,
-            context_pointer=segment.pointer,
+    prior_by_id = {
+        str(prior.segment_id): prior
+        for prior in prior_segments
+        if str(getattr(prior, "segment_id", "") or "")
+    }
+    evidence_rows: list[CandidateEvidenceInput] = []
+    for item in candidate.evidence:
+        source = segment
+        if item.source_segment_id:
+            matched = prior_by_id.get(item.source_segment_id)
+            if matched is None:
+                raise ValueError(
+                    f"candidate evidence references unknown prior segment: "
+                    f"{item.source_segment_id!r}"
+                )
+            source = matched
+        evidence_rows.append(
+            CandidateEvidenceInput(
+                segment_id=source.segment_id,
+                relation=item.relation,
+                pointer=_span_pointer(source.pointer, item.char_start, item.char_end),
+                exact_quote=item.exact_quote,
+                context_pointer=source.pointer,
+            )
         )
-        for item in candidate.evidence
-    )
     return CandidateInput(
         local_ref=candidate.candidate_ref,
         segment_id=segment.segment_id,
-        kind=candidate.kind.value,
+        kind=candidate.kind,
         schema_name=candidate.schema_name,
         schema_version=candidate.schema_version,
         arguments=candidate.arguments,
@@ -1838,7 +675,7 @@ def _candidate_input(
         epistemic=candidate.epistemic,
         temporal=candidate.temporal,
         status=candidate.status.value,
-        evidence=evidence,
+        evidence=tuple(evidence_rows),
         canonical_hint=candidate.canonical_hint,
         extractor_name=TEXT_EXTRACTOR_NAME,
         extractor_version=TEXT_EXTRACTOR_VERSION,
@@ -1882,7 +719,7 @@ def extraction_result_to_mapping(result: ExtractionResult) -> dict[str, Any]:
         "mentions": [
             {
                 "mention_ref": item.mention_ref,
-                "mention_type": item.mention_type.value,
+                "mention_type": item.mention_type,
                 "surface_text": item.surface_text,
                 "char_start": item.char_start,
                 "char_end": item.char_end,
@@ -1895,27 +732,29 @@ def extraction_result_to_mapping(result: ExtractionResult) -> dict[str, Any]:
 
 
 def _candidate_to_mapping(item: CandidateDraft) -> dict[str, Any]:
-    arguments = []
-    for argument in item.arguments:
-        payload: dict[str, Any] = {"role": argument.role}
-        if argument.mention_ref is not None:
-            payload["mention_ref"] = argument.mention_ref
-        else:
-            payload["literal"] = thaw_json(argument.literal)
-        arguments.append(payload)
     return {
         "candidate_ref": item.candidate_ref,
-        "kind": item.kind.value,
+        "kind": item.kind,
         "schema_name": item.schema_name,
         "schema_version": item.schema_version,
-        "arguments": arguments,
+        "arguments": [
+            {
+                "role": argument.role,
+                **(
+                    {"mention_ref": argument.mention_ref}
+                    if argument.mention_ref is not None
+                    else {"literal": thaw_json(argument.literal)}
+                ),
+            }
+            for argument in item.arguments
+        ],
         "attributes": {str(k): thaw_json(v) for k, v in item.attributes.items()},
         "polarity": item.polarity.value,
         "epistemic": {
             "mode": item.epistemic.mode.value,
             "speaker_commitment": item.epistemic.speaker_commitment.value,
             "scope": item.epistemic.scope.value,
-            "alternatives": [thaw_json(value) for value in item.epistemic.alternatives],
+            "alternatives": [thaw_json(v) for v in item.epistemic.alternatives],
             "needs_confirmation": item.epistemic.needs_confirmation,
             "speaker_ref": item.epistemic.speaker_ref,
         },
@@ -1934,316 +773,22 @@ def _candidate_to_mapping(item: CandidateDraft) -> dict[str, Any]:
         "status": item.status.value,
         "evidence": [
             {
-                "relation": value.relation,
-                "exact_quote": value.exact_quote,
-                "char_start": value.char_start,
-                "char_end": value.char_end,
+                "relation": span.relation,
+                "exact_quote": span.exact_quote,
+                "char_start": span.char_start,
+                "char_end": span.char_end,
+                **(
+                    {"source_segment_id": span.source_segment_id}
+                    if span.source_segment_id
+                    else {}
+                ),
             }
-            for value in item.evidence
+            for span in item.evidence
         ],
         "canonical_hint": item.canonical_hint,
     }
 
 
-_CORRECTION_MARKERS = (
-    "исправление",
-    "уточнение",
-    "correction",
-    "больше не",
-    "no longer",
-    "нет, теперь",
-    "no, now",
-    "нет, второй",
-)
-
-
-def _promote_correction_candidate(
-    result: ExtractionResult,
-    *,
-    segment_text: str,
-    prior_segments: Sequence[MemorySegment],
-) -> ExtractionResult:
-    folded = segment_text.casefold()
-    if not any(marker in folded for marker in _CORRECTION_MARKERS):
-        return result
-    prior_text = prior_segments[-1].text if prior_segments else ""
-    candidates: list[CandidateDraft] = []
-    for candidate in result.candidates:
-        promoted = _promote_single_correction(
-            candidate,
-            segment_text=segment_text,
-            prior_text=prior_text,
-        )
-        candidates.append(promoted)
-    if any(candidate.kind.value == "correction" for candidate in candidates) and len(candidates) > 1:
-        candidates = [
-            candidate
-            for candidate in candidates
-            if candidate.kind.value == "correction"
-        ]
-    return replace(result, abstain=not candidates, candidates=tuple(candidates))
-
-
-def _promote_single_correction(
-    candidate: CandidateDraft,
-    *,
-    segment_text: str,
-    prior_text: str,
-) -> CandidateDraft:
-    from memory.extraction.schemas import CandidateStatus, Epistemic, EpistemicMode, EpistemicScope, Polarity
-
-    old_place = _extract_place_literal(prior_text)
-    new_place = _extract_place_literal(segment_text)
-    if old_place is not None and new_place is not None:
-        return CandidateDraft(
-            candidate_ref=candidate.candidate_ref,
-            kind=CandidateKind.CORRECTION,
-            schema_name="corrects_residence",
-            schema_version="1",
-            arguments=(
-                CandidateArgument(role="subject", literal="self", has_literal=True),
-                CandidateArgument(role="old", literal=old_place, has_literal=True),
-                CandidateArgument(role="new", literal=new_place, has_literal=True),
-            ),
-            attributes={},
-            polarity=Polarity.POSITIVE,
-            epistemic=Epistemic(
-                mode=EpistemicMode.ASSERTED,
-                speaker_commitment=SpeakerCommitment.CERTAIN,
-                scope=EpistemicScope.PROPOSITION,
-            ),
-            temporal=candidate.temporal,
-            status=CandidateStatus.PROPOSED,
-            evidence=candidate.evidence,
-        )
-    return candidate
-
-
-def _extract_place_literal(text: str) -> str | None:
-    markers = (
-        "live in ",
-        "work in ",
-        "живу в ",
-        "работаю в ",
-        "i live in ",
-        "i work in ",
-    )
-    folded = text.casefold()
-    for marker in markers:
-        if marker in folded:
-            start = folded.index(marker) + len(marker)
-            return text[start:].strip(" .")
-    return None
-
-
-def _stitch_correction_candidates(
-    service: "MemoryService",
-    context: ProcessorContext,
-    segment: MemorySegment,
-    prior_segments: Sequence[MemorySegment],
-    candidates: Sequence[CandidateDraft],
-    result_mentions: Sequence[MentionDraft],
-) -> list[CandidateInput]:
-    inputs: list[CandidateInput] = []
-    for candidate in candidates:
-        if candidate.kind.value != "correction":
-            base = _candidate_input(context, segment, candidate)
-            cross_segment_mention_ids = _cross_segment_mention_ids(
-                candidate,
-                segment=segment,
-                prior_segments=prior_segments,
-                service=service,
-                user_id=context.job.user_id,
-            )
-            if not cross_segment_mention_ids:
-                inputs.append(base)
-                continue
-            from memory.extraction.discourse import parse_cross_segment_ref
-
-            referenced_prior = None
-            for argument in candidate.arguments:
-                if argument.mention_ref is None:
-                    continue
-                parsed = parse_cross_segment_ref(argument.mention_ref)
-                if parsed is not None:
-                    referenced_prior = next(
-                        (item for item in prior_segments if item.segment_id == parsed[0]),
-                        None,
-                    )
-                    if referenced_prior is not None:
-                        break
-            extra_evidence: list[CandidateEvidenceInput] = []
-            if referenced_prior is not None and referenced_prior.text:
-                extra_evidence.append(
-                    CandidateEvidenceInput(
-                        segment_id=referenced_prior.segment_id,
-                        relation="introduces_entity",
-                        pointer=_span_pointer(
-                            referenced_prior.pointer,
-                            0,
-                            len(referenced_prior.text),
-                        ),
-                        exact_quote=referenced_prior.text,
-                        context_pointer=referenced_prior.pointer,
-                    )
-                )
-            current_evidence = list(base.evidence)
-            if current_evidence:
-                current_evidence[0] = replace(
-                    current_evidence[0],
-                    relation="supports_coreference",
-                )
-            inputs.append(
-                replace(
-                    base,
-                    evidence=tuple(
-                        current_evidence + extra_evidence
-                        if candidate.schema_name == "sibling_of"
-                        else extra_evidence + current_evidence
-                    ),
-                    cross_segment_mention_ids=cross_segment_mention_ids,
-                )
-            )
-            continue
-        candidate = _rewrite_residence_correction_arguments(
-            candidate,
-            segment=segment,
-            prior_segments=prior_segments,
-            result_mentions=result_mentions,
-            service=service,
-            user_id=context.job.user_id,
-        )
-        base = _candidate_input(context, segment, candidate)
-        extra_evidence: list[CandidateEvidenceInput] = []
-        if candidate.schema_name == "corrects_selection" and len(prior_segments) >= 2:
-            for index, prior in enumerate(prior_segments):
-                prior_text = prior.text or ""
-                if not prior_text:
-                    continue
-                relation = "introduces_alternatives" if index == 0 else "supports"
-                extra_evidence.append(
-                    CandidateEvidenceInput(
-                        segment_id=prior.segment_id,
-                        relation=relation,
-                        pointer=_span_pointer(prior.pointer, 0, len(prior_text)),
-                        exact_quote=prior_text,
-                        context_pointer=prior.pointer,
-                    )
-                )
-        elif prior_segments:
-            prior = prior_segments[-1]
-            prior_text = prior.text or ""
-            if prior_text:
-                extra_evidence.append(
-                    CandidateEvidenceInput(
-                        segment_id=prior.segment_id,
-                        relation="supports",
-                        pointer=_span_pointer(prior.pointer, 0, len(prior_text)),
-                        exact_quote=prior_text,
-                        context_pointer=prior.pointer,
-                    ),
-                )
-        current_evidence = list(base.evidence)
-        if current_evidence:
-            current_evidence[0] = replace(current_evidence[0], relation="corrects")
-        cross_segment_mention_ids = _cross_segment_mention_ids(
-            candidate,
-            segment=segment,
-            prior_segments=prior_segments,
-            service=service,
-            user_id=context.job.user_id,
-        )
-        inputs.append(
-            replace(
-                base,
-                evidence=tuple(extra_evidence + current_evidence),
-                cross_segment_mention_ids=cross_segment_mention_ids,
-            )
-        )
-    return inputs
-
-
-def _rewrite_residence_correction_arguments(
-    candidate: CandidateDraft,
-    *,
-    segment: MemorySegment,
-    prior_segments: Sequence[MemorySegment],
-    result_mentions: Sequence[MentionDraft],
-    service: "MemoryService",
-    user_id: int,
-) -> CandidateDraft:
-    if candidate.schema_name != "corrects_residence" or not prior_segments:
-        return candidate
-    prior = prior_segments[-1]
-    prior_place = _first_place_mention_row(
-        service.mentions.list_for_segment(prior.segment_id, user_id=user_id)
-    )
-    current_place = next(
-        (mention for mention in result_mentions if mention.mention_type.value == "place"),
-        None,
-    )
-    if prior_place is None or current_place is None:
-        return candidate
-    old_ref = _cross_segment_place_ref(prior.segment_id)
-    return replace(
-        candidate,
-        arguments=(
-            CandidateArgument(role="subject", literal="self", has_literal=True),
-            CandidateArgument(role="old", mention_ref=old_ref, has_literal=False),
-            CandidateArgument(
-                role="new",
-                mention_ref=current_place.mention_ref,
-                has_literal=False,
-            ),
-        ),
-    )
-
-
-def _cross_segment_mention_ids(
-    candidate: CandidateDraft,
-    *,
-    segment: MemorySegment,
-    prior_segments: Sequence[MemorySegment],
-    service: "MemoryService",
-    user_id: int,
-) -> dict[tuple[str, str], str]:
-    bindings: dict[tuple[str, str], str] = {}
-    if not prior_segments:
-        return bindings
-    from memory.extraction.discourse import parse_cross_segment_ref
-
-    for argument in candidate.arguments:
-        if argument.mention_ref is None:
-            continue
-        parsed = parse_cross_segment_ref(argument.mention_ref)
-        if parsed is None:
-            continue
-        prior_segment_id, mention_type = parsed
-        if not any(item.segment_id == prior_segment_id for item in prior_segments):
-            continue
-        row = _first_mention_row(
-            service.mentions.list_for_segment(prior_segment_id, user_id=user_id),
-            mention_type=mention_type,
-        )
-        if row is not None:
-            bindings[(segment.segment_id, argument.mention_ref)] = str(row["mention_id"])
-    return bindings
-
-
-def _first_place_mention_row(rows: Sequence[Mapping[str, Any]]) -> Mapping[str, Any] | None:
-    return _first_mention_row(rows, mention_type="place")
-
-
-def _first_mention_row(
-    rows: Sequence[Mapping[str, Any]],
-    *,
-    mention_type: str,
-) -> Mapping[str, Any] | None:
-    for row in rows:
-        if str(row.get("mention_type")) == mention_type:
-            return row
-    return None
-
-
 def _hash_payload(payload: Any) -> str:
     return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+

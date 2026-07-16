@@ -93,7 +93,71 @@ DEFAULT_MEMORY_VERIFICATION_MAX_TOKENS = 2048
 DEFAULT_MEMORY_VERIFICATION_SCAN_INTERVAL_SECONDS = 30.0
 DEFAULT_MEMORY_VERIFICATION_SCAN_BATCH_SIZE = 100
 DEFAULT_MEMORY_VERIFICATION_CONTEXT_CHARS = 240
-DEFAULT_MEMORY_VERIFICATION_POLICY_VERSION = "verification_policy_v1"
+DEFAULT_MEMORY_VERIFICATION_POLICY_VERSION = "verification_policy_v2"
+DEFAULT_MEMORY_RESOLUTION_ENABLED = False
+DEFAULT_MEMORY_RESOLUTION_SCAN_INTERVAL_SECONDS = 30.0
+DEFAULT_MEMORY_RESOLUTION_SCAN_BATCH_SIZE = 100
+DEFAULT_MEMORY_REQUIRED_VERIFICATION_POLICY_VERSION = "verification_policy_v2"
+DEFAULT_MEMORY_RESOLUTION_LINK_SUPPORT_MODEL_PROFILE = "extraction"
+DEFAULT_MEMORY_RESOLUTION_LINK_ADVERSARIAL_MODEL_PROFILE = "agent"
+DEFAULT_MEMORY_RESOLUTION_MAX_TOKENS = 1536
+DEFAULT_MEMORY_RESOLUTION_CANDIDATE_GENERATION_ENABLED = False
+DEFAULT_MEMORY_RESOLUTION_FUZZY_BLOCKING_ENABLED = False
+DEFAULT_MEMORY_RESOLUTION_FUZZY_MIN_TRIGRAM = 0.6
+DEFAULT_MEMORY_RESOLUTION_CROSS_LANGUAGE_ENABLED = False
+DEFAULT_MEMORY_RESOLUTION_CLUSTER_CRITIC_ENABLED = False
+DEFAULT_MEMORY_RESOLUTION_MERGE_EVENTS_ENABLED = False
+DEFAULT_MEMORY_RESOLUTION_RELINK_ON_INVALIDATION = False
+DEFAULT_MEMORY_RESOLUTION_MAX_CANDIDATES = 8
+DEFAULT_MEMORY_GRAPH_ENABLED = False
+DEFAULT_MEMORY_GRAPH_SCAN_INTERVAL_SECONDS = 30.0
+DEFAULT_MEMORY_GRAPH_SCAN_BATCH_SIZE = 100
+DEFAULT_MEMORY_SHADOW_RETRIEVAL_ENABLED = False
+DEFAULT_MEMORY_SHADOW_RETRIEVAL_TIMEOUT_SECONDS = 2.0
+DEFAULT_MEMORY_SHADOW_RETRIEVAL_TOKEN_BUDGET = 4000
+DEFAULT_MEMORY_SHADOW_RETRIEVAL_MAX_BELIEFS = 24
+DEFAULT_MEMORY_SHADOW_RETRIEVAL_MAX_HOPS = 3
+DEFAULT_MEMORY_DOCUMENTS_ENABLED = False
+DEFAULT_MEMORY_SUMMARIES_ENABLED = False
+DEFAULT_MEMORY_SUMMARIES_GENERATION_ENABLED = False
+DEFAULT_MEMORY_SUMMARIES_VERIFY_ENABLED = True
+DEFAULT_MEMORY_SUMMARIES_COMMUNITIES_ENABLED = False
+DEFAULT_MEMORY_SUMMARIES_SHADOW_PACK_ENABLED = False
+DEFAULT_MEMORY_SUMMARIES_SCAN_INTERVAL_SECONDS = 30.0
+DEFAULT_MEMORY_SUMMARIES_SCAN_BATCH_SIZE = 50
+DEFAULT_MEMORY_SUMMARIES_DEBOUNCE_SECONDS = 120.0
+DEFAULT_MEMORY_SUMMARIES_FULL_REBUILD_EVERY_N = 50
+DEFAULT_MEMORY_SUMMARIES_MODEL_PROFILE = "summarize"
+DEFAULT_MEMORY_SUMMARIES_VERIFY_MODEL_PROFILE = "extraction"
+DEFAULT_MEMORY_SUMMARIES_MAX_TOKENS = 2048
+DEFAULT_MEMORY_SUMMARIES_COMMUNITY_LABEL_ENABLED = False
+DEFAULT_MEMORY_ATTACHMENT_ENABLED = False
+DEFAULT_MEMORY_ATTACHMENT_GENERATION_ENABLED = False
+DEFAULT_MEMORY_ATTACHMENT_VERIFY_ENABLED = True
+DEFAULT_MEMORY_ATTACHMENT_TWO_GENERATOR_ENABLED = False
+DEFAULT_MEMORY_ATTACHMENT_VECTOR_ENABLED = True
+DEFAULT_MEMORY_ATTACHMENT_CURATED_TAXONOMY_ENABLED = True
+DEFAULT_MEMORY_ATTACHMENT_INFERRED_PREFERENCE_ENABLED = True
+DEFAULT_MEMORY_ATTACHMENT_WRITE_GRAPH_EDGES = True
+DEFAULT_MEMORY_ATTACHMENT_WRITE_POSSIBLE_EVENTS = False
+DEFAULT_MEMORY_ATTACHMENT_SCAN_INTERVAL_SECONDS = 30.0
+DEFAULT_MEMORY_ATTACHMENT_SCAN_BATCH_SIZE = 20
+DEFAULT_MEMORY_ATTACHMENT_DEBOUNCE_SECONDS = 2.0
+DEFAULT_MEMORY_ATTACHMENT_MAX_CANDIDATES = 12
+DEFAULT_MEMORY_ATTACHMENT_MAX_LLM_CALLS = 6
+DEFAULT_MEMORY_ATTACHMENT_MODEL_PROFILE = "extraction"
+DEFAULT_MEMORY_ATTACHMENT_SUPPORT_MODEL_PROFILE = "extraction"
+DEFAULT_MEMORY_ATTACHMENT_ADVERSARIAL_MODEL_PROFILE = "agent"
+DEFAULT_MEMORY_ATTACHMENT_CLUSTER_MODEL_PROFILE = "agent"
+DEFAULT_MEMORY_ATTACHMENT_MAX_TOKENS = 4096
+DEFAULT_MEMORY_ATTACHMENT_REACT_ENABLED = False
+DEFAULT_MEMORY_ATTACHMENT_REACT_MODE = "shadow"
+DEFAULT_MEMORY_ATTACHMENT_REACT_MODEL_PROFILE = "agent"
+DEFAULT_MEMORY_ATTACHMENT_REACT_MAX_ACTIONS = 10
+DEFAULT_MEMORY_ATTACHMENT_REACT_MAX_HOPS = 3
+DEFAULT_MEMORY_ATTACHMENT_REACT_MAX_RESULTS = 10
+DEFAULT_MEMORY_ATTACHMENT_REACT_MAX_NODES = 60
+DEFAULT_MEMORY_ATTACHMENT_REACT_MAX_TOKENS = 4096
 
 DEFAULT_QUEUE_MAX_PENDING = 10
 DEFAULT_MESSAGE_BURST_QUIET_MS = 150
@@ -445,6 +509,70 @@ class Settings:
     memory_verification_scan_batch_size: int
     memory_verification_context_chars: int
     memory_verification_policy_version: str
+    memory_resolution_enabled: bool
+    memory_resolution_scan_interval_seconds: float
+    memory_resolution_scan_batch_size: int
+    memory_required_verification_policy_version: str
+    memory_resolution_link_support_model_profile: str
+    memory_resolution_link_adversarial_model_profile: str
+    memory_resolution_max_tokens: int
+    memory_resolution_candidate_generation_enabled: bool
+    memory_resolution_fuzzy_blocking_enabled: bool
+    memory_resolution_fuzzy_min_trigram: float
+    memory_resolution_cross_language_enabled: bool
+    memory_resolution_cluster_critic_enabled: bool
+    memory_resolution_merge_events_enabled: bool
+    memory_resolution_relink_on_invalidation: bool
+    memory_resolution_max_candidates: int
+    memory_graph_enabled: bool
+    memory_graph_scan_interval_seconds: float
+    memory_graph_scan_batch_size: int
+    memory_shadow_retrieval_enabled: bool
+    memory_shadow_retrieval_timeout_seconds: float
+    memory_shadow_retrieval_token_budget: int
+    memory_shadow_retrieval_max_beliefs: int
+    memory_shadow_retrieval_max_hops: int
+    memory_documents_enabled: bool
+    memory_summaries_enabled: bool
+    memory_summaries_generation_enabled: bool
+    memory_summaries_verify_enabled: bool
+    memory_summaries_communities_enabled: bool
+    memory_summaries_shadow_pack_enabled: bool
+    memory_summaries_scan_interval_seconds: float
+    memory_summaries_scan_batch_size: int
+    memory_summaries_debounce_seconds: float
+    memory_summaries_full_rebuild_every_n: int
+    memory_summaries_model_profile: str
+    memory_summaries_verify_model_profile: str
+    memory_summaries_max_tokens: int
+    memory_summaries_community_label_enabled: bool
+    memory_attachment_enabled: bool
+    memory_attachment_generation_enabled: bool
+    memory_attachment_verify_enabled: bool
+    memory_attachment_two_generator_enabled: bool
+    memory_attachment_vector_enabled: bool
+    memory_attachment_curated_taxonomy_enabled: bool
+    memory_attachment_inferred_preference_enabled: bool
+    memory_attachment_write_graph_edges: bool
+    memory_attachment_write_possible_events: bool
+    memory_attachment_scan_interval_seconds: float
+    memory_attachment_scan_batch_size: int
+    memory_attachment_debounce_seconds: float
+    memory_attachment_max_candidates: int
+    memory_attachment_max_llm_calls: int
+    memory_attachment_model_profile: str
+    memory_attachment_support_model_profile: str
+    memory_attachment_adversarial_model_profile: str
+    memory_attachment_cluster_model_profile: str
+    memory_attachment_max_tokens: int
+    memory_attachment_react_enabled: bool
+    memory_attachment_react_mode: str
+    memory_attachment_react_model_profile: str
+    memory_attachment_react_max_actions: int
+    memory_attachment_react_max_hops: int
+    memory_attachment_react_max_results: int
+    memory_attachment_react_max_nodes: int
+    memory_attachment_react_max_tokens: int
 
     # LLM / agent
     openai_base_url: str
@@ -895,6 +1023,254 @@ def get_settings(*, require_telegram_token: bool = False) -> Settings:
         memory_verification_policy_version=_str_env(
             "MEMORY_VERIFICATION_POLICY_VERSION",
             DEFAULT_MEMORY_VERIFICATION_POLICY_VERSION,
+        ),
+        memory_resolution_enabled=_bool_env(
+            "MEMORY_RESOLUTION_ENABLED",
+            DEFAULT_MEMORY_RESOLUTION_ENABLED,
+        ),
+        memory_resolution_scan_interval_seconds=_float_env(
+            "MEMORY_RESOLUTION_SCAN_INTERVAL_SECONDS",
+            DEFAULT_MEMORY_RESOLUTION_SCAN_INTERVAL_SECONDS,
+        ),
+        memory_resolution_scan_batch_size=_int_env(
+            "MEMORY_RESOLUTION_SCAN_BATCH_SIZE",
+            DEFAULT_MEMORY_RESOLUTION_SCAN_BATCH_SIZE,
+        ),
+        memory_required_verification_policy_version=_str_env(
+            "MEMORY_REQUIRED_VERIFICATION_POLICY_VERSION",
+            DEFAULT_MEMORY_REQUIRED_VERIFICATION_POLICY_VERSION,
+        ),
+        memory_resolution_link_support_model_profile=_str_env(
+            "MEMORY_RESOLUTION_LINK_SUPPORT_MODEL_PROFILE",
+            DEFAULT_MEMORY_RESOLUTION_LINK_SUPPORT_MODEL_PROFILE,
+        ),
+        memory_resolution_link_adversarial_model_profile=_str_env(
+            "MEMORY_RESOLUTION_LINK_ADVERSARIAL_MODEL_PROFILE",
+            DEFAULT_MEMORY_RESOLUTION_LINK_ADVERSARIAL_MODEL_PROFILE,
+        ),
+        memory_resolution_max_tokens=_int_env(
+            "MEMORY_RESOLUTION_MAX_TOKENS",
+            DEFAULT_MEMORY_RESOLUTION_MAX_TOKENS,
+        ),
+        memory_resolution_candidate_generation_enabled=_bool_env(
+            "MEMORY_RESOLUTION_CANDIDATE_GENERATION_ENABLED",
+            DEFAULT_MEMORY_RESOLUTION_CANDIDATE_GENERATION_ENABLED,
+        ),
+        memory_resolution_fuzzy_blocking_enabled=_bool_env(
+            "MEMORY_RESOLUTION_FUZZY_BLOCKING_ENABLED",
+            DEFAULT_MEMORY_RESOLUTION_FUZZY_BLOCKING_ENABLED,
+        ),
+        memory_resolution_fuzzy_min_trigram=_float_env(
+            "MEMORY_RESOLUTION_FUZZY_MIN_TRIGRAM",
+            DEFAULT_MEMORY_RESOLUTION_FUZZY_MIN_TRIGRAM,
+        ),
+        memory_resolution_cross_language_enabled=_bool_env(
+            "MEMORY_RESOLUTION_CROSS_LANGUAGE_ENABLED",
+            DEFAULT_MEMORY_RESOLUTION_CROSS_LANGUAGE_ENABLED,
+        ),
+        memory_resolution_cluster_critic_enabled=_bool_env(
+            "MEMORY_RESOLUTION_CLUSTER_CRITIC_ENABLED",
+            DEFAULT_MEMORY_RESOLUTION_CLUSTER_CRITIC_ENABLED,
+        ),
+        memory_resolution_merge_events_enabled=_bool_env(
+            "MEMORY_RESOLUTION_MERGE_EVENTS_ENABLED",
+            DEFAULT_MEMORY_RESOLUTION_MERGE_EVENTS_ENABLED,
+        ),
+        memory_resolution_relink_on_invalidation=_bool_env(
+            "MEMORY_RESOLUTION_RELINK_ON_INVALIDATION",
+            DEFAULT_MEMORY_RESOLUTION_RELINK_ON_INVALIDATION,
+        ),
+        memory_resolution_max_candidates=_int_env(
+            "MEMORY_RESOLUTION_MAX_CANDIDATES",
+            DEFAULT_MEMORY_RESOLUTION_MAX_CANDIDATES,
+        ),
+        memory_graph_enabled=_bool_env(
+            "MEMORY_GRAPH_ENABLED",
+            DEFAULT_MEMORY_GRAPH_ENABLED,
+        ),
+        memory_graph_scan_interval_seconds=_float_env(
+            "MEMORY_GRAPH_SCAN_INTERVAL_SECONDS",
+            DEFAULT_MEMORY_GRAPH_SCAN_INTERVAL_SECONDS,
+        ),
+        memory_graph_scan_batch_size=_int_env(
+            "MEMORY_GRAPH_SCAN_BATCH_SIZE",
+            DEFAULT_MEMORY_GRAPH_SCAN_BATCH_SIZE,
+        ),
+        memory_shadow_retrieval_enabled=_bool_env(
+            "MEMORY_SHADOW_RETRIEVAL_ENABLED",
+            DEFAULT_MEMORY_SHADOW_RETRIEVAL_ENABLED,
+        ),
+        memory_shadow_retrieval_timeout_seconds=_float_env(
+            "MEMORY_SHADOW_RETRIEVAL_TIMEOUT_SECONDS",
+            DEFAULT_MEMORY_SHADOW_RETRIEVAL_TIMEOUT_SECONDS,
+        ),
+        memory_shadow_retrieval_token_budget=_int_env(
+            "MEMORY_SHADOW_RETRIEVAL_TOKEN_BUDGET",
+            DEFAULT_MEMORY_SHADOW_RETRIEVAL_TOKEN_BUDGET,
+        ),
+        memory_shadow_retrieval_max_beliefs=_int_env(
+            "MEMORY_SHADOW_RETRIEVAL_MAX_BELIEFS",
+            DEFAULT_MEMORY_SHADOW_RETRIEVAL_MAX_BELIEFS,
+        ),
+        memory_shadow_retrieval_max_hops=_int_env(
+            "MEMORY_SHADOW_RETRIEVAL_MAX_HOPS",
+            DEFAULT_MEMORY_SHADOW_RETRIEVAL_MAX_HOPS,
+        ),
+        memory_documents_enabled=_bool_env(
+            "MEMORY_DOCUMENTS_ENABLED",
+            DEFAULT_MEMORY_DOCUMENTS_ENABLED,
+        ),
+        memory_summaries_enabled=_bool_env(
+            "MEMORY_SUMMARIES_ENABLED",
+            DEFAULT_MEMORY_SUMMARIES_ENABLED,
+        ),
+        memory_summaries_generation_enabled=_bool_env(
+            "MEMORY_SUMMARIES_GENERATION_ENABLED",
+            DEFAULT_MEMORY_SUMMARIES_GENERATION_ENABLED,
+        ),
+        memory_summaries_verify_enabled=_bool_env(
+            "MEMORY_SUMMARIES_VERIFY_ENABLED",
+            DEFAULT_MEMORY_SUMMARIES_VERIFY_ENABLED,
+        ),
+        memory_summaries_communities_enabled=_bool_env(
+            "MEMORY_SUMMARIES_COMMUNITIES_ENABLED",
+            DEFAULT_MEMORY_SUMMARIES_COMMUNITIES_ENABLED,
+        ),
+        memory_summaries_shadow_pack_enabled=_bool_env(
+            "MEMORY_SUMMARIES_SHADOW_PACK_ENABLED",
+            DEFAULT_MEMORY_SUMMARIES_SHADOW_PACK_ENABLED,
+        ),
+        memory_summaries_scan_interval_seconds=_float_env(
+            "MEMORY_SUMMARIES_SCAN_INTERVAL_SECONDS",
+            DEFAULT_MEMORY_SUMMARIES_SCAN_INTERVAL_SECONDS,
+        ),
+        memory_summaries_scan_batch_size=_int_env(
+            "MEMORY_SUMMARIES_SCAN_BATCH_SIZE",
+            DEFAULT_MEMORY_SUMMARIES_SCAN_BATCH_SIZE,
+        ),
+        memory_summaries_debounce_seconds=_float_env(
+            "MEMORY_SUMMARIES_DEBOUNCE_SECONDS",
+            DEFAULT_MEMORY_SUMMARIES_DEBOUNCE_SECONDS,
+        ),
+        memory_summaries_full_rebuild_every_n=_int_env(
+            "MEMORY_SUMMARIES_FULL_REBUILD_EVERY_N",
+            DEFAULT_MEMORY_SUMMARIES_FULL_REBUILD_EVERY_N,
+        ),
+        memory_summaries_model_profile=_str_env(
+            "MEMORY_SUMMARIES_MODEL_PROFILE",
+            DEFAULT_MEMORY_SUMMARIES_MODEL_PROFILE,
+        ),
+        memory_summaries_verify_model_profile=_str_env(
+            "MEMORY_SUMMARIES_VERIFY_MODEL_PROFILE",
+            DEFAULT_MEMORY_SUMMARIES_VERIFY_MODEL_PROFILE,
+        ),
+        memory_summaries_max_tokens=_int_env(
+            "MEMORY_SUMMARIES_MAX_TOKENS",
+            DEFAULT_MEMORY_SUMMARIES_MAX_TOKENS,
+        ),
+        memory_summaries_community_label_enabled=_bool_env(
+            "MEMORY_SUMMARIES_COMMUNITY_LABEL_ENABLED",
+            DEFAULT_MEMORY_SUMMARIES_COMMUNITY_LABEL_ENABLED,
+        ),
+        memory_attachment_enabled=_bool_env(
+            "MEMORY_ATTACHMENT_ENABLED",
+            DEFAULT_MEMORY_ATTACHMENT_ENABLED,
+        ),
+        memory_attachment_generation_enabled=_bool_env(
+            "MEMORY_ATTACHMENT_GENERATION_ENABLED",
+            DEFAULT_MEMORY_ATTACHMENT_GENERATION_ENABLED,
+        ),
+        memory_attachment_verify_enabled=_bool_env(
+            "MEMORY_ATTACHMENT_VERIFY_ENABLED",
+            DEFAULT_MEMORY_ATTACHMENT_VERIFY_ENABLED,
+        ),
+        memory_attachment_two_generator_enabled=_bool_env(
+            "MEMORY_ATTACHMENT_TWO_GENERATOR_ENABLED",
+            DEFAULT_MEMORY_ATTACHMENT_TWO_GENERATOR_ENABLED,
+        ),
+        memory_attachment_vector_enabled=_bool_env(
+            "MEMORY_ATTACHMENT_VECTOR_ENABLED",
+            DEFAULT_MEMORY_ATTACHMENT_VECTOR_ENABLED,
+        ),
+        memory_attachment_curated_taxonomy_enabled=_bool_env(
+            "MEMORY_ATTACHMENT_CURATED_TAXONOMY_ENABLED",
+            DEFAULT_MEMORY_ATTACHMENT_CURATED_TAXONOMY_ENABLED,
+        ),
+        memory_attachment_inferred_preference_enabled=_bool_env(
+            "MEMORY_ATTACHMENT_INFERRED_PREFERENCE_ENABLED",
+            DEFAULT_MEMORY_ATTACHMENT_INFERRED_PREFERENCE_ENABLED,
+        ),
+        memory_attachment_write_graph_edges=_bool_env(
+            "MEMORY_ATTACHMENT_WRITE_GRAPH_EDGES",
+            DEFAULT_MEMORY_ATTACHMENT_WRITE_GRAPH_EDGES,
+        ),
+        memory_attachment_write_possible_events=_bool_env(
+            "MEMORY_ATTACHMENT_WRITE_POSSIBLE_EVENTS",
+            DEFAULT_MEMORY_ATTACHMENT_WRITE_POSSIBLE_EVENTS,
+        ),
+        memory_attachment_scan_interval_seconds=_float_env(
+            "MEMORY_ATTACHMENT_SCAN_INTERVAL_SECONDS",
+            DEFAULT_MEMORY_ATTACHMENT_SCAN_INTERVAL_SECONDS,
+        ),
+        memory_attachment_scan_batch_size=_int_env(
+            "MEMORY_ATTACHMENT_SCAN_BATCH_SIZE",
+            DEFAULT_MEMORY_ATTACHMENT_SCAN_BATCH_SIZE,
+        ),
+        memory_attachment_debounce_seconds=_float_env(
+            "MEMORY_ATTACHMENT_DEBOUNCE_SECONDS",
+            DEFAULT_MEMORY_ATTACHMENT_DEBOUNCE_SECONDS,
+        ),
+        memory_attachment_max_candidates=_int_env(
+            "MEMORY_ATTACHMENT_MAX_CANDIDATES",
+            DEFAULT_MEMORY_ATTACHMENT_MAX_CANDIDATES,
+        ),
+        memory_attachment_max_llm_calls=_int_env(
+            "MEMORY_ATTACHMENT_MAX_LLM_CALLS",
+            DEFAULT_MEMORY_ATTACHMENT_MAX_LLM_CALLS,
+        ),
+        memory_attachment_model_profile=_str_env(
+            "MEMORY_ATTACHMENT_MODEL_PROFILE",
+            DEFAULT_MEMORY_ATTACHMENT_MODEL_PROFILE,
+        ),
+        memory_attachment_support_model_profile=_str_env(
+            "MEMORY_ATTACHMENT_SUPPORT_MODEL_PROFILE",
+            DEFAULT_MEMORY_ATTACHMENT_SUPPORT_MODEL_PROFILE,
+        ),
+        memory_attachment_adversarial_model_profile=_str_env(
+            "MEMORY_ATTACHMENT_ADVERSARIAL_MODEL_PROFILE",
+            DEFAULT_MEMORY_ATTACHMENT_ADVERSARIAL_MODEL_PROFILE,
+        ),
+        memory_attachment_cluster_model_profile=_str_env(
+            "MEMORY_ATTACHMENT_CLUSTER_MODEL_PROFILE",
+            DEFAULT_MEMORY_ATTACHMENT_CLUSTER_MODEL_PROFILE,
+        ),
+        memory_attachment_max_tokens=_int_env(
+            "MEMORY_ATTACHMENT_MAX_TOKENS",
+            DEFAULT_MEMORY_ATTACHMENT_MAX_TOKENS,
+        ),
+        memory_attachment_react_enabled=_bool_env(
+            "MEMORY_ATTACHMENT_REACT_ENABLED", DEFAULT_MEMORY_ATTACHMENT_REACT_ENABLED,
+        ),
+        memory_attachment_react_mode=_str_env(
+            "MEMORY_ATTACHMENT_REACT_MODE", DEFAULT_MEMORY_ATTACHMENT_REACT_MODE,
+        ),
+        memory_attachment_react_model_profile=_str_env(
+            "MEMORY_ATTACHMENT_REACT_MODEL_PROFILE", DEFAULT_MEMORY_ATTACHMENT_REACT_MODEL_PROFILE,
+        ),
+        memory_attachment_react_max_actions=_int_env(
+            "MEMORY_ATTACHMENT_REACT_MAX_ACTIONS", DEFAULT_MEMORY_ATTACHMENT_REACT_MAX_ACTIONS,
+        ),
+        memory_attachment_react_max_hops=_int_env(
+            "MEMORY_ATTACHMENT_REACT_MAX_HOPS", DEFAULT_MEMORY_ATTACHMENT_REACT_MAX_HOPS,
+        ),
+        memory_attachment_react_max_results=_int_env(
+            "MEMORY_ATTACHMENT_REACT_MAX_RESULTS", DEFAULT_MEMORY_ATTACHMENT_REACT_MAX_RESULTS,
+        ),
+        memory_attachment_react_max_nodes=_int_env(
+            "MEMORY_ATTACHMENT_REACT_MAX_NODES", DEFAULT_MEMORY_ATTACHMENT_REACT_MAX_NODES,
+        ),
+        memory_attachment_react_max_tokens=_int_env(
+            "MEMORY_ATTACHMENT_REACT_MAX_TOKENS", DEFAULT_MEMORY_ATTACHMENT_REACT_MAX_TOKENS,
         ),
         openai_base_url=openai_base_url,
         openai_api_key=openai_api_key,

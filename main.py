@@ -69,6 +69,10 @@ async def main() -> None:
     memory_service = None
     memory_ingest_runtime = None
     memory_verification_scheduler = None
+    memory_resolution_scheduler = None
+    memory_graph_scheduler = None
+    memory_summary_scheduler = None
+    memory_attachment_scheduler = None
 
     oauth_runner = None
     if google_oauth_configured() and not google_oauth_manual_mode():
@@ -203,7 +207,9 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
             return
         if memory_service is None:
             await message.answer(
-                "Graph memory не активна (MEMORY_INGEST_ENABLED=0, MEMORY_WORKER_ENABLED=0)."
+                "Graph memory не активна "
+                "(все MEMORY_*_ENABLED=0: ingest/worker/extraction/verification/"
+                "resolution/graph/shadow_retrieval)."
             )
             return
         from bot.memory_commands import format_memory_status
@@ -215,8 +221,39 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
             worker_enabled=settings.memory_worker_enabled,
             extraction_enabled=settings.memory_extraction_enabled,
             verification_enabled=settings.memory_verification_enabled,
+            resolution_enabled=settings.memory_resolution_enabled,
+            graph_enabled=settings.memory_graph_enabled,
+            shadow_retrieval_enabled=settings.memory_shadow_retrieval_enabled,
+            summaries_enabled=settings.memory_summaries_enabled,
         )
         await message.answer(text[:4000])
+
+    @dp.message(Command("memory_explain"))
+    async def on_memory_explain(message: Message) -> None:
+        admins = admin_user_ids()
+        if not admins or message.from_user.id not in admins:
+            await message.answer("Нет доступа. Добавь свой Telegram user id в ADMIN_USER_IDS.")
+            return
+        if memory_service is None:
+            await message.answer("Graph memory не активна.")
+            return
+        parts = (message.text or "").split(maxsplit=1)
+        if len(parts) < 2 or not parts[1].strip():
+            await message.answer("Usage: /memory_explain <belief_id>")
+            return
+        from memory.graph.explain import explain_belief
+
+        belief_id = parts[1].strip()
+        try:
+            explained = explain_belief(
+                memory_service,
+                user_id=message.from_user.id,
+                belief_id=belief_id,
+            )
+        except KeyError:
+            await message.answer(f"Belief not found: {belief_id}")
+            return
+        await message.answer(str(explained["human_summary"])[:4000])
 
     @dp.message(Command("memory_scan_once"))
     async def on_memory_scan_once(message: Message) -> None:
@@ -505,6 +542,29 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
             await streamer.stream_status("Сохраняю файл…")
             saved = await save_telegram_document(bot, message.from_user.id, message)
             caption = (message.caption or "").strip()
+            if (
+                settings.memory_documents_enabled
+                and memory_service is not None
+            ):
+                try:
+                    from memory.documents import register_saved_document
+
+                    register_saved_document(
+                        memory_service,
+                        user_id=message.from_user.id,
+                        saved=saved,
+                        telegram_message_id=message.message_id,
+                        telegram_chat_id=message.chat.id,
+                        telegram_file_id=(
+                            message.document.file_id if message.document else None
+                        ),
+                        caption=caption or None,
+                    )
+                except Exception:
+                    logger.exception(
+                        "memory_document_register_failed user_id=%s",
+                        message.from_user.id,
+                    )
             user_text = format_document_agent_message(saved, caption=caption)
             await streamer.aclose()
             await reply_to_user_text(
@@ -652,9 +712,18 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
         or settings.memory_worker_enabled
         or settings.memory_extraction_enabled
         or settings.memory_verification_enabled
+        or settings.memory_resolution_enabled
+        or settings.memory_graph_enabled
+        or settings.memory_shadow_retrieval_enabled
+        or settings.memory_documents_enabled
+        or settings.memory_summaries_enabled
+        or settings.memory_attachment_enabled
     ):
+        from memory.config import memory_config_from_settings, validate_memory_config
         from memory.service import create_memory_runtime
 
+        memory_cfg = memory_config_from_settings()
+        validate_memory_config(memory_cfg)
         memory_service = create_memory_runtime()
 
     if settings.memory_ingest_enabled:
@@ -742,6 +811,172 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
         await memory_verification_scheduler.start()
         logger.info("memory candidate verification registered (shadow-only)")
 
+    if settings.memory_resolution_enabled and memory_service is not None:
+        from llm import LLMClient
+        from memory.resolution.critics import LLMLinkCriticModel
+        from memory.config import er_config_from_memory_config, memory_config_from_settings
+        from memory.resolution.pipeline import register_candidate_resolver
+        from memory.resolution.scheduler import ResolutionScheduler
+
+        memory_cfg = memory_config_from_settings()
+        er_config = er_config_from_memory_config(memory_cfg)
+
+        support_client = LLMClient(
+            settings,
+            profile=settings.memory_resolution_link_support_model_profile,
+        )
+        adversarial_client = LLMClient(
+            settings,
+            profile=settings.memory_resolution_link_adversarial_model_profile,
+        )
+        register_candidate_resolver(
+            memory_service.registry,
+            service=memory_service,
+            required_verification_policy=settings.memory_required_verification_policy_version,
+            support_model=LLMLinkCriticModel(
+                support_client,
+                model_profile=settings.memory_resolution_link_support_model_profile,
+                max_tokens=settings.memory_resolution_max_tokens,
+            ),
+            adversarial_model=LLMLinkCriticModel(
+                adversarial_client,
+                model_profile=settings.memory_resolution_link_adversarial_model_profile,
+                max_tokens=settings.memory_resolution_max_tokens,
+            ),
+            support_profile=settings.memory_resolution_link_support_model_profile,
+            adversarial_profile=settings.memory_resolution_link_adversarial_model_profile,
+            er_config=er_config,
+        )
+        memory_resolution_scheduler = ResolutionScheduler(
+            service=memory_service,
+            required_verification_policy=settings.memory_required_verification_policy_version,
+            interval_seconds=settings.memory_resolution_scan_interval_seconds,
+            batch_size=settings.memory_resolution_scan_batch_size,
+            support_profile=settings.memory_resolution_link_support_model_profile,
+            adversarial_profile=settings.memory_resolution_link_adversarial_model_profile,
+        )
+        await memory_resolution_scheduler.start()
+        logger.info("memory candidate resolution registered (shadow-only)")
+
+    if settings.memory_graph_enabled and memory_service is not None:
+        from memory.graph.scheduler import GraphOutboxScheduler
+
+        memory_graph_scheduler = GraphOutboxScheduler(
+            service=memory_service,
+            interval_seconds=settings.memory_graph_scan_interval_seconds,
+            batch_size=settings.memory_graph_scan_batch_size,
+        )
+        await memory_graph_scheduler.start()
+        logger.info("memory graph materializer registered (shadow-only)")
+
+    if (
+        settings.memory_summaries_enabled
+        and settings.memory_summaries_generation_enabled
+        and memory_service is not None
+    ):
+        from llm import LLMClient
+        from memory.summaries.generation.generator import LLMSummaryGeneratorModel
+        from memory.summaries.processor import register_summary_generator
+        from memory.summaries.scheduler import SummaryDirtyScheduler
+        from memory.summaries.schemas import summary_config_from_memory_config
+        from memory.summaries.verification.pipeline import LLMSummaryVerifierModel
+
+        summary_cfg = summary_config_from_memory_config(memory_service.config)
+        gen_client = LLMClient(settings, profile=settings.memory_summaries_model_profile)
+        verify_client = LLMClient(
+            settings, profile=settings.memory_summaries_verify_model_profile
+        )
+        register_summary_generator(
+            memory_service.registry,
+            service=memory_service,
+            config=summary_cfg,
+            generator_model=LLMSummaryGeneratorModel(
+                gen_client,
+                model_profile=settings.memory_summaries_model_profile,
+                max_tokens=settings.memory_summaries_max_tokens,
+            ),
+            verifier_model=LLMSummaryVerifierModel(
+                verify_client,
+                model_profile=settings.memory_summaries_verify_model_profile,
+                max_tokens=settings.memory_summaries_max_tokens,
+            )
+            if summary_cfg.verify_enabled
+            else None,
+        )
+        memory_summary_scheduler = SummaryDirtyScheduler(service=memory_service)
+        await memory_summary_scheduler.start()
+        logger.info("memory summaries registered (shadow-only)")
+
+    if (
+        settings.memory_attachment_enabled
+        and settings.memory_attachment_generation_enabled
+        and memory_service is not None
+    ):
+        from llm import LLMClient
+        from memory.attachment.critics import LLMAttachmentCommitteeModel
+        from memory.attachment.processor import register_attachment_analyzer
+        from memory.attachment.react import LLMAttachmentReactModel
+        from memory.attachment.scheduler import AttachmentDirtyScheduler
+        from memory.attachment.schemas import attachment_config_from_memory_config
+
+        attach_cfg = attachment_config_from_memory_config(memory_service.config)
+        hyp_client = LLMClient(settings, profile=settings.memory_attachment_model_profile)
+        support_client = LLMClient(
+            settings, profile=settings.memory_attachment_support_model_profile
+        )
+        adv_client = LLMClient(
+            settings, profile=settings.memory_attachment_adversarial_model_profile
+        )
+        cluster_client = LLMClient(
+            settings, profile=settings.memory_attachment_cluster_model_profile
+        )
+        react_model = None
+        if attach_cfg.react_enabled:
+            react_model = LLMAttachmentReactModel(
+                LLMClient(settings, profile=attach_cfg.react_model_profile),
+                model_profile=attach_cfg.react_model_profile,
+                max_tokens=attach_cfg.react_max_tokens,
+            )
+        register_attachment_analyzer(
+            memory_service.registry,
+            service=memory_service,
+            hypothesis_model=LLMAttachmentCommitteeModel(
+                hyp_client,
+                model_profile=settings.memory_attachment_model_profile,
+                max_tokens=settings.memory_attachment_max_tokens,
+            ),
+            support_model=LLMAttachmentCommitteeModel(
+                support_client,
+                model_profile=settings.memory_attachment_support_model_profile,
+                max_tokens=settings.memory_attachment_max_tokens,
+            ),
+            adversarial_model=LLMAttachmentCommitteeModel(
+                adv_client,
+                model_profile=settings.memory_attachment_adversarial_model_profile,
+                max_tokens=settings.memory_attachment_max_tokens,
+            ),
+            cluster_model=LLMAttachmentCommitteeModel(
+                cluster_client,
+                model_profile=settings.memory_attachment_cluster_model_profile,
+                max_tokens=settings.memory_attachment_max_tokens,
+            ),
+            research_model=react_model,
+        )
+        memory_attachment_scheduler = AttachmentDirtyScheduler(service=memory_service)
+        await memory_attachment_scheduler.start()
+        logger.info("memory attachment engine registered (shadow-only)")
+
+    if settings.memory_documents_enabled and memory_service is not None:
+        from memory.documents import register_document_structure_normalizer
+        from memory.config import memory_config_from_settings
+
+        register_document_structure_normalizer(
+            memory_service.registry,
+            service=memory_service,
+            config=memory_config_from_settings(),
+        )
+        logger.info("memory document structure normalizer registered (shadow-only)")
+
     if settings.memory_worker_enabled and memory_service is not None:
         await memory_service.start_worker()
         logger.info("memory worker started")
@@ -753,6 +988,14 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
     try:
         await dp.start_polling(bot)
     finally:
+        if memory_attachment_scheduler is not None:
+            await memory_attachment_scheduler.stop()
+        if memory_summary_scheduler is not None:
+            await memory_summary_scheduler.stop()
+        if memory_graph_scheduler is not None:
+            await memory_graph_scheduler.stop()
+        if memory_resolution_scheduler is not None:
+            await memory_resolution_scheduler.stop()
         if memory_verification_scheduler is not None:
             await memory_verification_scheduler.stop()
         if memory_ingest_runtime is not None:

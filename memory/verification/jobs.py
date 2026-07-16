@@ -9,7 +9,7 @@ from memory.models import JobRequest
 CANDIDATE_VERIFY_STAGE = "candidate_verify"
 VERIFIER_NAME = "independent_candidate_verifier"
 VERIFIER_VERSION = "1"
-VERIFICATION_PROMPT_VERSION = "candidate_verification_v3"
+VERIFICATION_PROMPT_VERSION = "candidate_verification_v6"
 
 
 def verification_payload_hash(

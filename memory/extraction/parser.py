@@ -11,7 +11,6 @@ from memory.extraction.schemas import (
     EXTRACTION_SCHEMA_VERSION,
     CandidateArgument,
     CandidateDraft,
-    CandidateKind,
     CandidateStatus,
     Epistemic,
     EpistemicMode,
@@ -19,7 +18,6 @@ from memory.extraction.schemas import (
     EvidenceSpan,
     ExtractionResult,
     MentionDraft,
-    MentionType,
     Polarity,
     SpeakerCommitment,
     Temporal,
@@ -69,6 +67,11 @@ def _name(value: Any, path: str) -> str:
     if _NAME.fullmatch(result) is None:
         _fail(path, "must be a lowercase snake_case identifier")
     return result
+
+
+def _free_label(value: Any, path: str) -> str:
+    """Any non-empty trimmed string (kind / schema_name / role / mention_type)."""
+    return _text(value, path).strip()
 
 
 def _integer(value: Any, path: str) -> int:
@@ -212,7 +215,7 @@ def _parse_mention(value: Any, path: str, segment_text: str) -> MentionDraft:
     hint = None if hint_raw is None else _text(hint_raw, f"{path}.normalized_hint")
     return MentionDraft(
         mention_ref=_name(data["mention_ref"], f"{path}.mention_ref"),
-        mention_type=_enum(MentionType, data["mention_type"], f"{path}.mention_type"),
+        mention_type=_free_label(data["mention_type"], f"{path}.mention_type"),
         surface_text=surface,
         char_start=start,
         char_end=end,
@@ -271,8 +274,8 @@ def _parse_candidate(
         _fail(f"{path}.schema_version", "only proposition schema version '1' is supported")
     return CandidateDraft(
         candidate_ref=_name(data["candidate_ref"], f"{path}.candidate_ref"),
-        kind=_enum(CandidateKind, data["kind"], f"{path}.kind"),
-        schema_name=_name(data["schema_name"], f"{path}.schema_name"),
+        kind=_free_label(data["kind"], f"{path}.kind"),
+        schema_name=_free_label(data["schema_name"], f"{path}.schema_name"),
         schema_version=schema_version,
         arguments=arguments,
         attributes=attributes,
@@ -291,7 +294,7 @@ def _parse_argument(value: Any, path: str, mention_refs: frozenset[str]) -> Cand
     has_literal = "literal" in data
     if has_mention == has_literal:
         _fail(path, "exactly one of mention_ref or literal is required")
-    role = _name(data["role"], f"{path}.role")
+    role = _free_label(data["role"], f"{path}.role")
     if has_mention:
         mention_ref = _name(data["mention_ref"], f"{path}.mention_ref")
         if mention_ref not in mention_refs:
@@ -353,16 +356,25 @@ def _parse_temporal(value: Any, path: str) -> Temporal:
 
 
 def _parse_evidence(value: Any, path: str, segment_text: str) -> EvidenceSpan:
-    data = _strict(value, path, {"relation", "exact_quote", "char_start", "char_end"})
+    data = _strict(
+        value,
+        path,
+        {"relation", "exact_quote", "char_start", "char_end"},
+        optional={"source_segment_id"},
+    )
     start = _integer(data["char_start"], f"{path}.char_start")
     end = _integer(data["char_end"], f"{path}.char_end")
     quote = _text(data["exact_quote"], f"{path}.exact_quote")
     _validate_span(segment_text, start, end, quote, path)
+    source_segment_id = data.get("source_segment_id")
+    if source_segment_id is not None:
+        source_segment_id = _text(source_segment_id, f"{path}.source_segment_id")
     return EvidenceSpan(
         relation=_name(data["relation"], f"{path}.relation"),
         exact_quote=quote,
         char_start=start,
         char_end=end,
+        source_segment_id=source_segment_id,
     )
 
 

@@ -1,0 +1,133 @@
+{
+  "schema_version": "1",
+  "pack_id": "attachment_v2_live",
+  "cases": [
+    {
+      "case_id": "food_ramen_multi_attach",
+      "statement": "I really like ramen and usually choose it when eating out.",
+      "domains": ["food"],
+      "shortlist": [
+        {"target_id": "japanese_cuisine", "label": "Japanese cuisine", "entity_type": "concept", "op_hint": "cuisine_of", "score": 0.92, "channel": "graph", "metadata": {"graph_distance": 1, "graph_path": [{"edge_id": "edge_ramen_japanese", "edge_type": "cuisine_of", "direction": "outgoing"}]}},
+        {"target_id": "food_preferences", "label": "Food preferences", "entity_type": "community", "op_hint": "add_to_group", "score": 0.86, "channel": "community", "metadata": {"vector_similarity": 0.91, "membership_evidence": false}},
+        {"target_id": "korean_cuisine", "label": "Korean cuisine", "entity_type": "concept", "op_hint": "cuisine_of", "score": 0.55, "channel": "vector", "metadata": {"vector_similarity": 0.71}}
+      ],
+      "context": {"polarity": "positive", "existing_attachments": [], "neighbor_entities": ["ramen", "japanese_cuisine"]},
+      "required": [["cuisine_of", "japanese_cuisine"], ["add_to_group", "food_preferences"]],
+      "forbidden": [["cuisine_of", "korean_cuisine"]]
+    },
+    {
+      "case_id": "food_taxonomy_not_preference",
+      "statement": "Kartoffelsalat is a German potato salad. This is classification, not my personal preference.",
+      "domains": ["food"],
+      "shortlist": [
+        {"target_id": "german_cuisine", "label": "German cuisine", "entity_type": "concept", "op_hint": "cuisine_of", "score": 1.0, "channel": "taxonomy", "metadata": {"curated": true}},
+        {"target_id": "self_food_preferences", "label": "My food preferences", "entity_type": "community", "op_hint": "add_to_group", "score": 0.62, "channel": "community", "metadata": {"vector_similarity": 0.68}}
+      ],
+      "context": {"polarity": "positive", "candidate_kind": "claim"},
+      "required": [["cuisine_of", "german_cuisine"]],
+      "forbidden": [["inferred_preference", "german_cuisine"], ["add_to_group", "self_food_preferences"]]
+    },
+    {
+      "case_id": "software_fastapi_framework",
+      "statement": "FastAPI is a Python web framework used by this project.",
+      "domains": ["software"],
+      "shortlist": [
+        {"target_id": "python_web_framework", "label": "Python web framework", "entity_type": "concept", "op_hint": "instance_of", "score": 0.91, "channel": "hybrid", "metadata": {"graph_distance": 1}},
+        {"target_id": "python_language", "label": "Python language", "entity_type": "concept", "op_hint": "topic_of", "score": 0.76, "channel": "graph", "metadata": {"graph_distance": 2}},
+        {"target_id": "food_preferences", "label": "Food preferences", "entity_type": "community", "op_hint": "add_to_group", "score": 0.12, "channel": "vector", "metadata": {"vector_similarity": 0.2}}
+      ],
+      "context": {"polarity": "positive"},
+      "required": [["instance_of", "python_web_framework"]],
+      "forbidden": [["add_to_group", "food_preferences"]]
+    },
+    {
+      "case_id": "geo_samarkand_uzbekistan",
+      "statement": "Samarkand is located in Uzbekistan.",
+      "domains": ["geo"],
+      "shortlist": [
+        {"target_id": "uzbekistan", "label": "Uzbekistan", "entity_type": "place", "op_hint": "located_in", "score": 0.98, "channel": "graph", "metadata": {"graph_distance": 1}},
+        {"target_id": "tajikistan", "label": "Tajikistan", "entity_type": "place", "op_hint": "located_in", "score": 0.57, "channel": "vector", "metadata": {"vector_similarity": 0.69}},
+        {"target_id": "central_asia", "label": "Central Asia", "entity_type": "concept", "op_hint": "part_of", "score": 0.64, "channel": "graph", "metadata": {"graph_distance": 2}}
+      ],
+      "context": {"polarity": "positive"},
+      "required": [["located_in", "uzbekistan"]],
+      "forbidden": [["located_in", "tajikistan"]]
+    },
+    {
+      "case_id": "topic_document_group",
+      "statement": "GRAPH_MEMORY_PLAN describes the graph-memory architecture and rollout plan.",
+      "domains": ["topic"],
+      "shortlist": [
+        {"target_id": "graph_memory", "label": "Graph memory", "entity_type": "concept", "op_hint": "topic_of", "score": 0.94, "channel": "lexical", "metadata": {}},
+        {"target_id": "memory_design_docs", "label": "Memory design documents", "entity_type": "community", "op_hint": "add_to_group", "score": 0.89, "channel": "community", "metadata": {"vector_similarity": 0.93, "membership_evidence": false}},
+        {"target_id": "food_docs", "label": "Food documents", "entity_type": "community", "op_hint": "add_to_group", "score": 0.21, "channel": "vector", "metadata": {"vector_similarity": 0.31}}
+      ],
+      "context": {"polarity": "positive"},
+      "required": [["topic_of", "graph_memory"], ["add_to_group", "memory_design_docs"]],
+      "forbidden": [["add_to_group", "food_docs"]]
+    },
+    {
+      "case_id": "synonym_no_overmerge",
+      "statement": "NYC is a common alias for New York City.",
+      "domains": ["synonym"],
+      "shortlist": [
+        {"target_id": "new_york_city", "label": "New York City", "entity_type": "place", "op_hint": "alias_of", "score": 0.99, "channel": "alias", "metadata": {"exact_alias": true}},
+        {"target_id": "new_york_state", "label": "New York State", "entity_type": "place", "op_hint": "same_as", "score": 0.72, "channel": "lexical", "metadata": {}},
+        {"target_id": "york_uk", "label": "York", "entity_type": "place", "op_hint": "same_as", "score": 0.41, "channel": "vector", "metadata": {"vector_similarity": 0.55}}
+      ],
+      "context": {"polarity": "positive"},
+      "required": [["alias_of", "new_york_city"]],
+      "forbidden": [["same_as", "new_york_state"], ["same_as", "york_uk"]]
+    },
+    {
+      "case_id": "food_sushi_exception_no_category_inference",
+      "statement": "I dislike Japanese cuisine in general, although I explicitly still like sushi.",
+      "domains": ["food"],
+      "shortlist": [
+        {"target_id": "japanese_cuisine", "label": "Japanese cuisine", "entity_type": "concept", "op_hint": "inferred_preference", "score": 0.88, "channel": "graph", "metadata": {"graph_distance": 1}},
+        {"target_id": "sushi", "label": "Sushi", "entity_type": "concept", "op_hint": "corroborates", "score": 0.91, "channel": "exact", "metadata": {"explicit_exception": true}},
+        {"target_id": "food_exceptions", "label": "Food preference exceptions", "entity_type": "community", "op_hint": "add_to_group", "score": 0.83, "channel": "community", "metadata": {"vector_similarity": 0.9}}
+      ],
+      "context": {"polarity": "mixed", "constraints": [{"type": "negative_preference", "target": "japanese_cuisine"}]},
+      "required": [["add_to_group", "food_exceptions"]],
+      "forbidden": [["inferred_preference", "japanese_cuisine"]]
+    },
+    {
+      "case_id": "project_group_not_person",
+      "statement": "Dima-work is the project context for discussions about Dima from work; it is not the person himself.",
+      "domains": ["topic", "org"],
+      "shortlist": [
+        {"target_id": "work_contexts", "label": "Work contexts", "entity_type": "community", "op_hint": "add_to_group", "score": 0.9, "channel": "community", "metadata": {"vector_similarity": 0.94}},
+        {"target_id": "person_dima", "label": "Dima", "entity_type": "person", "op_hint": "same_as", "score": 0.78, "channel": "alias", "metadata": {}},
+        {"target_id": "project_context", "label": "Project context", "entity_type": "concept", "op_hint": "instance_of", "score": 0.85, "channel": "graph", "metadata": {"graph_distance": 1}}
+      ],
+      "context": {"polarity": "positive", "firewall": "person merge forbidden"},
+      "required": [["add_to_group", "work_contexts"], ["instance_of", "project_context"]],
+      "forbidden": [["same_as", "person_dima"]]
+    },
+    {
+      "case_id": "weak_embedding_must_not_prove_link",
+      "statement": "The note briefly mentions deployment but does not establish that it belongs to the Kubernetes project.",
+      "domains": ["topic", "software"],
+      "shortlist": [
+        {"target_id": "kubernetes_project", "label": "Kubernetes project", "entity_type": "project", "op_hint": "part_of", "score": 0.58, "channel": "vector", "metadata": {"vector_similarity": 0.63}},
+        {"target_id": "deployment_topic", "label": "Deployment", "entity_type": "concept", "op_hint": "topic_of", "score": 0.87, "channel": "lexical", "metadata": {"exact_term": true}}
+      ],
+      "context": {"polarity": "positive", "evidence_strength": "weak"},
+      "required": [["topic_of", "deployment_topic"]],
+      "forbidden": [["part_of", "kubernetes_project"]]
+    },
+    {
+      "case_id": "historical_edge_not_attachment_evidence",
+      "statement": "The current project uses PostgreSQL; an old historical edge linked it to SQLite.",
+      "domains": ["software"],
+      "shortlist": [
+        {"target_id": "postgresql", "label": "PostgreSQL", "entity_type": "software", "op_hint": "part_of", "score": 0.96, "channel": "graph", "metadata": {"graph_distance": 1, "edge_status": "active"}},
+        {"target_id": "sqlite", "label": "SQLite", "entity_type": "software", "op_hint": "part_of", "score": 0.81, "channel": "graph", "metadata": {"graph_distance": 1, "edge_status": "historical"}}
+      ],
+      "context": {"polarity": "positive", "temporal": "current"},
+      "required": [],
+      "forbidden": [["part_of", "sqlite"]]
+    }
+  ]
+}

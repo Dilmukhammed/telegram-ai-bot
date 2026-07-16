@@ -325,8 +325,15 @@ def _normalize_candidate_mention_refs(
     return result
 
 
-def _candidate_core_matches(expected: Mapping[str, Any], actual: Mapping[str, Any]) -> bool:
+def _candidate_core_matches(
+    expected: Mapping[str, Any],
+    actual: Mapping[str, Any],
+    *,
+    ignore_labels: bool = False,
+) -> bool:
     matching = importlib.import_module("memory.eval.matching")
+    if ignore_labels:
+        return matching.candidate_matches_for_verification(expected, actual)
     return (
         expected.get("kind") == actual.get("kind")
         and expected.get("schema_name") == actual.get("schema_name")
@@ -575,7 +582,13 @@ def _default_match_case(fixture: Any, output: Any) -> dict[str, Any]:
         _normalize_candidate_mention_refs(item, mention_ref_map, mention_literal_map)
         for item in raw_actual_candidates
     ]
-    candidate_match = matching.match_candidates(expected_candidates, actual_candidates)
+    is_verification = metadata.get("subject_type") == "verification"
+    if is_verification:
+        candidate_match = matching.match_candidates_for_verification(
+            expected_candidates, actual_candidates
+        )
+    else:
+        candidate_match = matching.match_candidates(expected_candidates, actual_candidates)
     for index in candidate_match.missing_expected:
         fail("candidate_missing", f"missing candidate index {index}")
     for index in candidate_match.unexpected_actual:
@@ -607,7 +620,7 @@ def _default_match_case(fixture: Any, output: Any) -> dict[str, Any]:
     verification_support = 0
     verification_scope_errors = 0
     verification_pack_reviewed = 0
-    if metadata.get("subject_type") == "verification":
+    if is_verification:
         from memory.eval.verification_expectations import (
             load_verification_expectations,
             resolve_verification_expectations_path,
@@ -719,7 +732,7 @@ def _default_match_case(fixture: Any, output: Any) -> dict[str, Any]:
     ]
     preserved_negative = sum(
         any(
-            _candidate_core_matches(item, actual)
+            _candidate_core_matches(item, actual, ignore_labels=is_verification)
             and actual.get("polarity") == "negative"
             for actual in actual_candidates
         )
@@ -733,7 +746,7 @@ def _default_match_case(fixture: Any, output: Any) -> dict[str, Any]:
     ]
     preserved_uncertain = sum(
         any(
-            _candidate_core_matches(item, actual)
+            _candidate_core_matches(item, actual, ignore_labels=is_verification)
             and _uncertainty_fields(actual) == _uncertainty_fields(item)
             for actual in actual_candidates
         )
@@ -746,7 +759,9 @@ def _default_match_case(fixture: Any, output: Any) -> dict[str, Any]:
             expected_epistemic if isinstance(expected_epistemic, Mapping) else {}
         )
         for actual_candidate in actual_candidates:
-            if not _candidate_core_matches(item, actual_candidate):
+            if not _candidate_core_matches(
+                item, actual_candidate, ignore_labels=is_verification
+            ):
                 continue
             actual_epistemic = actual_candidate.get("epistemic")
             actual_epistemic = (

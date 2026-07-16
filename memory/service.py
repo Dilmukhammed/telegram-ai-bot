@@ -27,7 +27,18 @@ from memory.segments import MemorySegmentStore
 from memory.sources import MemorySourceStore
 from memory.status import build_memory_status
 from memory.verification.verdicts import MemoryVerificationStore
+from memory.resolution.store import MemoryResolutionStore
+from memory.graph.store import MemoryGraphStore
+from memory.graph.outbox import MemoryGraphOutbox
 from memory.worker import MemoryWorker
+from memory.summaries.dirty import SummaryDirtyStore
+from memory.summaries.invalidator import SummaryInvalidator
+from memory.summaries.schemas import summary_config_from_memory_config
+from memory.summaries.store import CommunityStore, SummaryStore
+from memory.attachment.dirty import AttachmentDirtyStore
+from memory.attachment.events_store import AttachmentEventsStore
+from memory.attachment.invalidator import AttachmentInvalidator
+from memory.attachment.schemas import attachment_config_from_memory_config
 
 logger = logging.getLogger(__name__)
 
@@ -51,13 +62,46 @@ class MemoryService:
         self._mentions = MemoryMentionStore(self._db)
         self._candidates = MemoryCandidateStore(self._db)
         self._verification = MemoryVerificationStore(self._db)
-        self._sources = MemorySourceStore(self._db, jobs=self._jobs, lineage=self._lineage)
+        self._summaries = SummaryStore(self._db)
+        self._communities = CommunityStore(self._db)
+        self._summary_dirty = SummaryDirtyStore(self._db)
+        summary_cfg = summary_config_from_memory_config(self._config)
+        self._summary_invalidator = SummaryInvalidator(
+            dirty=self._summary_dirty,
+            communities=self._communities,
+            config=summary_cfg,
+        )
+        self._attachment_dirty = AttachmentDirtyStore(self._db)
+        self._attachment_events = AttachmentEventsStore(self._db)
+        attachment_cfg = attachment_config_from_memory_config(self._config)
+        self._attachment_invalidator = AttachmentInvalidator(
+            dirty=self._attachment_dirty,
+            config=attachment_cfg,
+        )
+        self._resolution = MemoryResolutionStore(
+            self._db,
+            summary_invalidator=self._summary_invalidator,
+            attachment_invalidator=self._attachment_invalidator,
+        )
+        self._graph = MemoryGraphStore(self._db)
+        self._graph_outbox = MemoryGraphOutbox(self._db)
+        self._sources = MemorySourceStore(
+            self._db,
+            jobs=self._jobs,
+            lineage=self._lineage,
+            config=self._config,
+            service=self,
+        )
         self._registry = registry or default_registry()
         self._worker: MemoryWorker | None = None
 
     @property
     def db(self) -> MemoryDatabase:
         return self._db
+
+    @property
+    def config(self) -> MemoryConfig:
+        return self._config
 
     @property
     def jobs(self) -> MemoryJobQueue:
@@ -86,6 +130,46 @@ class MemoryService:
     @property
     def verification(self) -> MemoryVerificationStore:
         return self._verification
+
+    @property
+    def resolution(self) -> MemoryResolutionStore:
+        return self._resolution
+
+    @property
+    def graph(self) -> MemoryGraphStore:
+        return self._graph
+
+    @property
+    def graph_outbox(self) -> MemoryGraphOutbox:
+        return self._graph_outbox
+
+    @property
+    def summaries(self) -> SummaryStore:
+        return self._summaries
+
+    @property
+    def communities(self) -> CommunityStore:
+        return self._communities
+
+    @property
+    def summary_dirty(self) -> SummaryDirtyStore:
+        return self._summary_dirty
+
+    @property
+    def summary_invalidator(self) -> SummaryInvalidator:
+        return self._summary_invalidator
+
+    @property
+    def attachment_dirty(self) -> AttachmentDirtyStore:
+        return self._attachment_dirty
+
+    @property
+    def attachment_events(self) -> AttachmentEventsStore:
+        return self._attachment_events
+
+    @property
+    def attachment_invalidator(self) -> AttachmentInvalidator:
+        return self._attachment_invalidator
 
     @property
     def registry(self) -> ProcessorRegistry:
@@ -327,6 +411,18 @@ class MemoryService:
                     updates=output.candidate_updates,
                     lineage_store=self._lineage,
                 )
+            if output.resolution_batch is not None:
+                if job.target_kind != "candidate" or not job.target_id:
+                    raise ValueError(
+                        "resolution output requires a candidate-targeted job"
+                    )
+                self._resolution.insert_outputs_in_txn(
+                    conn,
+                    user_id=job.user_id,
+                    resolution_run_id=run_id,
+                    batch=output.resolution_batch,
+                    lineage_store=self._lineage,
+                )
             for request in output.next_jobs:
                 result = self._jobs.enqueue_in_txn(
                     conn,
@@ -415,10 +511,16 @@ def get_memory_service() -> MemoryService:
     return _service
 
 
+def peek_memory_service() -> MemoryService | None:
+    return _service
+
+
 def reset_memory_service(service: MemoryService | None = None) -> None:
     global _service
     _service = service
 
 
 def create_memory_runtime() -> MemoryService:
-    return MemoryService()
+    service = MemoryService()
+    reset_memory_service(service)
+    return service

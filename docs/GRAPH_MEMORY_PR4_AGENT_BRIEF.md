@@ -118,3 +118,7 @@ git diff --check
 
 PR 4 does not implement entity resolution, assertions, beliefs, graph writes,
 retrieval, prompt injection, utility promotion, or synthetic multi-extractor grouping.
+
+Downstream (implemented separately, still shadow-only): PR5 resolution, PR6 graph,
+PR7 temporal correction/cessation. Unlinked cessations that PR4 routes as
+`insufficient` stay blocked until a dedicated PR4 routing fix.

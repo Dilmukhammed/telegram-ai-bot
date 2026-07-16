@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Sequence
 from memory.db import MemoryDatabase, dumps_json, loads_json_object, utc_now_iso
 from memory.ids import make_score_id, make_verdict_id
 from memory.models import LineageInput, LineageRelation
+from memory.verification.adversarial import looks_like_correction
 from memory.verification.schemas import (
     CandidateScoreInput,
     CandidateStatusUpdate,
@@ -356,6 +357,16 @@ class MemoryVerificationStore:
             )
             if updated.rowcount != 1:
                 raise ValueError("candidate status changed before verification commit")
+
+        for item in updates:
+            if item.to_status in {"ready_for_resolution", "needs_confirmation"}:
+                _supersede_priors_after_correction(
+                    conn,
+                    user_id=user_id,
+                    correction_candidate_id=item.candidate_id,
+                    now=now,
+                )
+
         if links:
             lineage_store.add_links(conn, user_id=user_id, links=links)
 
@@ -375,3 +386,119 @@ class MemoryVerificationStore:
 def _load_json(value: str) -> Any:
     parsed = json.loads(value)
     return parsed
+
+
+def _supersede_priors_after_correction(
+    conn: sqlite3.Connection,
+    *,
+    user_id: int,
+    correction_candidate_id: str,
+    now: str,
+) -> None:
+    """After a correction verifies, supersede prior candidates on supported prior segments."""
+    row = conn.execute(
+        """
+        SELECT candidate_kind, arguments_json
+        FROM memory_claim_candidates
+        WHERE candidate_id = ? AND user_id = ?
+        """,
+        (correction_candidate_id, user_id),
+    ).fetchone()
+    if row is None:
+        return
+    evidence_rows = conn.execute(
+        """
+        SELECT segment_id, evidence_relation AS relation
+        FROM memory_candidate_evidence
+        WHERE candidate_id = ?
+        """,
+        (correction_candidate_id,),
+    ).fetchall()
+    arguments = _load_json(str(row["arguments_json"]))
+    if not isinstance(arguments, list):
+        arguments = []
+    payload = {
+        "candidate_kind": str(row["candidate_kind"] or ""),
+        "arguments": arguments,
+        "evidence": [
+            {"relation": str(item["relation"] or "")} for item in evidence_rows
+        ],
+    }
+    if not looks_like_correction(payload):
+        return
+
+    corrects_segments = {
+        str(item["segment_id"])
+        for item in evidence_rows
+        if str(item["relation"] or "") == "corrects"
+    }
+    # Prior facts live on supports segments that are not the correction utterance.
+    prior_segment_ids = {
+        str(item["segment_id"])
+        for item in evidence_rows
+        if str(item["relation"] or "") == "supports"
+        and str(item["segment_id"]) not in corrects_segments
+    }
+    if not prior_segment_ids:
+        segment_ids = [str(item["segment_id"]) for item in evidence_rows]
+        unique = list(dict.fromkeys(segment_ids))
+        if len(unique) > 1:
+            prior_segment_ids = set(unique[:-1])
+    if not prior_segment_ids:
+        return
+
+    placeholders = ",".join("?" for _ in prior_segment_ids)
+    candidates = conn.execute(
+        f"""
+        SELECT c.candidate_id, c.candidate_kind, c.arguments_json
+        FROM memory_claim_candidates AS c
+        WHERE c.user_id = ?
+          AND c.candidate_id != ?
+          AND c.status IN (
+              'proposed', 'needs_confirmation', 'ready_for_resolution',
+              'insufficient', 'contradicted'
+          )
+          AND c.candidate_id IN (
+            SELECT DISTINCT candidate_id
+            FROM memory_candidate_evidence
+            WHERE segment_id IN ({placeholders})
+          )
+        """,
+        (user_id, correction_candidate_id, *sorted(prior_segment_ids)),
+    ).fetchall()
+    to_supersede: list[str] = []
+    for item in candidates:
+        evidence_relations = [
+            str(rel["relation"] or "")
+            for rel in conn.execute(
+                """
+                SELECT evidence_relation AS relation
+                FROM memory_candidate_evidence
+                WHERE candidate_id = ?
+                """,
+                (item["candidate_id"],),
+            ).fetchall()
+        ]
+        args = _load_json(str(item["arguments_json"]))
+        if not isinstance(args, list):
+            args = []
+        if looks_like_correction(
+            {
+                "candidate_kind": str(item["candidate_kind"] or ""),
+                "arguments": args,
+                "evidence": [{"relation": rel} for rel in evidence_relations],
+            }
+        ):
+            continue
+        to_supersede.append(str(item["candidate_id"]))
+    if not to_supersede:
+        return
+    id_placeholders = ",".join("?" for _ in to_supersede)
+    conn.execute(
+        f"""
+        UPDATE memory_claim_candidates
+        SET status = 'superseded', updated_at = ?
+        WHERE candidate_id IN ({id_placeholders})
+        """,
+        (now, *to_supersede),
+    )

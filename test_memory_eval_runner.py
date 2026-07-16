@@ -63,7 +63,7 @@ class PassingSubject:
 
 
 class MemoryEvalSelectionTests(unittest.TestCase):
-    def test_candidate_matching_treats_likes_as_prefers_alias(self) -> None:
+    def test_candidate_matching_does_not_alias_likes_to_prefers(self) -> None:
         from memory.eval.matching import candidate_matches
 
         expected = {
@@ -71,7 +71,43 @@ class MemoryEvalSelectionTests(unittest.TestCase):
             "polarity": "positive", "arguments": [], "attributes": {},
             "epistemic": {}, "temporal": None, "status": "proposed", "evidence": [],
         }
-        self.assertTrue(candidate_matches(expected, {**expected, "schema_name": "likes"}))
+        self.assertFalse(candidate_matches(expected, {**expected, "schema_name": "likes"}))
+        self.assertTrue(candidate_matches(expected, expected))
+
+    def test_verification_matching_ignores_kind_and_schema_labels(self) -> None:
+        from memory.eval.matching import (
+            candidate_matches,
+            candidate_matches_for_verification,
+            match_candidates_for_verification,
+        )
+
+        expected = {
+            "kind": "preference",
+            "schema_name": "prefers",
+            "schema_version": "1",
+            "polarity": "positive",
+            "arguments": [{"role": "object", "literal": "tea"}],
+            "attributes": {},
+            "epistemic": {"mode": "asserted", "speaker_commitment": "certain"},
+            "temporal": None,
+            "status": "proposed",
+            "evidence": [{"relation": "supports", "exact_quote": "чай"}],
+        }
+        labeled_diff = {
+            **expected,
+            "kind": "likes",
+            "schema_name": "dislikes",
+        }
+        self.assertFalse(candidate_matches(expected, labeled_diff))
+        self.assertTrue(candidate_matches_for_verification(expected, labeled_diff))
+        self.assertFalse(
+            candidate_matches_for_verification(
+                expected,
+                {**labeled_diff, "polarity": "negative"},
+            )
+        )
+        match = match_candidates_for_verification([expected], [labeled_diff])
+        self.assertTrue(match.perfect)
 
     def test_filter_sort_and_shard_are_deterministic(self) -> None:
         fixtures = [

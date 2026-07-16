@@ -20,7 +20,11 @@ from memory.verification.parser import VerificationParseError, parse_verificatio
 from memory.verification.pipeline import CandidateVerificationProcessor
 from memory.verification.scheduler import VerificationScheduler
 from memory.verification.schemas import VerificationVerdict
-from memory.verification.scoring import score_and_route
+from memory.verification.scoring import DEFAULT_POLICY_VERSION, score_and_route
+from memory.verification.adversarial import (
+    looks_like_correction,
+    requires_adversarial_verification,
+)
 from memory.verification.support import (
     candidate_view,
     deterministic_exact_tool_support,
@@ -271,6 +275,34 @@ class VerificationParserTests(unittest.TestCase):
         candidate["arguments"][1]["literal"] = "Buy milk"
         self.assertFalse(deterministic_exact_tool_support(candidate))
 
+    def test_exact_tool_support_ignores_free_kind_labels(self) -> None:
+        candidate = {
+            "candidate_kind": "queued_todo",
+            "schema_name": "inbox_item",
+            "arguments": [
+                {"role": "owner", "literal": "self"},
+                {"role": "title", "literal": "Buy bread"},
+            ],
+            "attributes": {},
+            "polarity": "positive",
+            "epistemic": {
+                "mode": "retrieved",
+                "speaker_commitment": "certain",
+            },
+            "temporal": None,
+            "evidence": [
+                {
+                    "authority_class": "tool_api_result",
+                    "relation": "supports",
+                    "exact_quote": (
+                        '{"task_id":"task_1","title":"Buy bread",'
+                        '"status":"created"}'
+                    ),
+                }
+            ],
+        }
+        self.assertTrue(deterministic_exact_tool_support(candidate))
+
     def test_exact_tool_calendar_event_supports_payload_temporal(self) -> None:
         candidate = {
             "candidate_kind": "event",
@@ -307,6 +339,50 @@ class VerificationParserTests(unittest.TestCase):
         self.assertTrue(deterministic_exact_tool_support(candidate))
         candidate["temporal"]["event_time"] = "2026-07-19T08:15:00+05:00"
         self.assertFalse(deterministic_exact_tool_support(candidate))
+
+    def test_adversarial_triggers_on_structural_correction(self) -> None:
+        base = {
+            "candidate_kind": "occupation_update",
+            "polarity": "positive",
+            "epistemic": {
+                "mode": "asserted",
+                "speaker_commitment": "certain",
+                "needs_confirmation": False,
+            },
+            "temporal": None,
+            "arguments": [
+                {"role": "old", "literal": "designer"},
+                {"role": "new", "literal": "PM"},
+            ],
+            "evidence": [{"relation": "supports"}],
+        }
+        self.assertTrue(looks_like_correction(base))
+        self.assertTrue(requires_adversarial_verification(base))
+
+        by_evidence = {
+            **base,
+            "candidate_kind": "fact",
+            "arguments": [{"role": "subject", "literal": "self"}],
+            "evidence": [{"relation": "corrects"}],
+        }
+        self.assertTrue(looks_like_correction(by_evidence))
+
+        by_kind = {
+            **base,
+            "candidate_kind": "corrects_occupation",
+            "arguments": [{"role": "subject", "literal": "self"}],
+            "evidence": [{"relation": "supports"}],
+        }
+        self.assertTrue(looks_like_correction(by_kind))
+
+        plain = {
+            **base,
+            "candidate_kind": "prefers",
+            "arguments": [{"role": "object", "literal": "tea"}],
+            "evidence": [{"relation": "supports"}],
+        }
+        self.assertFalse(looks_like_correction(plain))
+        self.assertFalse(requires_adversarial_verification(plain))
 
 
 class StructuredOutputTransportTests(unittest.IsolatedAsyncioTestCase):
@@ -427,6 +503,7 @@ class VerificationPipelineTests(unittest.IsolatedAsyncioTestCase):
                 service=self.service,
                 support_model=support_model,
                 adversarial_model=adversarial_model,
+                policy_version="verification_policy_v1",
             )
         )
         extraction = self.service.jobs.enqueue(
@@ -484,7 +561,7 @@ class VerificationPipelineTests(unittest.IsolatedAsyncioTestCase):
                 service=self.service,
                 support_model=support_model,
                 adversarial_model=adversarial_model,
-                policy_version="verification_policy_v2",
+                policy_version=DEFAULT_POLICY_VERSION,
             )
         )
         await self.service.start_worker()
@@ -492,7 +569,7 @@ class VerificationPipelineTests(unittest.IsolatedAsyncioTestCase):
             service=self.service,
             support_profile="checker",
             adversarial_profile="agent",
-            policy_version="verification_policy_v2",
+            policy_version=DEFAULT_POLICY_VERSION,
             interval_seconds=1,
             batch_size=10,
         )
@@ -509,7 +586,7 @@ class VerificationPipelineTests(unittest.IsolatedAsyncioTestCase):
             JobStatus.DONE,
         )
         candidates = self.service.candidates.list_for_user(user_id=7)
-        self.assertEqual(candidates[0]["acceptance_policy"], "verification_policy_v2")
+        self.assertEqual(candidates[0]["acceptance_policy"], DEFAULT_POLICY_VERSION)
         self.assertEqual(len(support_model.calls), 1)
         with self.service.db.connection() as conn:
             self.assertEqual(
@@ -561,6 +638,168 @@ class VerificationPipelineTests(unittest.IsolatedAsyncioTestCase):
             (malformed,),
         )
         self.assertEqual(decision.update.to_status, "rejected")
+        self.assertEqual(decision.score.components["argument_completeness"], 0.0)
+
+    def test_argument_completeness_is_one_without_structural_errors(self) -> None:
+        from memory.verification.schemas import (
+            EvidenceDirectness,
+            VerificationVerdictInput,
+            VerifierRole,
+        )
+
+        deterministic = VerificationVerdictInput(
+            candidate_id="mcand_ok",
+            role=VerifierRole.DETERMINISTIC,
+            verdict=VerificationVerdict.SUPPORTED,
+            evidence_directness=EvidenceDirectness.DIRECT,
+            scope_errors=(),
+            ambiguities=(),
+            missing_context=(),
+            verifier_name="preflight",
+            verifier_version="1",
+            prompt_version="v1",
+            model_profile=None,
+            model_name=None,
+            input_hash="hash",
+            raw_output={},
+        )
+        support = VerificationVerdictInput(
+            candidate_id="mcand_ok",
+            role=VerifierRole.SUPPORT,
+            verdict=VerificationVerdict.SUPPORTED,
+            evidence_directness=EvidenceDirectness.DIRECT,
+            scope_errors=(),
+            ambiguities=(),
+            missing_context=(),
+            verifier_name="support",
+            verifier_version="1",
+            prompt_version="v1",
+            model_profile="checker",
+            model_name="test",
+            input_hash="hash2",
+            raw_output={},
+        )
+        decision = score_and_route(
+            {"candidate_id": "mcand_ok", "evidence": []},
+            (deterministic, support),
+        )
+        self.assertEqual(decision.score.components["argument_completeness"], 1.0)
+
+    def test_epistemic_soft_signals_route_to_needs_confirmation(self) -> None:
+        from memory.verification.schemas import (
+            EvidenceDirectness,
+            VerificationVerdictInput,
+            VerifierRole,
+        )
+
+        deterministic = VerificationVerdictInput(
+            candidate_id="mcand_soft",
+            role=VerifierRole.DETERMINISTIC,
+            verdict=VerificationVerdict.SUPPORTED,
+            evidence_directness=EvidenceDirectness.DIRECT,
+            scope_errors=(),
+            ambiguities=(),
+            missing_context=(),
+            verifier_name="preflight",
+            verifier_version="1",
+            prompt_version="v1",
+            model_profile=None,
+            model_name=None,
+            input_hash="hash",
+            raw_output={},
+        )
+        support = VerificationVerdictInput(
+            candidate_id="mcand_soft",
+            role=VerifierRole.SUPPORT,
+            verdict=VerificationVerdict.SUPPORTED,
+            evidence_directness=EvidenceDirectness.DIRECT,
+            scope_errors=(),
+            ambiguities=(),
+            missing_context=(),
+            verifier_name="support",
+            verifier_version="1",
+            prompt_version="v1",
+            model_profile="checker",
+            model_name="test",
+            input_hash="hash2",
+            raw_output={},
+        )
+        decision = score_and_route(
+            {
+                "candidate_id": "mcand_soft",
+                "polarity": "unknown",
+                "epistemic": {"mode": "asserted", "speaker_commitment": "possible"},
+                "evidence": [],
+            },
+            (deterministic, support),
+        )
+        self.assertEqual(decision.update.to_status, "needs_confirmation")
+
+        quoted = score_and_route(
+            {
+                "candidate_id": "mcand_soft",
+                "polarity": "positive",
+                "epistemic": {"mode": "quoted", "speaker_commitment": "certain"},
+                "evidence": [],
+            },
+            (deterministic, support),
+        )
+        self.assertEqual(quoted.update.to_status, "needs_confirmation")
+
+    def test_structural_correction_insufficient_becomes_needs_confirmation(self) -> None:
+        from memory.verification.schemas import (
+            EvidenceDirectness,
+            VerificationVerdictInput,
+            VerifierRole,
+        )
+
+        deterministic = VerificationVerdictInput(
+            candidate_id="mcand_corr",
+            role=VerifierRole.DETERMINISTIC,
+            verdict=VerificationVerdict.SUPPORTED,
+            evidence_directness=EvidenceDirectness.DIRECT,
+            scope_errors=(),
+            ambiguities=(),
+            missing_context=(),
+            verifier_name="preflight",
+            verifier_version="1",
+            prompt_version="v1",
+            model_profile=None,
+            model_name=None,
+            input_hash="hash",
+            raw_output={},
+        )
+        support = VerificationVerdictInput(
+            candidate_id="mcand_corr",
+            role=VerifierRole.SUPPORT,
+            verdict=VerificationVerdict.INSUFFICIENT,
+            evidence_directness=None,
+            scope_errors=("argument_unsupported",),
+            ambiguities=(),
+            missing_context=(),
+            verifier_name="support",
+            verifier_version="1",
+            prompt_version="v1",
+            model_profile="checker",
+            model_name="test",
+            input_hash="hash2",
+            raw_output={},
+        )
+        decision = score_and_route(
+            {
+                "candidate_id": "mcand_corr",
+                "candidate_kind": "occupation_change",
+                "polarity": "positive",
+                "epistemic": {"mode": "asserted", "speaker_commitment": "certain"},
+                "arguments": [
+                    {"role": "old", "literal": "designer"},
+                    {"role": "new", "literal": "PM"},
+                ],
+                "evidence": [{"relation": "supports"}],
+            },
+            (deterministic, support),
+        )
+        self.assertEqual(decision.update.to_status, "needs_confirmation")
 
 
 if __name__ == "__main__":

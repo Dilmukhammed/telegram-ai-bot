@@ -2,91 +2,18 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from memory.extraction.schemas import (
-    CandidateKind,
-    EpistemicMode,
-    MentionType,
-    Polarity,
-    SpeakerCommitment,
-)
+from memory.extraction.schemas import EpistemicMode, Polarity, SpeakerCommitment
 
 
 StructuredSchemaName = Literal["extraction"]
-
-SCHEMA_NAMES: tuple[str, ...] = (
-    "name",
-    "occupation",
-    "date_of_birth",
-    "allergic_to",
-    "diet_identity",
-    "has_children",
-    "owns_car",
-    "prefers",
-    "likes",
-    "dietary_constraint",
-    "budget_limit",
-    "hotel_constraint",
-    "seat_constraint",
-    "favorite_book",
-    "likes_music",
-    "likes_activity",
-    "likes_contact_mode",
-    "likes_flying",
-    "destination_choice",
-    "works_at",
-    "lives_in",
-    "manager_of",
-    "sibling_of",
-    "learn_skill",
-    "run_marathon",
-    "call_person",
-    "created_task",
-    "open_task",
-    "prepare_demo",
-    "renew_passport",
-    "submit_report",
-    "health_state",
-    "located_at",
-    "calendar_event",
-    "left_job",
-    "moves_to",
-    "attends",
-    "corrects_diet",
-    "corrects_occupation",
-    "corrects_residence",
-    "corrects_selection",
-)
-
-ARGUMENT_ROLES: tuple[str, ...] = (
-    "subject",
-    "value",
-    "person",
-    "organization",
-    "place",
-    "allergen",
-    "skill",
-    "title",
-    "target",
-    "object",
-    "old",
-    "new",
-    "manager",
-    "report",
-    "related_to",
-    "book",
-    "activity",
-    "mode",
-    "amount",
-    "excluded",
-    "attendee",
-    "event",
-)
 
 EVIDENCE_RELATIONS: tuple[str, ...] = (
     "supports",
     "introduces_alternatives",
     "corrects",
 )
+
+_NON_EMPTY_STRING: dict[str, Any] = {"type": "string", "minLength": 1}
 
 
 def _enum(values: tuple[str, ...] | list[str]) -> dict[str, Any]:
@@ -126,7 +53,7 @@ def _strict_object(
 def _slim_mention_schema() -> dict[str, Any]:
     return _strict_object(
         properties={
-            "mention_type": _enum(tuple(item.value for item in MentionType)),
+            "mention_type": _NON_EMPTY_STRING,
             "surface_text": {"type": "string"},
             "normalized_hint": _nullable_string(),
             "mention_ref": {"type": "string"},
@@ -140,19 +67,19 @@ def _slim_argument_schema() -> dict[str, Any]:
         "oneOf": [
             _strict_object(
                 properties={
-                    "role": _enum(ARGUMENT_ROLES),
+                    "role": _NON_EMPTY_STRING,
                     "mention_surface": {"type": "string"},
                 }
             ),
             _strict_object(
                 properties={
-                    "role": _enum(ARGUMENT_ROLES),
+                    "role": _NON_EMPTY_STRING,
                     "mention_ref": {"type": "string"},
                 }
             ),
             _strict_object(
                 properties={
-                    "role": _enum(ARGUMENT_ROLES),
+                    "role": _NON_EMPTY_STRING,
                     "literal": _json_literal(),
                 }
             ),
@@ -187,8 +114,8 @@ def _slim_evidence_schema() -> dict[str, Any]:
 def _slim_candidate_schema() -> dict[str, Any]:
     return _strict_object(
         properties={
-            "kind": _enum(tuple(item.value for item in CandidateKind)),
-            "schema_name": _enum(SCHEMA_NAMES),
+            "kind": _NON_EMPTY_STRING,
+            "schema_name": _NON_EMPTY_STRING,
             "arguments": {
                 "type": "array",
                 "items": _slim_argument_schema(),

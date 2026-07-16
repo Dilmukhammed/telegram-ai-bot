@@ -4,8 +4,6 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
-from memory.extraction.contracts import SCHEMA_CONTRACTS
-
 
 ALLOWED_VERIFICATION_AUTHORITIES = frozenset(
     {"user_direct_statement", "tool_api_result", "authoritative_api_result"}
@@ -17,19 +15,11 @@ CONTEXT_ONLY_RELATIONS = frozenset(
 
 
 def deterministic_exact_tool_support(candidate: Mapping[str, Any]) -> bool:
-    """Recognize exact task/event facts copied from authoritative JSON payloads."""
+    """Recognize exact facts copied from authoritative JSON tool payloads.
+
+    Predicate-agnostic: does not require kind/schema_name to be task/event.
+    """
     if candidate.get("polarity") != "positive" or candidate.get("attributes"):
-        return False
-    kind = candidate.get("candidate_kind")
-    schema_name = candidate.get("schema_name")
-    temporal = candidate.get("temporal")
-    exact_task = kind == "task" and temporal is None
-    exact_event = (
-        kind == "event"
-        and schema_name == "calendar_event"
-        and isinstance(temporal, Mapping)
-    )
-    if not exact_task and not exact_event:
         return False
     epistemic = candidate.get("epistemic")
     if not isinstance(epistemic, Mapping) or (
@@ -39,7 +29,9 @@ def deterministic_exact_tool_support(candidate: Mapping[str, Any]) -> bool:
         return False
     arguments = candidate.get("arguments")
     evidence = candidate.get("evidence")
-    if not isinstance(arguments, list) or not isinstance(evidence, list) or not evidence:
+    if not isinstance(arguments, list) or not arguments:
+        return False
+    if not isinstance(evidence, list) or not evidence:
         return False
     payload_values: set[str] = set()
     for item in evidence:
@@ -54,30 +46,28 @@ def deterministic_exact_tool_support(candidate: Mapping[str, Any]) -> bool:
         except (TypeError, ValueError, json.JSONDecodeError):
             return False
         payload_values.update(_json_scalar_values(payload))
-    if exact_event:
-        assert isinstance(temporal, Mapping)
-        original_text = temporal.get("original_text")
-        event_time = temporal.get("event_time")
-        if (
-            not isinstance(original_text, str)
-            or original_text not in payload_values
-            or not isinstance(event_time, str)
-            or event_time not in payload_values
-        ):
-            return False
-    saw_self = False
+    if not payload_values:
+        return False
+
+    temporal = candidate.get("temporal")
+    if isinstance(temporal, Mapping):
+        for key in ("original_text", "event_time", "valid_from", "valid_to"):
+            value = temporal.get(key)
+            if isinstance(value, str) and value and value not in payload_values:
+                return False
+
     saw_tool_value = False
     for argument in arguments:
         if not isinstance(argument, Mapping) or "literal" not in argument:
             return False
         literal = argument.get("literal")
-        if argument.get("role") == "subject" and literal == "self":
-            saw_self = True
-        elif str(literal) in payload_values:
+        if literal == "self":
+            continue
+        if str(literal) in payload_values:
             saw_tool_value = True
         else:
             return False
-    return saw_self and saw_tool_value
+    return saw_tool_value
 
 
 def _json_scalar_values(value: Any) -> set[str]:
@@ -98,27 +88,27 @@ def _json_scalar_values(value: Any) -> set[str]:
 
 def deterministic_preflight(candidate: Mapping[str, Any]) -> tuple[str, ...]:
     errors: list[str] = []
-    contract = SCHEMA_CONTRACTS.get(str(candidate.get("schema_name", "")))
+    schema_name = str(candidate.get("schema_name") or "").strip()
+    kind = str(candidate.get("candidate_kind") or "").strip()
+    if not schema_name or not kind:
+        errors.append("malformed_candidate")
+
     arguments = candidate.get("arguments")
-    if not isinstance(arguments, list):
+    if not isinstance(arguments, list) or not arguments:
         arguments = []
         errors.append("malformed_candidate")
-    if contract is None:
-        errors.append("malformed_candidate")
     else:
-        if str(candidate.get("candidate_kind")) != contract.kind.value:
-            errors.append("malformed_candidate")
-        roles = [
-            str(item.get("role"))
-            for item in arguments
-            if isinstance(item, Mapping)
-        ]
-        allowed = set(contract.required_roles + contract.optional_roles)
-        if (
-            any(role not in roles for role in contract.required_roles)
-            or any(role not in allowed for role in roles)
-            or len(roles) != len(set(roles))
-        ):
+        roles: list[str] = []
+        for item in arguments:
+            if not isinstance(item, Mapping):
+                errors.append("malformed_candidate")
+                continue
+            role = str(item.get("role") or "").strip()
+            if not role:
+                errors.append("malformed_candidate")
+            else:
+                roles.append(role)
+        if len(roles) != len(set(roles)):
             errors.append("argument_unsupported")
 
     mentions = candidate.get("mentions")

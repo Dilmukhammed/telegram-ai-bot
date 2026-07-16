@@ -4847,5 +4847,99 @@ PR 4 is not release-qualified until:
 3. the support/checker and adversarial model configuration is reviewed for sufficient
    independence.
 
-The next engineering slice after those gates is PR 5 minimal entities, assertions, and
-beliefs. PR 5 may read only candidates in `ready_for_resolution`.
+PR 5 minimal entities/assertions/beliefs is implemented (shadow-only, default off):
+
+- schema v6/v7: entities, aliases, mention links, assertions, beliefs, resolution verdicts;
+- generic free-field resolver with optional link critics;
+- invalidation/rebuild of resolution artifacts;
+- offline draft `resolution_v1` expectations + live pipeline manual review artifacts.
+
+PR 6 minimal graph projection is implemented (shadow-only, default off):
+
+- schema v8: `graph_nodes` / `graph_edges` / `graph_outbox` / `graph_revisions`;
+- deterministic materializer for `active`+`durable` belief heads;
+- rebuild and `memory.explain` lineage walk;
+- detailed brief: `docs/GRAPH_MEMORY_PR6_AGENT_BRIEF.md`.
+
+PR 7 temporal reconciliation MVP is implemented:
+
+- `temporal_belief_v1` correction winners (historicalize loser, durable winner);
+- ready negative/cessation historicalizes linked positive priors;
+- startup `validate_memory_config` stage guards + `/memory_status` ledger counts;
+- draft `resolution_v1` PR7 cases (unit-backed; human sign-off still open);
+- brief: `docs/GRAPH_MEMORY_PR7_AGENT_BRIEF.md`.
+
+Shadow production stack (still no Telegram injection): ingest + worker + extract +
+verify + resolve + graph + **shadow retrieval**. PR11 full entity resolution is
+implemented behind opt-in flags (schema v10); remaining deferred items include
+TTL/disputed UX polish and ≥100 ER fixtures with human sign-off.
+
+PR 8 shadow retrieval is implemented:
+
+- schema v9 `memory_shadow_retrieval_runs`;
+- `memory/retrieval/` planner + Stage-4 channels (image channel still no-op until PR10);
+- fire-and-forget preflight in `ChatService` that cannot mutate the agent prompt;
+- brief: `docs/GRAPH_MEMORY_PR8_AGENT_BRIEF.md`.
+
+PR 9 documents is implemented:
+
+- durable upload registration + PDF/DOCX structure normalizer;
+- `document_region` pointers (page/paragraph/table/bbox) + exact dereference;
+- embedded image child sources; draft `documents_v1` injection fixtures;
+- shadow `search_documents` channel live (lexical over document segments);
+- config guard: `MEMORY_DOCUMENTS_ENABLED` requires worker;
+- brief: `docs/GRAPH_MEMORY_PR9_AGENT_BRIEF.md`.
+
+PR 11 full entity resolution is implemented:
+
+- schema v10 `memory_entity_resolution_events` + `memory_entity_alias_equivalences`;
+- opt-in `MEMORY_RESOLUTION_*` ER flags (defaults keep PR5 classic path);
+- pipeline/store/rebuild wiring for merge events, canonical beliefs, split-on-invalidation;
+- brief: `docs/GRAPH_MEMORY_PR11_AGENT_BRIEF.md`.
+
+PR 12 summaries and communities is implemented:
+
+- schema v11 `graph_summaries`, `graph_communities`, `graph_summary_dirty`, `graph_summary_user_state`;
+- belief-snapshot generators + fail-closed sentence verifier (shadow-only);
+- typed community detector `typed_domain_v1`, dirty debounce, full rebuild counter;
+- optional shadow pack enrichment (`MEMORY_SUMMARIES_SHADOW_PACK_ENABLED`);
+- brief: `docs/GRAPH_MEMORY_PR12_AGENT_BRIEF.md`.
+
+PR 14 attachment engine v2 is under active hardening:
+
+- schema v13 adds `memory_attachment_dependencies` and
+  `memory_attachment_constraints` to the v12 event/negative/dirty ledger;
+- hybrid retrieve now combines curated, alias, lexical, stored-vector, bidirectional
+  two-hop graph paths, and existing semantic communities through deterministic RRF;
+- non-curated candidates always pass semantic LLM generation (the former
+  pre-generation `abstain` shortcut was removed);
+- the generator may return a compatible set of attachments; the complete set is
+  checked by one support and one adversarial batch critic before any write;
+- explicit negative preferences revert dependent inferred preferences and create
+  a persistent rematerialization guard without deleting objective taxonomy edges;
+- event supersession, diff-based graph reconciliation, and graph revision
+  idempotency are covered by tests;
+- LLM waits occur outside `BEGIN IMMEDIATE`; the final event/constraint changes
+  remain short deterministic writes;
+- graph_lab dry-run `GET /api/attach?belief_id=` + `GET /api/attach/events`;
+- brief: `docs/GRAPH_MEMORY_PR14_ATTACHMENT_BRIEF.md`.
+
+The final PR14 v2 hardening gates covered dependency propagation, group-fit
+evaluation for non-members, live multi-run quality/stability, and release thresholds.
+
+PR14 v2 hardening gate completed on 2026-07-13:
+
+- attachment unit/integration contract: 35 focused tests;
+- complete memory regression suite: 296 passed;
+- live semantic smoke after fixes: 10/10;
+- three-run live stability: 30/30 after correcting one invalid gold that required
+  duplication of an already-active edge;
+- focused historical-edge safety stability: 3/3;
+- forbidden-edge false positives: 0;
+- reports: `data/memory_eval/pr14-v2-live-smoke7-20260713`,
+  `data/memory_eval/pr14-v2-live-stability1-rescored-20260713`, and
+  `data/memory_eval/pr14-v2-historical-stability3-20260713`.
+
+The implemented release contract is attachment version 2, prompt
+`attachment_committee_v2`, processor version 4, on memory schema v13.
+

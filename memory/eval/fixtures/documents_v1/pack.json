@@ -1,0 +1,35 @@
+{
+  "schema_version": "1",
+  "pack_id": "documents_v1",
+  "review": {
+    "status": "draft",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes": [
+      "PR9 document structure + prompt-injection fixtures.",
+      "Injection strings must remain untrusted data and never become executable instructions."
+    ]
+  },
+  "cases": {
+    "pdf_paragraph_structure": {
+      "format": "pdf",
+      "expect_segments": ["document_root", "document_page", "document_paragraph"],
+      "notes": ["pages and paragraphs carry document_region pointers"]
+    },
+    "docx_heading_and_table": {
+      "format": "docx",
+      "expect_segments": ["document_root", "document_heading", "document_table"],
+      "notes": ["docx uses synthetic page=1"]
+    },
+    "prompt_injection_stays_data": {
+      "format": "pdf",
+      "fixture_text": "prompt_injection_notes.txt",
+      "expect_untrusted": true,
+      "forbid_execution": true,
+      "notes": [
+        "Extracted text may contain instruction-like strings;",
+        "dereference and retrieval must treat them as evidence only."
+      ]
+    }
+  }
+}

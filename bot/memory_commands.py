@@ -23,13 +23,21 @@ def format_memory_status(
     worker_enabled: bool,
     extraction_enabled: bool = False,
     verification_enabled: bool = False,
+    resolution_enabled: bool = False,
+    graph_enabled: bool = False,
+    shadow_retrieval_enabled: bool = False,
+    summaries_enabled: bool = False,
 ) -> str:
     base = service.status()
     lines = [
         "Graph memory (shadow)",
         f"ingest_enabled={int(ingest_enabled)} worker_enabled={int(worker_enabled)} "
         f"extraction_enabled={int(extraction_enabled)} "
-        f"verification_enabled={int(verification_enabled)}",
+        f"verification_enabled={int(verification_enabled)} "
+        f"resolution_enabled={int(resolution_enabled)} "
+        f"graph_enabled={int(graph_enabled)} "
+        f"shadow_retrieval_enabled={int(shadow_retrieval_enabled)} "
+        f"summaries_enabled={int(summaries_enabled)}",
         f"schema_version={base.schema_version}",
         f"sources={base.source_count} active_versions={base.active_version_count}",
         f"dead_jobs={base.dead_job_count} active_workers={base.active_worker_count}",
@@ -39,6 +47,11 @@ def format_memory_status(
         f"candidates_by_status={_fmt_counts(base.candidates_by_status)}",
         f"active_verdicts={base.active_verdict_count} "
         f"active_candidate_scores={base.active_candidate_score_count}",
+        f"assertions={base.assertion_count} belief_heads={base.belief_head_count} "
+        f"active_graph_edges={base.active_graph_edge_count} "
+        f"summary_dirty_backlog={base.summary_dirty_backlog} "
+        f"summaries_by_status={_fmt_counts(base.summaries_by_status)} "
+        f"active_communities={base.active_community_count}",
     ]
     if base.oldest_pending_age_seconds is not None:
         lines.append(f"oldest_pending_age_s={base.oldest_pending_age_seconds:.1f}")

@@ -137,6 +137,30 @@ def _canonicalize_pointer_location(kind: str, location: dict[str, Any]) -> dict[
             end = _require_non_negative_int(location, "char_end")
             if end < start:
                 raise PointerValidationError("char_end must be >= char_start")
+        for optional_int in ("paragraph_index", "table_index", "row_index", "col_index", "image_index"):
+            if optional_int in location:
+                _require_non_negative_int(location, optional_int)
+        if "region_type" in location:
+            region_type = str(location.get("region_type") or "").strip()
+            if not region_type:
+                raise PointerValidationError("region_type must be non-empty when set")
+            location["region_type"] = region_type
+        if "coordinate_system" in location:
+            coordinate_system = str(location.get("coordinate_system") or "").strip()
+            if not coordinate_system:
+                raise PointerValidationError("coordinate_system must be non-empty when set")
+            location["coordinate_system"] = coordinate_system
+        if "page_width" in location or "page_height" in location:
+            for key in ("page_width", "page_height"):
+                value = location.get(key)
+                if value is None:
+                    continue
+                if not isinstance(value, (int, float)) or isinstance(value, bool):
+                    raise PointerValidationError(f"{key} must be a number")
+                number = float(value)
+                if not math.isfinite(number) or number <= 0:
+                    raise PointerValidationError(f"{key} must be a positive finite number")
+                location[key] = number
         return location
     if kind == "image_region":
         location["workspace_path"] = normalize_workspace_path(

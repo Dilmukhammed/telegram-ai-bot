@@ -280,13 +280,23 @@ class PR1IngestionSubject:
         extraction_model: Any | None = None,
         verification_support_model: Any | None = None,
         verification_adversarial_model: Any | None = None,
-        verification_policy_version: str = "verification_policy_v1",
+        verification_policy_version: str = "verification_policy_v2",
+        resolution_enabled: bool = False,
+        resolution_support_model: Any | None = None,
+        resolution_adversarial_model: Any | None = None,
+        required_verification_policy: str | None = None,
         timezone: str = "Asia/Tashkent",
     ) -> None:
         self._extraction_model = extraction_model
         self._verification_support_model = verification_support_model
         self._verification_adversarial_model = verification_adversarial_model
         self._verification_policy_version = verification_policy_version
+        self._resolution_enabled = resolution_enabled
+        self._resolution_support_model = resolution_support_model
+        self._resolution_adversarial_model = resolution_adversarial_model
+        self._required_verification_policy = (
+            required_verification_policy or verification_policy_version
+        )
         self._timezone = timezone
 
     async def run(self, case: Any, context: EvalContext) -> SubjectOutput:
@@ -337,6 +347,8 @@ class PR1IngestionSubject:
                         else "summarize"
                     ),
                     verification_enabled=self._verification_support_model is not None,
+                    resolution_enabled=self._resolution_enabled,
+                    required_verification_policy=self._required_verification_policy,
                 )
                 chat_store = ChatStore(str(chat_path))
                 tool_store = ToolResultStore(str(tool_path))
@@ -409,6 +421,60 @@ class PR1IngestionSubject:
                         interval_seconds=1.0,
                         batch_size=100,
                     )
+                resolution_scheduler = None
+                if self._resolution_enabled:
+                    from memory.resolution.pipeline import register_candidate_resolver
+                    from memory.resolution.scheduler import ResolutionScheduler
+
+                    register_candidate_resolver(
+                        service.registry,
+                        service=service,
+                        required_verification_policy=self._required_verification_policy,
+                        support_model=self._resolution_support_model,
+                        adversarial_model=self._resolution_adversarial_model,
+                        support_profile=str(
+                            getattr(
+                                self._resolution_support_model,
+                                "model_profile",
+                                "extraction",
+                            )
+                            if self._resolution_support_model is not None
+                            else "extraction"
+                        ),
+                        adversarial_profile=str(
+                            getattr(
+                                self._resolution_adversarial_model,
+                                "model_profile",
+                                "agent",
+                            )
+                            if self._resolution_adversarial_model is not None
+                            else "agent"
+                        ),
+                    )
+                    resolution_scheduler = ResolutionScheduler(
+                        service=service,
+                        required_verification_policy=self._required_verification_policy,
+                        interval_seconds=1.0,
+                        batch_size=100,
+                        support_profile=str(
+                            getattr(
+                                self._resolution_support_model,
+                                "model_profile",
+                                "extraction",
+                            )
+                            if self._resolution_support_model is not None
+                            else "extraction"
+                        ),
+                        adversarial_profile=str(
+                            getattr(
+                                self._resolution_adversarial_model,
+                                "model_profile",
+                                "agent",
+                            )
+                            if self._resolution_adversarial_model is not None
+                            else "agent"
+                        ),
+                    )
                 set_text_ingest_sink(runtime.sink)
                 observer = ToolMemoryLifecycleObserver(runtime.sink)
                 tool_store.set_lifecycle_observer(observer)
@@ -434,6 +500,20 @@ class PR1IngestionSubject:
                         notify=notify,
                         runtime=runtime,
                     )
+                    # Settle each live source before the next so multi-turn
+                    # extraction can see prior segments (corrections, follow-ups).
+                    if (
+                        notify
+                        and self._extraction_model is not None
+                        and kind in {"chat_message", "tool_result"}
+                    ):
+                        await _wait_for_ingestion(
+                            service,
+                            runtime,
+                            expected_sources=expected_sources,
+                            timeout_seconds=context.timeout_seconds,
+                            poll_interval_seconds=context.poll_interval_seconds,
+                        )
                 if catchup_needed:
                     runtime.wake_scanner()
 
@@ -453,14 +533,19 @@ class PR1IngestionSubject:
                         timeout_seconds=context.timeout_seconds,
                         poll_interval_seconds=context.poll_interval_seconds,
                     )
-                collected = _collect_ingestion_output(
-                    service=service,
-                    chat_reader=chat_reader,
-                    tool_reader=tool_reader,
-                    fixture_id=fixture_id,
-                    aliases=aliases,
-                    elapsed_seconds=time.monotonic() - started,
-                    subject_type=(
+                if resolution_scheduler is not None:
+                    resolution_scheduler.scan_once()
+                    await _wait_for_ingestion(
+                        service,
+                        runtime,
+                        expected_sources=expected_sources,
+                        timeout_seconds=context.timeout_seconds,
+                        poll_interval_seconds=context.poll_interval_seconds,
+                    )
+                subject_type = (
+                    "resolution"
+                    if self._resolution_enabled
+                    else (
                         "verification"
                         if self._verification_support_model is not None
                         else (
@@ -468,7 +553,16 @@ class PR1IngestionSubject:
                             if self._extraction_model is not None
                             else "ingestion"
                         )
-                    ),
+                    )
+                )
+                collected = _collect_ingestion_output(
+                    service=service,
+                    chat_reader=chat_reader,
+                    tool_reader=tool_reader,
+                    fixture_id=fixture_id,
+                    aliases=aliases,
+                    elapsed_seconds=time.monotonic() - started,
+                    subject_type=subject_type,
                 )
                 return collected
             finally:
@@ -628,7 +722,7 @@ class PR3ExtractionSubject(PR1IngestionSubject):
 class PR4VerificationSubject(PR1IngestionSubject):
     """Run the production PR3 pipeline followed by PR4 verification."""
 
-    pipeline_id = "candidate_verification_v3"
+    pipeline_id = "candidate_verification_v6"
     subject_id = "pr4_verification"
 
     def __init__(
@@ -637,7 +731,7 @@ class PR4VerificationSubject(PR1IngestionSubject):
         support_model: Any,
         adversarial_model: Any,
         *,
-        policy_version: str = "verification_policy_v1",
+        policy_version: str = "verification_policy_v2",
         timezone: str = "Asia/Tashkent",
     ) -> None:
         super().__init__(
@@ -645,6 +739,36 @@ class PR4VerificationSubject(PR1IngestionSubject):
             verification_support_model=support_model,
             verification_adversarial_model=adversarial_model,
             verification_policy_version=policy_version,
+            timezone=timezone,
+        )
+
+
+class PR5ResolutionSubject(PR1IngestionSubject):
+    """Ingest -> extract -> verify -> resolve (shadow PR5)."""
+
+    pipeline_id = "candidate_resolution_v1"
+    subject_id = "pr5_resolution"
+
+    def __init__(
+        self,
+        extraction_model: Any,
+        support_model: Any,
+        adversarial_model: Any,
+        *,
+        resolution_support_model: Any | None = None,
+        resolution_adversarial_model: Any | None = None,
+        policy_version: str = "verification_policy_v2",
+        timezone: str = "Asia/Tashkent",
+    ) -> None:
+        super().__init__(
+            extraction_model=extraction_model,
+            verification_support_model=support_model,
+            verification_adversarial_model=adversarial_model,
+            verification_policy_version=policy_version,
+            resolution_enabled=True,
+            resolution_support_model=resolution_support_model,
+            resolution_adversarial_model=resolution_adversarial_model,
+            required_verification_policy=policy_version,
             timezone=timezone,
         )
 
@@ -696,6 +820,50 @@ def _build_verification_subject() -> PR4VerificationSubject:
     )
 
 
+def _build_resolution_subject() -> PR5ResolutionSubject:
+    from config import get_settings
+    from llm import LLMClient
+    from memory.extraction.pipeline import LLMExtractionModel
+    from memory.resolution.critics import LLMLinkCriticModel
+    from memory.verification.pipeline import LLMVerificationModel
+
+    settings = get_settings()
+    extraction_profile = settings.memory_extraction_model_profile
+    support_profile = settings.memory_verification_support_model_profile
+    adversarial_profile = settings.memory_verification_adversarial_model_profile
+    link_support_profile = settings.memory_resolution_link_support_model_profile
+    link_adversarial_profile = settings.memory_resolution_link_adversarial_model_profile
+    return PR5ResolutionSubject(
+        LLMExtractionModel(
+            LLMClient(settings, profile=extraction_profile),
+            model_profile=extraction_profile,
+            max_tokens=settings.memory_extraction_max_tokens,
+        ),
+        LLMVerificationModel(
+            LLMClient(settings, profile=support_profile),
+            model_profile=support_profile,
+            max_tokens=settings.memory_verification_max_tokens,
+        ),
+        LLMVerificationModel(
+            LLMClient(settings, profile=adversarial_profile),
+            model_profile=adversarial_profile,
+            max_tokens=settings.memory_verification_max_tokens,
+        ),
+        resolution_support_model=LLMLinkCriticModel(
+            LLMClient(settings, profile=link_support_profile),
+            model_profile=link_support_profile,
+            max_tokens=settings.memory_resolution_max_tokens,
+        ),
+        resolution_adversarial_model=LLMLinkCriticModel(
+            LLMClient(settings, profile=link_adversarial_profile),
+            model_profile=link_adversarial_profile,
+            max_tokens=settings.memory_resolution_max_tokens,
+        ),
+        policy_version=settings.memory_verification_policy_version,
+        timezone=settings.bot_timezone,
+    )
+
+
 def create_subject(
     subject: str,
     *,
@@ -716,6 +884,10 @@ def create_subject(
         if not allow_network:
             raise ValueError("live verification evaluation requires --allow-network")
         return _build_verification_subject()
+    if subject in {"resolution", "pr5_resolution"}:
+        if not allow_network:
+            raise ValueError("live resolution evaluation requires --allow-network")
+        return _build_resolution_subject()
     raise ValueError(f"unknown evaluation subject: {subject}")
 
 
@@ -727,6 +899,8 @@ def _eval_memory_config(
     extraction_enabled: bool = False,
     extraction_model_profile: str = "summarize",
     verification_enabled: bool = False,
+    resolution_enabled: bool = False,
+    required_verification_policy: str = "verification_policy_v2",
 ) -> Any:
     from memory.config import MemoryConfig
 
@@ -774,7 +948,14 @@ def _eval_memory_config(
         verification_scan_interval_seconds=1.0,
         verification_scan_batch_size=100,
         verification_context_chars=240,
-        verification_policy_version="verification_policy_v1",
+        verification_policy_version=required_verification_policy,
+        resolution_enabled=resolution_enabled,
+        resolution_scan_interval_seconds=1.0,
+        resolution_scan_batch_size=100,
+        required_verification_policy_version=required_verification_policy,
+        resolution_link_support_model_profile="extraction",
+        resolution_link_adversarial_model_profile="agent",
+        resolution_max_tokens=1536,
     )
 
 
@@ -847,7 +1028,7 @@ def _collect_ingestion_output(
                 WHERE status NOT IN ('superseded', 'invalidated')
                 ORDER BY candidate_id
                 """
-                if subject_type == "verification"
+                if subject_type in {"verification", "resolution"}
                 else """
                 SELECT * FROM memory_claim_candidates
                 WHERE status IN ('proposed', 'needs_confirmation')
@@ -864,6 +1045,35 @@ def _collect_ingestion_output(
         score_rows = conn.execute(
             "SELECT * FROM memory_candidate_scores ORDER BY candidate_id, score_id"
         ).fetchall()
+        entity_rows = (
+            conn.execute(
+                "SELECT * FROM memory_entities ORDER BY entity_type, identity_key, entity_id"
+            ).fetchall()
+            if subject_type == "resolution"
+            else []
+        )
+        assertion_rows = (
+            conn.execute(
+                "SELECT * FROM memory_assertions ORDER BY created_at, assertion_id"
+            ).fetchall()
+            if subject_type == "resolution"
+            else []
+        )
+        belief_rows = (
+            conn.execute(
+                """
+                SELECT b.belief_id, b.proposition_key, r.belief_status, r.utility_class,
+                       r.polarity, r.resolved_arguments_json
+                FROM memory_beliefs b
+                JOIN memory_belief_heads h ON h.belief_id = b.belief_id
+                JOIN memory_belief_revisions r
+                  ON r.belief_revision_id = h.belief_revision_id
+                ORDER BY b.proposition_key
+                """
+            ).fetchall()
+            if subject_type == "resolution"
+            else []
+        )
 
     sources = tuple(
         {
@@ -1011,7 +1221,7 @@ def _collect_ingestion_output(
                 "temporal": _json_object(row["temporal_json"]) if row["temporal_json"] else None,
                 "status": (
                     extraction_status
-                    if subject_type == "verification"
+                    if subject_type in {"verification", "resolution"}
                     else verification_status
                 ),
                 "verification_status": verification_status,
@@ -1101,6 +1311,49 @@ def _collect_ingestion_output(
             "elapsed_seconds": elapsed_seconds,
             "file_backed": True,
             "subject_type": subject_type,
+            "resolution": (
+                {
+                    "entities": [
+                        {
+                            "entity_id": str(row["entity_id"]),
+                            "entity_type": str(row["entity_type"]),
+                            "identity_key": str(row["identity_key"]),
+                            "canonical_label": row["canonical_label"],
+                            "status": str(row["status"]),
+                        }
+                        for row in entity_rows
+                    ],
+                    "assertions": [
+                        {
+                            "assertion_id": str(row["assertion_id"]),
+                            "candidate_id": str(row["candidate_id"]),
+                            "kind": str(row["candidate_kind"]),
+                            "schema_name": str(row["schema_name"]),
+                            "polarity": str(row["polarity"]),
+                            "status": str(row["status"]),
+                            "resolved_arguments": json.loads(
+                                str(row["resolved_arguments_json"] or "[]")
+                            ),
+                        }
+                        for row in assertion_rows
+                    ],
+                    "beliefs": [
+                        {
+                            "belief_id": str(row["belief_id"]),
+                            "proposition_key": str(row["proposition_key"]),
+                            "belief_status": str(row["belief_status"]),
+                            "utility_class": str(row["utility_class"]),
+                            "polarity": str(row["polarity"]),
+                            "resolved_arguments": json.loads(
+                                str(row["resolved_arguments_json"] or "[]")
+                            ),
+                        }
+                        for row in belief_rows
+                    ],
+                }
+                if subject_type == "resolution"
+                else None
+            ),
         },
     )
 

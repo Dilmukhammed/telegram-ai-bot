@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
 from memory.ids import canonical_json
+from memory.verification.adversarial import looks_like_correction
 from memory.verification.schemas import (
     CandidateScoreInput,
     CandidateStatusUpdate,
@@ -14,7 +15,7 @@ from memory.verification.schemas import (
 )
 
 
-DEFAULT_POLICY_VERSION = "verification_policy_v1"
+DEFAULT_POLICY_VERSION = "verification_policy_v2"
 
 _AUTHORITY_SCORES = {
     "authoritative_api_result": 1.0,
@@ -25,11 +26,30 @@ _AUTHORITY_SCORES = {
     "assistant_generated_text": 0.1,
 }
 
+_CONFIRMATION_MODES = frozenset({"reported", "quoted", "inferred"})
+_CONFIRMATION_COMMITMENTS = frozenset({"possible", "probable", "uncertain", "unknown"})
+
 
 @dataclass(frozen=True, slots=True)
 class RoutingDecision:
     score: CandidateScoreInput
     update: CandidateStatusUpdate
+
+
+def requires_human_confirmation(candidate: Mapping[str, Any]) -> bool:
+    """Soft epistemic / polarity signals that must not auto-advance to resolution."""
+    if str(candidate.get("polarity") or "") == "unknown":
+        return True
+    epistemic = candidate.get("epistemic")
+    if not isinstance(epistemic, Mapping):
+        return True
+    if epistemic.get("needs_confirmation") is True:
+        return True
+    if str(epistemic.get("mode") or "") in _CONFIRMATION_MODES:
+        return True
+    if str(epistemic.get("speaker_commitment") or "") in _CONFIRMATION_COMMITMENTS:
+        return True
+    return False
 
 
 def score_and_route(
@@ -55,13 +75,23 @@ def score_and_route(
     elif support.verdict is VerificationVerdict.CONTRADICTED:
         route_status = "contradicted"
     elif support.verdict is VerificationVerdict.INSUFFICIENT:
-        route_status = "insufficient"
+        # Structural corrections often fail pedantic argument checks; keep them
+        # visible for confirmation instead of dead-ending as insufficient.
+        if (
+            looks_like_correction(candidate)
+            and deterministic.verdict is VerificationVerdict.SUPPORTED
+        ):
+            route_status = "needs_confirmation"
+        else:
+            route_status = "insufficient"
     elif adversarial is not None and adversarial.verdict is VerificationVerdict.CONTRADICTED:
         route_status = "contradicted"
     elif adversarial is not None and adversarial.verdict in {
         VerificationVerdict.INSUFFICIENT,
         VerificationVerdict.MALFORMED,
     }:
+        route_status = "needs_confirmation"
+    elif requires_human_confirmation(candidate):
         route_status = "needs_confirmation"
     else:
         route_status = "ready_for_resolution"
@@ -83,6 +113,12 @@ def score_and_route(
         item.verdict is VerificationVerdict.SUPPORTED for item in model_verdicts
     )
     model_verdict_count = len(model_verdicts)
+    structural_errors = set(deterministic.scope_errors)
+    argument_completeness = (
+        0.0
+        if structural_errors & {"argument_unsupported", "malformed_candidate"}
+        else 1.0
+    )
     components = {
         "extractor_agreement": None,
         "verifier_support": (
@@ -91,13 +127,14 @@ def score_and_route(
         "source_authority": source_authority,
         "evidence_directness": _directness_score(verdicts),
         "temporal_specificity": 1.0 if candidate.get("temporal") else 0.0,
-        "argument_completeness": 1.0,
+        "argument_completeness": argument_completeness,
         "ambiguity_penalty": min(1.0, ambiguity_count * 0.25),
         "cross_modal_agreement": None,
         "contradiction_signal": any(
             item.verdict is VerificationVerdict.CONTRADICTED for item in verdicts
         ),
         "verifier_roles": [item.role.value for item in verdicts],
+        "confirmation_gate": requires_human_confirmation(candidate),
     }
     verdict_payload = [
         {

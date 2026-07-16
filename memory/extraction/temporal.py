@@ -6,7 +6,7 @@ from dataclasses import replace
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from memory.extraction.schemas import CandidateDraft, CandidateKind, ExtractionResult, Temporal
+from memory.extraction.schemas import CandidateDraft, ExtractionResult, Temporal
 
 
 _WEEKDAYS: tuple[tuple[tuple[str, ...], int], ...] = (
@@ -65,7 +65,7 @@ def _normalize_candidate(
 ) -> CandidateDraft:
     folded = segment_text.casefold()
 
-    if candidate.kind is CandidateKind.PREFERENCE and (
+    if candidate.kind == "preference" and (
         "on weekends" in folded or "по выходным" in folded
     ):
         return replace(candidate, temporal=None)
@@ -79,7 +79,7 @@ def _normalize_candidate(
     if local is None:
         return candidate
 
-    if candidate.kind is CandidateKind.CORRECTION:
+    if candidate.kind == "correction":
         marker = _first_marker(segment_text, ("moved", "переехал", "переехала", "теперь"))
         if marker is not None:
             return replace(

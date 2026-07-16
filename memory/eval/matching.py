@@ -159,8 +159,6 @@ def _candidate_projection(candidate: Any) -> dict[str, Any]:
     projection: dict[str, Any] = {}
     for name in _CANDIDATE_FIELDS:
         projection[name] = item[name] if name in item else {"__missing_field__": name}
-    if projection["schema_name"] == "likes":
-        projection["schema_name"] = "prefers"
     projection["arguments"] = _sort_unordered(to_plain(projection["arguments"]))
     projection["evidence"] = _sort_unordered(to_plain(projection["evidence"]))
     return projection
@@ -175,6 +173,46 @@ def candidate_matches(expected: Any, actual: Any) -> bool:
     expected_item = _as_mapping(expected, label="expected candidate")
     expected_projection = _candidate_projection(expected_item)
     actual_projection = _candidate_projection(actual)
+    allow_extra_attributes = expected_item.get("allow_extra_attributes") is True
+    if allow_extra_attributes:
+        expected_attributes = expected_projection["attributes"]
+        actual_attributes = actual_projection["attributes"]
+        expected_projection["attributes"] = {}
+        actual_projection["attributes"] = {}
+        return strict_equal(expected_projection, actual_projection) and partial_pattern_matches(
+            expected_attributes,
+            actual_attributes,
+        )
+    return strict_equal(expected_projection, actual_projection)
+
+
+_VERIFICATION_CORE_FIELDS = (
+    "schema_version",
+    "polarity",
+    "arguments",
+    "attributes",
+    "epistemic",
+    "temporal",
+    "status",
+    "evidence",
+)
+
+
+def _verification_projection(candidate: Any) -> dict[str, Any]:
+    """Semantic core for verification pairing — ignores free kind/schema_name labels."""
+    item = _as_mapping(candidate, label="candidate")
+    projection: dict[str, Any] = {}
+    for name in _VERIFICATION_CORE_FIELDS:
+        projection[name] = item[name] if name in item else {"__missing_field__": name}
+    projection["arguments"] = _sort_unordered(to_plain(projection["arguments"]))
+    projection["evidence"] = _sort_unordered(to_plain(projection["evidence"]))
+    return projection
+
+
+def candidate_matches_for_verification(expected: Any, actual: Any) -> bool:
+    expected_item = _as_mapping(expected, label="expected candidate")
+    expected_projection = _verification_projection(expected_item)
+    actual_projection = _verification_projection(actual)
     allow_extra_attributes = expected_item.get("allow_extra_attributes") is True
     if allow_extra_attributes:
         expected_attributes = expected_projection["attributes"]
@@ -337,6 +375,13 @@ def match_mentions(expected: Sequence[Any], actual: Sequence[Any]) -> MatchResul
 
 def match_candidates(expected: Sequence[Any], actual: Sequence[Any]) -> MatchResult:
     return match_one_to_one(expected, actual, candidate_matches)
+
+
+def match_candidates_for_verification(
+    expected: Sequence[Any],
+    actual: Sequence[Any],
+) -> MatchResult:
+    return match_one_to_one(expected, actual, candidate_matches_for_verification)
 
 
 def partial_pattern_matches(pattern: Any, value: Any) -> bool:
