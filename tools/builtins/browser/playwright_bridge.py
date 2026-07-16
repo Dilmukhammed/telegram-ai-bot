@@ -232,38 +232,6 @@ async def navigate(
     }
 
 
-_UNIQUE_CSS_PATH_JS = """el => {
-    if (!el || el.nodeType !== 1) return 'body';
-    if (el.id) return '#' + CSS.escape(el.id);
-    const parts = [];
-    let cur = el;
-    for (let depth = 0; depth < 7 && cur && cur.nodeType === 1; depth++) {
-        let part = cur.tagName.toLowerCase();
-        if (cur.id) {
-            parts.unshift('#' + CSS.escape(cur.id));
-            break;
-        }
-        const parent = cur.parentElement;
-        if (!parent) {
-            parts.unshift(part);
-            break;
-        }
-        const same = Array.from(parent.children).filter(c => c.tagName === cur.tagName);
-        if (same.length > 1) {
-            part += ':nth-of-type(' + (same.indexOf(cur) + 1) + ')';
-        }
-        const testId = cur.getAttribute('data-testid') || cur.getAttribute('data-test');
-        if (testId) {
-            parts.unshift(cur.tagName.toLowerCase() + '[data-testid="' +
-                String(testId).replace(/"/g, '\\"') + '"]');
-            break;
-        }
-        parts.unshift(part);
-        cur = parent;
-    }
-    return parts.join(' > ');
-}"""
-
 _INTERACTIVE_DOM_SELECTOR = (
     "a[href], button, input:not([type='hidden']), textarea, select, "
     "[role='button'], [role='link'], [role='textbox'], [role='checkbox'], "
@@ -272,6 +240,82 @@ _INTERACTIVE_DOM_SELECTOR = (
     "[contenteditable='true']"
 )
 
+# Single in-page pass — avoids hundreds of CDP round-trips (was timing out at 45s).
+_COLLECT_INTERACTIVE_JS = """({ selector, maxNodes, interactiveOnly }) => {
+  function cssPath(el) {
+    if (!el || el.nodeType !== 1) return 'body';
+    if (el.id) return '#' + CSS.escape(el.id);
+    const parts = [];
+    let cur = el;
+    for (let depth = 0; depth < 7 && cur && cur.nodeType === 1; depth++) {
+      let part = cur.tagName.toLowerCase();
+      if (cur.id) {
+        parts.unshift('#' + CSS.escape(cur.id));
+        break;
+      }
+      const testId = cur.getAttribute('data-testid') || cur.getAttribute('data-test');
+      if (testId) {
+        parts.unshift(
+          cur.tagName.toLowerCase() + '[data-testid="' +
+          String(testId).replace(/"/g, '\\\\"') + '"]'
+        );
+        break;
+      }
+      const parent = cur.parentElement;
+      if (!parent) {
+        parts.unshift(part);
+        break;
+      }
+      const same = Array.from(parent.children).filter(c => c.tagName === cur.tagName);
+      if (same.length > 1) {
+        part += ':nth-of-type(' + (same.indexOf(cur) + 1) + ')';
+      }
+      parts.unshift(part);
+      cur = parent;
+    }
+    return parts.join(' > ');
+  }
+  function isVisible(el) {
+    const st = window.getComputedStyle(el);
+    if (!st || st.display === 'none' || st.visibility === 'hidden' || Number(st.opacity) === 0) {
+      return false;
+    }
+    const r = el.getBoundingClientRect();
+    return r.width > 1 && r.height > 1;
+  }
+  const roleMap = {
+    a: 'link', button: 'button', input: 'textbox', textarea: 'textbox', select: 'combobox',
+  };
+  const nodes = Array.from(document.querySelectorAll(selector));
+  const out = [];
+  for (const el of nodes) {
+    if (out.length >= maxNodes) break;
+    if (interactiveOnly && !isVisible(el)) continue;
+    const tag = el.tagName.toLowerCase();
+    let role = el.getAttribute('role') || roleMap[tag] || tag;
+    const inputType = (el.getAttribute('type') || '').toLowerCase();
+    if (tag === 'input') {
+      if (inputType === 'checkbox') role = 'checkbox';
+      else if (inputType === 'radio') role = 'radio';
+      else if (inputType === 'submit' || inputType === 'button') role = 'button';
+    }
+    let name = el.getAttribute('aria-label')
+      || el.getAttribute('placeholder')
+      || el.getAttribute('name')
+      || el.getAttribute('title')
+      || '';
+    if (!name) {
+      name = (el.innerText || el.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 120);
+    } else {
+      name = String(name).replace(/\\s+/g, ' ').slice(0, 120);
+    }
+    const sel = cssPath(el);
+    if (!sel) continue;
+    out.push({ tag, role, name, selector: sel });
+  }
+  return out;
+}"""
+
 
 async def snapshot(
     session: PlaywrightSession,
@@ -279,11 +323,9 @@ async def snapshot(
     interactive: bool = True,
     max_chars: int = 12_000,
 ) -> dict[str, Any]:
-    """Build clickable refs with stable unique CSS paths (DOM-first).
+    """Build clickable refs with stable unique CSS paths (DOM-first, one evaluate)."""
+    import asyncio
 
-    Older a11y-only refs used ambiguous role/name selectors or broken
-    ``tag:nth-of-type(global_counter)`` fallbacks — those timed out in prod.
-    """
     session.refs.clear()
     session.next_ref = 1
     root = session.target
@@ -291,74 +333,53 @@ async def snapshot(
     text_parts: list[str] = []
     role_name_counts: dict[tuple[str, str], int] = {}
 
-    # Primary: visible DOM interactive nodes with unique CSS paths.
+    collected: list[dict[str, Any]] = []
     try:
-        handles = await root.query_selector_all(_INTERACTIVE_DOM_SELECTOR)
+        collected = await asyncio.wait_for(
+            root.evaluate(
+                _COLLECT_INTERACTIVE_JS,
+                {
+                    "selector": _INTERACTIVE_DOM_SELECTOR,
+                    "maxNodes": 100,
+                    "interactiveOnly": bool(interactive),
+                },
+            ),
+            timeout=20.0,
+        )
     except Exception:
-        handles = []
+        logger.debug("DOM snapshot collect failed", exc_info=True)
+        collected = []
 
-    for handle in handles[:140]:
-        try:
-            if interactive:
-                try:
-                    visible = await handle.is_visible()
-                except Exception:
-                    visible = True
-                if not visible:
-                    continue
-            tag = (await handle.evaluate("el => el.tagName")).lower()
-            role = (
-                await handle.get_attribute("role")
-                or {"a": "link", "button": "button", "input": "textbox", "textarea": "textbox", "select": "combobox"}.get(
-                    tag, tag
-                )
-            )
-            input_type = await handle.get_attribute("type")
-            if tag == "input" and input_type in {"checkbox", "radio", "submit", "button"}:
-                role = "checkbox" if input_type == "checkbox" else (
-                    "radio" if input_type == "radio" else "button"
-                )
-            name = (
-                await handle.get_attribute("aria-label")
-                or await handle.get_attribute("placeholder")
-                or await handle.get_attribute("name")
-                or await handle.get_attribute("title")
-                or ""
-            )
-            if not name:
-                try:
-                    name = await handle.evaluate(
-                        "el => (el.innerText || el.textContent || '').trim().slice(0, 160)"
-                    )
-                except Exception:
-                    name = ""
-            name = " ".join(str(name or "").split())[:120]
-            selector = await handle.evaluate(_UNIQUE_CSS_PATH_JS)
-            if not selector:
-                continue
-            ref = f"e{session.next_ref}"
-            session.next_ref += 1
-            session.refs[ref] = f"css={selector}"
-            entry: dict[str, Any] = {
-                "ref": ref,
-                "role": role or tag,
-                "name": name,
-                "tag": tag,
-            }
-            refs.append(entry)
-            text_parts.append(f"[{ref}] {role or tag} {name}".rstrip())
-        except Exception:
+    if not isinstance(collected, list):
+        collected = []
+
+    for item in collected:
+        if not isinstance(item, dict):
             continue
+        selector = str(item.get("selector") or "").strip()
+        if not selector:
+            continue
+        role = str(item.get("role") or item.get("tag") or "element")
+        name = str(item.get("name") or "")
+        tag = str(item.get("tag") or "")
+        ref = f"e{session.next_ref}"
+        session.next_ref += 1
+        session.refs[ref] = f"css={selector}"
+        refs.append({"ref": ref, "role": role, "name": name, "tag": tag})
+        text_parts.append(f"[{ref}] {role} {name}".rstrip())
 
-    # Secondary: a11y tree for named controls missed by DOM query (with nth).
-    if len(refs) < 8:
+    # Secondary a11y only if DOM found almost nothing (can be slow on heavy SPAs).
+    if len(refs) < 5:
         try:
-            tree = await root.accessibility.snapshot(interesting_only=True)
+            tree = await asyncio.wait_for(
+                root.accessibility.snapshot(interesting_only=True),
+                timeout=8.0,
+            )
         except Exception:
             tree = None
 
         def walk(node: dict[str, Any] | None, depth: int = 0) -> None:
-            if not node:
+            if not node or len(refs) >= 80:
                 return
             role = str(node.get("role") or "")
             name = str(node.get("name") or "")
@@ -408,16 +429,21 @@ async def snapshot(
                     "url": getattr(frame, "url", None) or "",
                     "active": frame is session.frame
                     if session.frame is not None
-                    else frame == session.page.main_frame,
+                    else frame is getattr(session.page, "main_frame", None),
                 }
             )
     except Exception:
         frames_info = []
 
+    try:
+        title = await asyncio.wait_for(session.page.title(), timeout=5.0)
+    except Exception:
+        title = ""
+
     text_preview, truncated = truncate_text("\n".join(text_parts), max_chars)
     return {
         "url": session.page.url,
-        "title": await session.page.title(),
+        "title": title,
         "frame": "main" if session.frame is None else (session.frame.url or "frame"),
         "frames": frames_info[:30],
         "refs": refs[:200],
