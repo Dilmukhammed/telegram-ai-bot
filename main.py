@@ -129,7 +129,8 @@ async def main() -> None:
             "/demo — пример форматирования\n"
             "/demo_rich — multi-block POC (текст + фото + collage + …)\n"
             "/stats — контекст: модель, токены (admin)\n"
-            "/model — сменить agent model (admin)\n"
+            "/model [agent|summarize|checker] — модель / провайдер (admin)\n"
+            "/provider [role] fireworks|9router|openai — провайдер (admin)\n"
             "/trace_last — последний RunTrace (admin)\n"
             "/coach_last — что именно получил trajectory coach (admin)\n"
             "/checker_last — последний tool checker review (admin)\n"
@@ -306,41 +307,60 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
             report = await chat_service.context_stats_report(message.from_user.id)
             await streamer.finalize(report)
 
-    async def _send_model_picker(target: Message, *, notice: str | None = None) -> None:
+    async def _send_model_picker(
+        target: Message,
+        *,
+        role: str = "agent",
+        notice: str | None = None,
+        edit_message: Message | None = None,
+    ) -> None:
         from bot.model_runtime import (
-            active_agent_model,
+            RoleName,
             build_model_keyboard,
             fetch_provider_models,
             format_model_picker,
+            resolve_endpoint,
         )
 
         settings = get_settings()
+        role_name: RoleName = role if role in {"agent", "summarize", "checker"} else "agent"
+        ep = resolve_endpoint(settings, role_name)
         try:
             models = await fetch_provider_models(
-                base_url=settings.openai_base_url,
-                api_key=settings.openai_api_key,
+                base_url=ep.base_url,
+                api_key=ep.api_key,
+                provider=ep.provider,
             )
         except Exception as exc:
             logger.exception("model_list_failed")
-            await target.answer(f"Не удалось получить /v1/models: {exc}")
+            await target.answer(f"Не удалось получить /v1/models ({ep.provider}): {exc}")
             return
 
-        active = active_agent_model(settings.openai_model)
-        text = format_model_picker(
-            default_model=settings.openai_model,
-            base_url=settings.openai_base_url,
-            models=models,
-        )
+        text = format_model_picker(settings=settings, role=role_name, models=models)
         if notice:
             text = f"{notice}\n\n{text}"
-        await target.answer(
-            text,
-            reply_markup=build_model_keyboard(models, active=active),
+        markup = build_model_keyboard(
+            models,
+            active=ep.model,
+            role=role_name,
+            provider=ep.provider,
         )
+        if edit_message is not None:
+            try:
+                await edit_message.edit_text(text, reply_markup=markup)
+                return
+            except Exception:
+                logger.debug("model_picker_edit_failed", exc_info=True)
+        await target.answer(text, reply_markup=markup)
 
     @dp.message(Command("model"))
     async def on_model(message: Message) -> None:
-        from bot.model_runtime import resolve_model_arg
+        from bot.model_runtime import (
+            format_model_status,
+            parse_role_arg,
+            resolve_endpoint,
+            resolve_model_arg,
+        )
 
         admins = admin_user_ids()
         if not admins or message.from_user.id not in admins:
@@ -349,32 +369,107 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
 
         settings = get_settings()
         text = (message.text or "").strip()
-        parts = text.split(maxsplit=1)
-        arg = parts[1].strip() if len(parts) > 1 else ""
-
-        if not arg or arg.lower() == "list":
-            await _send_model_picker(message)
+        parts = text.split(maxsplit=2)
+        # /model
+        # /model list|status
+        # /model summarize
+        # /model summarize <id|N|reset>
+        # /model <id|N|reset>   (agent)
+        if len(parts) == 1:
+            await _send_model_picker(message, role="agent")
             return
 
+        first = parts[1].strip()
+        if first.lower() in {"status", "show"}:
+            await message.answer(format_model_status(settings=settings))
+            return
+
+        role = parse_role_arg(first)
+        if role is not None:
+            arg = parts[2].strip() if len(parts) > 2 else ""
+            if not arg or arg.lower() == "list":
+                await _send_model_picker(message, role=role)
+                return
+            ep = resolve_endpoint(settings, role)
+            try:
+                selected = resolve_model_arg(
+                    arg,
+                    role=role,
+                    default=ep.model,
+                    provider=ep.provider,
+                )
+            except ValueError as exc:
+                await message.answer(f"Не вышло: {exc}")
+                return
+            await _send_model_picker(message, role=role, notice=f"{role} model → `{selected}`")
+            return
+
+        # Bare arg → agent role
+        ep = resolve_endpoint(settings, "agent")
         try:
-            selected = resolve_model_arg(arg, default=settings.openai_model)
+            selected = resolve_model_arg(
+                first if len(parts) == 2 else f"{first} {parts[2]}".strip(),
+                role="agent",
+                default=ep.model,
+                provider=ep.provider,
+            )
         except ValueError as exc:
             await message.answer(f"Не вышло: {exc}")
             return
+        await _send_model_picker(message, role="agent", notice=f"agent model → `{selected}`")
 
-        await _send_model_picker(message, notice=f"Agent model → `{selected}`")
+    @dp.message(Command("provider"))
+    async def on_provider(message: Message) -> None:
+        from bot.model_runtime import (
+            parse_provider_arg,
+            parse_role_arg,
+            set_role_provider,
+        )
+
+        admins = admin_user_ids()
+        if not admins or message.from_user.id not in admins:
+            await message.answer("Нет доступа. Добавь свой Telegram user id в ADMIN_USER_IDS.")
+            return
+
+        text = (message.text or "").strip()
+        parts = text.split()
+        # /provider fireworks
+        # /provider summarize fireworks
+        if len(parts) < 2:
+            await message.answer(
+                "Usage:\n"
+                "/provider fireworks|9router|openai\n"
+                "/provider summarize|checker|agent fireworks|9router|openai"
+            )
+            return
+
+        role = "agent"
+        provider_token = parts[1]
+        if len(parts) >= 3:
+            maybe_role = parse_role_arg(parts[1])
+            if maybe_role is not None:
+                role = maybe_role
+                provider_token = parts[2]
+        provider = parse_provider_arg(provider_token)
+        if provider is None:
+            await message.answer("Провайдер: fireworks | 9router | openai")
+            return
+        set_role_provider(role, provider)  # type: ignore[arg-type]
+        await _send_model_picker(
+            message,
+            role=role,
+            notice=f"{role} provider → `{provider}` (model reset; pick one)",
+        )
 
     @dp.callback_query(F.data.startswith("mdl:"))
     async def on_model_callback(callback: CallbackQuery) -> None:
         from bot.model_runtime import (
-            active_agent_model,
-            build_model_keyboard,
-            clear_agent_model,
-            fetch_provider_models,
-            format_model_picker,
+            clear_role,
             last_listed_models,
             parse_model_callback,
-            set_agent_model,
+            resolve_endpoint,
+            set_role_model,
+            set_role_provider,
         )
 
         admins = admin_user_ids()
@@ -387,51 +482,43 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
             await callback.answer("Неизвестная команда")
             return
 
-        action, index = parsed
         settings = get_settings()
+        role = parsed["role"]
+        action = parsed["action"]
         notice: str | None = None
 
         if action == "reset":
-            clear_agent_model()
-            selected = active_agent_model(settings.openai_model)
-            notice = f"Reset → `{selected}`"
-            await callback.answer(f"Reset: {selected}"[:200])
+            clear_role(role)
+            ep = resolve_endpoint(settings, role)
+            notice = f"{role} reset → `{ep.model}` @ `{ep.provider}`"
+            await callback.answer(f"Reset: {ep.model}"[:200])
         elif action == "set":
-            listed = last_listed_models()
+            ep = resolve_endpoint(settings, role)
+            listed = last_listed_models(provider=ep.provider)
+            index = parsed.get("index")
             if index is None or index < 0 or index >= len(listed):
                 await callback.answer("Список устарел — Refresh", show_alert=True)
                 return
-            selected = set_agent_model(listed[index])
-            notice = f"Active → `{selected}`"
+            selected = set_role_model(role, listed[index])
+            notice = f"{role} → `{selected}`"
             await callback.answer(f"OK: {selected}"[:200])
+        elif action == "provider":
+            provider = parsed["provider"]
+            set_role_provider(role, provider)
+            notice = f"{role} provider → `{provider}`"
+            await callback.answer(f"Provider: {provider}"[:200])
+        elif action == "role":
+            await callback.answer(f"Role: {role}")
         else:
             await callback.answer("Refreshing…")
 
-        try:
-            models = await fetch_provider_models(
-                base_url=settings.openai_base_url,
-                api_key=settings.openai_api_key,
-            )
-        except Exception as exc:
-            logger.exception("model_list_failed_callback")
-            await callback.answer(f"list failed: {exc}"[:200], show_alert=True)
-            return
-
-        active = active_agent_model(settings.openai_model)
-        text = format_model_picker(
-            default_model=settings.openai_model,
-            base_url=settings.openai_base_url,
-            models=models,
-        )
-        if notice:
-            text = f"{notice}\n\n{text}"
-        markup = build_model_keyboard(models, active=active)
         if callback.message is not None:
-            try:
-                await callback.message.edit_text(text, reply_markup=markup)
-            except Exception:
-                logger.debug("model_picker_edit_failed", exc_info=True)
-                await callback.message.answer(text, reply_markup=markup)
+            await _send_model_picker(
+                callback.message,
+                role=role,
+                notice=notice,
+                edit_message=callback.message,
+            )
 
     @dp.message(Command("dump_context"))
     async def on_dump_context(message: Message) -> None:

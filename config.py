@@ -13,6 +13,8 @@ load_dotenv(override=os.getenv("DOTENV_OVERRIDE", "1") != "0")
 
 DEFAULT_OPENAI_BASE_URL = "https://api.fireworks.ai/inference/v1"
 DEFAULT_OPENAI_MODEL = "accounts/fireworks/models/glm-5p2"
+DEFAULT_FIREWORKS_BASE_URL = "https://api.fireworks.ai/inference/v1"
+DEFAULT_NINEROUTER_BASE_URL = "http://127.0.0.1:20128/v1"
 DEFAULT_REASONING_EFFORT = "medium"
 DEFAULT_LLM_CONTEXT_WINDOW_TOKENS = 1_000_000
 DEFAULT_LLM_REQUEST_TIMEOUTS = (30.0, 60.0, 90.0)
@@ -597,6 +599,10 @@ class Settings:
     openai_base_url: str
     openai_api_key: str
     openai_model: str
+    fireworks_base_url: str
+    fireworks_api_key: str
+    ninerouter_base_url: str
+    ninerouter_api_key: str
     reasoning_effort: str | None
     llm_context_window_tokens: int
     llm_request_timeouts: tuple[float, ...]
@@ -881,6 +887,10 @@ def get_settings(*, require_telegram_token: bool = False) -> Settings:
         raise RuntimeError("OPENAI_API_KEY or EMBEDDING_API_KEY is not set")
 
     openai_base_url = _str_env("OPENAI_BASE_URL", DEFAULT_OPENAI_BASE_URL)
+    fireworks_base_url = _str_env("FIREWORKS_BASE_URL", DEFAULT_FIREWORKS_BASE_URL)
+    fireworks_api_key = _str_env("FIREWORKS_API_KEY", openai_api_key)
+    ninerouter_base_url = _str_env("NINEROUTER_BASE_URL", DEFAULT_NINEROUTER_BASE_URL)
+    ninerouter_api_key = _str_env("NINEROUTER_API_KEY", openai_api_key)
     google_public_base_url = _optional_str_env("GOOGLE_PUBLIC_BASE_URL")
     if google_public_base_url:
         google_public_base_url = _normalize_base_url(google_public_base_url)
@@ -1314,6 +1324,10 @@ def get_settings(*, require_telegram_token: bool = False) -> Settings:
             "MEMORY_ATTACHMENT_REACT_MAX_TOKENS", DEFAULT_MEMORY_ATTACHMENT_REACT_MAX_TOKENS,
         ),
         openai_base_url=openai_base_url,
+        fireworks_base_url=fireworks_base_url,
+        fireworks_api_key=fireworks_api_key,
+        ninerouter_base_url=ninerouter_base_url,
+        ninerouter_api_key=ninerouter_api_key,
         openai_api_key=openai_api_key,
         openai_model=_str_env("OPENAI_MODEL", DEFAULT_OPENAI_MODEL),
         reasoning_effort=_reasoning_effort_env("REASONING_EFFORT", DEFAULT_REASONING_EFFORT),

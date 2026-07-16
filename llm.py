@@ -58,35 +58,54 @@ class LLMClient:
     def __init__(self, settings: Settings, *, profile: str = "agent") -> None:
         self._settings = settings
         self._profile = profile
+        self._client_cache_key: tuple[str, str] | None = None
+        self._client: AsyncOpenAI | None = None
         if profile in {"summarize", "coach", "extraction"}:
-            self._model = settings.summarize_model
-            base_url = settings.summarize_base_url
-            api_key = settings.summarize_api_key
+            self._static_model = settings.summarize_model
+            self._static_base_url = settings.summarize_base_url
+            self._static_api_key = settings.summarize_api_key
+            self._use_runtime_endpoint = True
             self._reasoning_effort: str | None = (
                 settings.reasoning_effort if profile == "extraction" else None
             )
         elif profile == "checker":
-            self._model = settings.checker_model
-            base_url = settings.checker_base_url
-            api_key = settings.checker_api_key
+            self._static_model = settings.checker_model
+            self._static_base_url = settings.checker_base_url
+            self._static_api_key = settings.checker_api_key
+            self._use_runtime_endpoint = True
             self._reasoning_effort = None
         elif profile in _THOROUGH_PROFILE_ATTRS:
             model_attr, base_attr, key_attr = _THOROUGH_PROFILE_ATTRS[profile]
-            self._model = getattr(settings, model_attr)
-            base_url = getattr(settings, base_attr)
-            api_key = getattr(settings, key_attr)
+            self._static_model = getattr(settings, model_attr)
+            self._static_base_url = getattr(settings, base_attr)
+            self._static_api_key = getattr(settings, key_attr)
+            self._use_runtime_endpoint = False
             self._reasoning_effort = None
         elif profile == "agent":
-            self._model = settings.openai_model
-            base_url = settings.openai_base_url
-            api_key = settings.openai_api_key
+            self._static_model = settings.openai_model
+            self._static_base_url = settings.openai_base_url
+            self._static_api_key = settings.openai_api_key
+            self._use_runtime_endpoint = True
             self._reasoning_effort = settings.reasoning_effort
         else:
             raise ValueError(f"Unknown LLM profile: {profile!r}")
-        self._client = AsyncOpenAI(
-            base_url=base_url,
-            api_key=api_key,
-        )
+
+    def _resolved(self) -> tuple[str, str, str]:
+        """Return (base_url, api_key, model) — runtime overrides for agent/summarize/checker."""
+        if self._use_runtime_endpoint:
+            from bot.model_runtime import profile_to_role, resolve_endpoint
+
+            ep = resolve_endpoint(self._settings, profile_to_role(self._profile))
+            return ep.base_url, ep.api_key, ep.model
+        return self._static_base_url, self._static_api_key, self._static_model
+
+    def _openai(self) -> AsyncOpenAI:
+        base_url, api_key, _model = self._resolved()
+        key = (base_url, api_key)
+        if self._client is None or self._client_cache_key != key:
+            self._client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+            self._client_cache_key = key
+        return self._client
 
     @property
     def request_timeouts(self) -> tuple[float, ...]:
@@ -94,22 +113,21 @@ class LLMClient:
 
     @property
     def model_name(self) -> str:
-        if self._profile == "agent":
-            from bot.model_runtime import active_agent_model
-
-            return active_agent_model(self._settings.openai_model)
-        return self._model
+        return self._resolved()[2]
 
     @property
     def reasoning_effort(self) -> str | None:
         return self._reasoning_effort
 
     def _completion_kwargs(self, **extra: Any) -> dict[str, Any]:
+        from bot.model_runtime import should_send_reasoning_effort
+
+        model = self.model_name
         kwargs: dict[str, Any] = {
-            "model": self.model_name,
+            "model": model,
             **extra,
         }
-        if self._reasoning_effort:
+        if self._reasoning_effort and should_send_reasoning_effort(model):
             kwargs["reasoning_effort"] = self._reasoning_effort
         return kwargs
 
@@ -175,7 +193,7 @@ class LLMClient:
     ) -> ChatCompletion:
         return await self._call_with_timeout_retry(
             "chat_with_tools",
-            lambda: self._client.chat.completions.create(
+            lambda: self._openai().chat.completions.create(
                 **self._completion_kwargs(
                     messages=messages,
                     tools=tools,
@@ -199,7 +217,7 @@ class LLMClient:
 
         response = await self._call_with_timeout_retry(
             "count_prompt_tokens",
-            lambda: self._client.chat.completions.create(**kwargs),
+            lambda: self._openai().chat.completions.create(**kwargs),
             on_retry=on_retry,
         )
         usage = response.usage
@@ -214,7 +232,7 @@ class LLMClient:
         on_retry: RetryCallback | None = None,
     ) -> AsyncIterator[str]:
         async def _collect() -> list[str]:
-            stream = await self._client.chat.completions.create(
+            stream = await self._openai().chat.completions.create(
                 **self._completion_kwargs(
                     messages=messages,
                     stream=True,
@@ -250,7 +268,7 @@ class LLMClient:
 
         async def _call() -> str:
             kwargs: dict[str, Any] = {
-                "model": self._model,
+                "model": self.model_name,
                 "messages": messages,
                 "max_tokens": max_tokens,
             }
@@ -258,7 +276,7 @@ class LLMClient:
                 kwargs["response_format"] = response_format
             if temperature is not None:
                 kwargs["temperature"] = temperature
-            response = await self._client.chat.completions.create(**kwargs)
+            response = await self._openai().chat.completions.create(**kwargs)
             content = (response.choices[0].message.content or "").strip()
             if not content:
                 raise RuntimeError("Empty response from model")
@@ -292,7 +310,7 @@ class LLMClient:
             # from the structured schema and semantic validator for these calls.
             if temperature is not None and self._reasoning_effort is None:
                 kwargs["temperature"] = temperature
-            response = await self._client.chat.completions.create(**kwargs)
+            response = await self._openai().chat.completions.create(**kwargs)
             content = (response.choices[0].message.content or "").strip()
             if not content:
                 raise RuntimeError("Empty response from model")
