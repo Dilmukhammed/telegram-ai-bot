@@ -232,112 +232,208 @@ async def navigate(
     }
 
 
+_UNIQUE_CSS_PATH_JS = """el => {
+    if (!el || el.nodeType !== 1) return 'body';
+    if (el.id) return '#' + CSS.escape(el.id);
+    const parts = [];
+    let cur = el;
+    for (let depth = 0; depth < 7 && cur && cur.nodeType === 1; depth++) {
+        let part = cur.tagName.toLowerCase();
+        if (cur.id) {
+            parts.unshift('#' + CSS.escape(cur.id));
+            break;
+        }
+        const parent = cur.parentElement;
+        if (!parent) {
+            parts.unshift(part);
+            break;
+        }
+        const same = Array.from(parent.children).filter(c => c.tagName === cur.tagName);
+        if (same.length > 1) {
+            part += ':nth-of-type(' + (same.indexOf(cur) + 1) + ')';
+        }
+        const testId = cur.getAttribute('data-testid') || cur.getAttribute('data-test');
+        if (testId) {
+            parts.unshift(cur.tagName.toLowerCase() + '[data-testid="' +
+                String(testId).replace(/"/g, '\\"') + '"]');
+            break;
+        }
+        parts.unshift(part);
+        cur = parent;
+    }
+    return parts.join(' > ');
+}"""
+
+_INTERACTIVE_DOM_SELECTOR = (
+    "a[href], button, input:not([type='hidden']), textarea, select, "
+    "[role='button'], [role='link'], [role='textbox'], [role='checkbox'], "
+    "[role='radio'], [role='combobox'], [role='menuitem'], [role='tab'], "
+    "[role='switch'], [role='searchbox'], [role='option'], summary, "
+    "[contenteditable='true']"
+)
+
+
 async def snapshot(
     session: PlaywrightSession,
     *,
     interactive: bool = True,
     max_chars: int = 12_000,
 ) -> dict[str, Any]:
+    """Build clickable refs with stable unique CSS paths (DOM-first).
+
+    Older a11y-only refs used ambiguous role/name selectors or broken
+    ``tag:nth-of-type(global_counter)`` fallbacks — those timed out in prod.
+    """
     session.refs.clear()
     session.next_ref = 1
-    try:
-        tree = await session.page.accessibility.snapshot(interesting_only=True)
-    except Exception:
-        tree = None
-
+    root = session.target
     refs: list[dict[str, Any]] = []
     text_parts: list[str] = []
+    role_name_counts: dict[tuple[str, str], int] = {}
 
-    def walk(node: dict[str, Any] | None, depth: int = 0) -> None:
-        if not node:
-            return
-        role = str(node.get("role") or "")
-        name = str(node.get("name") or "")
-        value = node.get("value")
-        interactive_roles = {
-            "button",
-            "link",
-            "textbox",
-            "checkbox",
-            "radio",
-            "combobox",
-            "menuitem",
-            "tab",
-            "switch",
-            "searchbox",
-            "option",
-        }
-        include = (not interactive) or role in interactive_roles or bool(name and role)
-        if include and (role or name):
+    # Primary: visible DOM interactive nodes with unique CSS paths.
+    try:
+        handles = await root.query_selector_all(_INTERACTIVE_DOM_SELECTOR)
+    except Exception:
+        handles = []
+
+    for handle in handles[:140]:
+        try:
+            if interactive:
+                try:
+                    visible = await handle.is_visible()
+                except Exception:
+                    visible = True
+                if not visible:
+                    continue
+            tag = (await handle.evaluate("el => el.tagName")).lower()
+            role = (
+                await handle.get_attribute("role")
+                or {"a": "link", "button": "button", "input": "textbox", "textarea": "textbox", "select": "combobox"}.get(
+                    tag, tag
+                )
+            )
+            input_type = await handle.get_attribute("type")
+            if tag == "input" and input_type in {"checkbox", "radio", "submit", "button"}:
+                role = "checkbox" if input_type == "checkbox" else (
+                    "radio" if input_type == "radio" else "button"
+                )
+            name = (
+                await handle.get_attribute("aria-label")
+                or await handle.get_attribute("placeholder")
+                or await handle.get_attribute("name")
+                or await handle.get_attribute("title")
+                or ""
+            )
+            if not name:
+                try:
+                    name = await handle.evaluate(
+                        "el => (el.innerText || el.textContent || '').trim().slice(0, 160)"
+                    )
+                except Exception:
+                    name = ""
+            name = " ".join(str(name or "").split())[:120]
+            selector = await handle.evaluate(_UNIQUE_CSS_PATH_JS)
+            if not selector:
+                continue
             ref = f"e{session.next_ref}"
             session.next_ref += 1
-            selector = _guess_selector(role, name, value)
-            session.refs[ref] = selector
-            entry: dict[str, Any] = {"ref": ref, "role": role, "name": name}
-            if value is not None:
-                entry["value"] = value
+            session.refs[ref] = f"css={selector}"
+            entry: dict[str, Any] = {
+                "ref": ref,
+                "role": role or tag,
+                "name": name,
+                "tag": tag,
+            }
             refs.append(entry)
-            indent = "  " * depth
-            text_parts.append(f"{indent}[{ref}] {role} {name}".rstrip())
-        for child in node.get("children") or []:
-            if isinstance(child, dict):
-                walk(child, depth + 1)
+            text_parts.append(f"[{ref}] {role or tag} {name}".rstrip())
+        except Exception:
+            continue
 
-    if isinstance(tree, dict):
-        walk(tree)
+    # Secondary: a11y tree for named controls missed by DOM query (with nth).
+    if len(refs) < 8:
+        try:
+            tree = await root.accessibility.snapshot(interesting_only=True)
+        except Exception:
+            tree = None
 
-    if not refs:
-        # Fallback: collect common interactive elements via DOM.
-        handles = await session.page.query_selector_all(
-            "a, button, input, textarea, select, [role='button'], [role='link']"
-        )
-        for handle in handles[:80]:
-            try:
-                tag = (await handle.evaluate("el => el.tagName")).lower()
-                name = (
-                    await handle.get_attribute("aria-label")
-                    or await handle.inner_text()
-                    or await handle.get_attribute("placeholder")
-                    or await handle.get_attribute("name")
-                    or ""
-                )
-                name = " ".join(str(name).split())[:120]
+        def walk(node: dict[str, Any] | None, depth: int = 0) -> None:
+            if not node:
+                return
+            role = str(node.get("role") or "")
+            name = str(node.get("name") or "")
+            value = node.get("value")
+            interactive_roles = {
+                "button",
+                "link",
+                "textbox",
+                "checkbox",
+                "radio",
+                "combobox",
+                "menuitem",
+                "tab",
+                "switch",
+                "searchbox",
+                "option",
+            }
+            include = (not interactive) or role in interactive_roles or bool(name and role)
+            if include and (role or name):
+                key = (role, name)
+                nth = role_name_counts.get(key, 0)
+                role_name_counts[key] = nth + 1
                 ref = f"e{session.next_ref}"
                 session.next_ref += 1
-                selector = await handle.evaluate(
-                    """el => {
-                        if (el.id) return '#' + CSS.escape(el.id);
-                        const name = el.getAttribute('name');
-                        if (name) return el.tagName.toLowerCase() + '[name="' + name.replace(/"/g, '\\\\"') + '"]';
-                        return null;
-                    }"""
-                )
-                if not selector:
-                    selector = f"{tag}:nth-of-type({session.next_ref})"
+                selector = _guess_selector(role, name, value, nth=nth)
                 session.refs[ref] = selector
-                refs.append({"ref": ref, "role": tag, "name": name})
-                text_parts.append(f"[{ref}] {tag} {name}".rstrip())
-            except Exception:
-                continue
+                entry: dict[str, Any] = {"ref": ref, "role": role, "name": name, "nth": nth}
+                if value is not None:
+                    entry["value"] = value
+                refs.append(entry)
+                indent = "  " * depth
+                text_parts.append(f"{indent}[{ref}] {role} {name}".rstrip())
+            for child in node.get("children") or []:
+                if isinstance(child, dict):
+                    walk(child, depth + 1)
+
+        if isinstance(tree, dict):
+            walk(tree)
+
+    frames_info: list[dict[str, Any]] = []
+    try:
+        for i, frame in enumerate(session.page.frames):
+            frames_info.append(
+                {
+                    "index": i,
+                    "name": getattr(frame, "name", None) or "",
+                    "url": getattr(frame, "url", None) or "",
+                    "active": frame is session.frame
+                    if session.frame is not None
+                    else frame == session.page.main_frame,
+                }
+            )
+    except Exception:
+        frames_info = []
 
     text_preview, truncated = truncate_text("\n".join(text_parts), max_chars)
     return {
         "url": session.page.url,
         "title": await session.page.title(),
+        "frame": "main" if session.frame is None else (session.frame.url or "frame"),
+        "frames": frames_info[:30],
         "refs": refs[:200],
         "text_preview": text_preview,
         "truncated": truncated,
     }
 
 
-def _guess_selector(role: str, name: str, value: Any) -> str:
+def _guess_selector(role: str, name: str, value: Any, *, nth: int = 0) -> str:
     if name:
         safe = name.replace('"', '\\"')
         if role in {"button", "link", "textbox", "checkbox", "radio", "combobox"}:
-            return f'role={role}[name="{safe}"]'
-        return f'text="{safe}"'
+            return f'role={role}[name="{safe}"]>>nth={nth}'
+        return f'text="{safe}">>nth={nth}'
     if role:
-        return f"role={role}"
+        return f"role={role}>>nth={nth}"
     return "body"
 
 
@@ -349,12 +445,28 @@ def _resolve_ref(session: PlaywrightSession, ref: str) -> str:
     return session.refs[ref]
 
 
+def _split_nth(selector: str) -> tuple[str, int]:
+    if ">>nth=" in selector:
+        base, nth_s = selector.rsplit(">>nth=", 1)
+        try:
+            return base, int(nth_s)
+        except ValueError:
+            return selector, 0
+    return selector, 0
+
+
 async def _locator(session: PlaywrightSession, ref: str) -> Any:
     root = session.target
     selector = _resolve_ref(session, ref)
-    if selector.startswith("role="):
+    base, nth = _split_nth(selector)
+
+    if base.startswith("css="):
+        loc = root.locator(base[len("css=") :])
+        return loc.nth(nth) if nth else loc.first
+
+    if base.startswith("role="):
         # role=button[name="X"]
-        body = selector[len("role=") :]
+        body = base[len("role=") :]
         role = body
         name = None
         if "[name=" in body:
@@ -362,10 +474,13 @@ async def _locator(session: PlaywrightSession, ref: str) -> Any:
             name = rest.rstrip("]")
             if name.startswith('"') and name.endswith('"'):
                 name = name[1:-1]
-        return root.get_by_role(role, name=name) if name else root.get_by_role(role)
-    if selector.startswith('text="') and selector.endswith('"'):
-        return root.get_by_text(selector[len('text="') : -1], exact=False)
-    return root.locator(selector).first
+        loc = root.get_by_role(role, name=name, exact=False) if name else root.get_by_role(role)
+        return loc.nth(nth)
+    if base.startswith('text="') and base.endswith('"'):
+        loc = root.get_by_text(base[len('text="') : -1], exact=False)
+        return loc.nth(nth)
+    loc = root.locator(base)
+    return loc.nth(nth) if nth else loc.first
 
 
 def _page_info(page: Any) -> dict[str, Any]:
@@ -781,16 +896,37 @@ async def click(
     *,
     button: str = "left",
     double: bool = False,
+    force: bool = False,
 ) -> dict[str, Any]:
     locator = await _locator(session, ref)
-    if double:
-        await locator.dblclick(button=button, timeout=15_000)
-    else:
-        await locator.click(button=button, timeout=15_000)
+    try:
+        await locator.scroll_into_view_if_needed(timeout=5_000)
+    except Exception:
+        logger.debug("scroll_into_view failed for %s", ref, exc_info=True)
+
+    async def _do_click(*, force_click: bool) -> None:
+        if double:
+            await locator.dblclick(button=button, timeout=15_000, force=force_click)
+        else:
+            await locator.click(button=button, timeout=15_000, force=force_click)
+
+    used_force = bool(force)
+    try:
+        await _do_click(force_click=used_force)
+    except Exception as first_exc:
+        if used_force:
+            raise
+        # Retry with force for overlays / interception (common on OAuth buttons).
+        try:
+            await _do_click(force_click=True)
+            used_force = True
+        except Exception:
+            raise first_exc from None
     return {
         "ref": ref,
         "url": session.page.url,
         "title": await session.page.title(),
+        "forced": used_force,
     }
 
 

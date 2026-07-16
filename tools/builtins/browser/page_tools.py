@@ -42,6 +42,7 @@ async def _click_handler(arguments: dict[str, Any]) -> dict[str, Any]:
         arguments["ref"],
         button=str(arguments.get("button") or "left"),
         double=bool(arguments.get("double", False)),
+        force=bool(arguments.get("force", False)),
     )
     return redact_browser_payload(result)
 
@@ -125,8 +126,9 @@ BROWSER_NAVIGATE = ToolSpec(
 BROWSER_SNAPSHOT = ToolSpec(
     name="browser.snapshot",
     description=(
-        "Capture an accessibility/DOM snapshot with stable refs for click/type/fill. "
-        "Call again after navigation or major page changes."
+        "Capture interactive DOM refs (unique CSS paths) for click/type/fill. "
+        "Also returns frames[] for iframe targeting via browser.frame_switch. "
+        "Call again after navigation or major page changes — refs go stale."
     ),
     parameters={
         "type": "object",
@@ -148,7 +150,12 @@ BROWSER_SNAPSHOT = ToolSpec(
 
 BROWSER_CLICK = ToolSpec(
     name="browser.click",
-    description="Click an element by ref from browser.snapshot.",
+    description=(
+        "Click an element by ref from the latest browser.snapshot. "
+        "Re-snapshot after navigation. If click is intercepted, retries with force. "
+        "For Google OAuth widgets inside iframes: browser.frame_switch first "
+        "(snapshot.frames lists them)."
+    ),
     parameters={
         "type": "object",
         "properties": {
@@ -156,6 +163,11 @@ BROWSER_CLICK = ToolSpec(
             "ref": {"type": "string"},
             "button": {"type": "string", "enum": ["left", "right"], "default": "left"},
             "double": {"type": "boolean", "default": False},
+            "force": {
+                "type": "boolean",
+                "default": False,
+                "description": "Skip actionability checks (overlays).",
+            },
         },
         "required": ["ref"],
     },

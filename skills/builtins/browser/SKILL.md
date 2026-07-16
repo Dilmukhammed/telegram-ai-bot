@@ -79,8 +79,9 @@ Works for many non-Google sites. Google sign-in page often fails.
 
 - One active session per user; login sessions may park across turns.
 - After cookie import, always `session_close` to persist.
-- Re-snapshot after navigation (refs go stale).
-- Prefer refs over raw CSS/JS when possible.
+- Re-snapshot after navigation (refs go stale). Prefer `ref` from latest snapshot.
+- OAuth / “Sign in with Google” often lives in an **iframe** → check `snapshot.frames`, then `browser.frame_switch`, then snapshot+click inside the frame.
+- If a click times out, re-snapshot (don’t reuse old refs) or `click({force:true})`.
 - Network log is metadata only (no response bodies).
 - `browser.route` is abort/fulfill only (no continue/header rewrite); fulfill body capped.
 - Launch sessions max ~15 minutes.
