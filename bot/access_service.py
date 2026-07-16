@@ -114,6 +114,9 @@ class AccessService:
         return record is not None and record.status == "approved"
 
     def needs_google_email(self, user_id: int) -> bool:
+        # Admins manage Test users themselves — skip email collection gate.
+        if self.is_admin(user_id):
+            return False
         record = self._store.get(user_id)
         if record is None:
             return True
@@ -124,11 +127,17 @@ class AccessService:
         return bool(record and record.google_email_pending)
 
     def is_google_test_user_verified(self, user_id: int) -> bool:
+        # Admins are trusted for Google OAuth; no Test-users verify loop.
+        if self.is_admin(user_id):
+            return True
         record = self._store.get(user_id)
         return bool(record and record.google_test_user_verified)
 
     def begin_google_email_collection(self, user_id: int) -> None:
         self._store.set_google_email_pending(user_id, True)
+
+    def clear_google_email_collection(self, user_id: int) -> None:
+        self._store.set_google_email_pending(user_id, False)
 
     def get_google_email(self, user_id: int) -> str | None:
         record = self._store.get(user_id)

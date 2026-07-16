@@ -57,6 +57,7 @@ class LLMRequestTimeoutError(TimeoutError):
 class LLMClient:
     def __init__(self, settings: Settings, *, profile: str = "agent") -> None:
         self._settings = settings
+        self._profile = profile
         if profile in {"summarize", "coach", "extraction"}:
             self._model = settings.summarize_model
             base_url = settings.summarize_base_url
@@ -93,6 +94,10 @@ class LLMClient:
 
     @property
     def model_name(self) -> str:
+        if self._profile == "agent":
+            from bot.model_runtime import active_agent_model
+
+            return active_agent_model(self._settings.openai_model)
         return self._model
 
     @property
@@ -101,7 +106,7 @@ class LLMClient:
 
     def _completion_kwargs(self, **extra: Any) -> dict[str, Any]:
         kwargs: dict[str, Any] = {
-            "model": self._model,
+            "model": self.model_name,
             **extra,
         }
         if self._reasoning_effort:

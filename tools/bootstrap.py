@@ -1,3 +1,4 @@
+from config import browser_tools_enabled
 from tools.builtins import BUILTIN_TOOLS
 from tools.builtins.google import GOOGLE_TOOLS
 from tools.builtins.yandex import YANDEX_TOOLS
@@ -16,6 +17,11 @@ async def create_tool_runtime() -> ToolRuntime:
         registry.register(tool)
     for tool in YANDEX_TOOLS:
         registry.register(tool)
+    if browser_tools_enabled():
+        from tools.builtins.browser import BROWSER_TOOLS
+
+        for tool in BROWSER_TOOLS:
+            registry.register(tool)
     index = await create_tool_index(registry)
     return ToolRuntime(registry, index)
 
@@ -25,3 +31,8 @@ async def get_tool_runtime() -> ToolRuntime:
     if _runtime is None:
         _runtime = await create_tool_runtime()
     return _runtime
+
+
+def reset_tool_runtime_for_tests() -> None:
+    global _runtime
+    _runtime = None

@@ -51,10 +51,13 @@ _COMMON_ID_FIELDS: tuple[str, ...] = (
 CHECKER_EXCLUDED_PATTERNS: tuple[str, ...] = (
     "echo.*",
     "coach.*",
+    "agent.wait",
     "tool_results.*",
     "skills.*",
     "google.auth.*",
     "yandex.auth.*",
+    "browser.profile.*",
+    "browser.session.*",
 )
 
 

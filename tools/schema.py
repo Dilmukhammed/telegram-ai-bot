@@ -21,6 +21,7 @@ class ToolSpec:
     cache_ttl_seconds: int | None = None
     rate_limit: tuple[int, int] | None = None
     parallel_safe: bool = True
+    handler_timeout_seconds: float | None = None
     verification_questions: tuple["VerificationQuestion", ...] = ()
     checker_enabled: bool = True
 

@@ -92,6 +92,13 @@ async def start_google_connect(
         await message.answer("Сначала нужен доступ к боту. Напиши любое сообщение — админ одобрит.")
         return
 
+    # Admins skip Test-users email gate; clear any stale pending flag.
+    if access.is_admin(user.id):
+        if access.is_google_email_pending(user.id):
+            access.clear_google_email_collection(user.id)
+        await deliver_google_connect_url(message, oauth_start_url=oauth_start_url)
+        return
+
     if access.needs_google_email(user.id):
         access.begin_google_email_collection(user.id)
         await message.answer(
@@ -120,15 +127,27 @@ async def try_handle_google_email(
     *,
     oauth_start_url: Callable[[int], str],
 ) -> bool:
+    from tools.builtins.google.auth import looks_like_manual_oauth_callback
+
     user = message.from_user
     if user is None:
         return False
 
     access = get_access_service()
+    # Admin / OAuth callback must not be trapped by email collection.
+    if access.is_admin(user.id):
+        if access.is_google_email_pending(user.id):
+            access.clear_google_email_collection(user.id)
+        return False
+
     if not access.is_google_email_pending(user.id):
         return False
 
-    email = parse_email(message.text or "")
+    text = message.text or ""
+    if looks_like_manual_oauth_callback(text):
+        return False
+
+    email = parse_email(text)
     if not email:
         await message.answer("Пришли Google email в формате name@gmail.com")
         return True

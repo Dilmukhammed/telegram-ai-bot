@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from typing import Any
@@ -27,6 +28,15 @@ logger = logging.getLogger(__name__)
 
 class ToolValidationError(ValueError):
     pass
+
+
+class ToolHandlerTimeoutError(TimeoutError):
+    def __init__(self, tool_name: str, timeout_seconds: float) -> None:
+        self.tool_name = tool_name
+        self.timeout_seconds = timeout_seconds
+        super().__init__(
+            f"Tool handler timed out: {tool_name} after {timeout_seconds:.1f}s"
+        )
 
 
 def _validate_arguments(spec: ToolSpec, arguments: dict[str, Any]) -> None:
@@ -175,7 +185,17 @@ class ToolRuntime:
         try:
             token = set_run_context(ctx)
             try:
-                result = await spec.handler(filtered)
+                timeout = spec.handler_timeout_seconds
+                if timeout is not None and timeout > 0:
+                    try:
+                        result = await asyncio.wait_for(
+                            spec.handler(filtered),
+                            timeout=timeout,
+                        )
+                    except asyncio.TimeoutError as exc:
+                        raise ToolHandlerTimeoutError(tool_name, timeout) from exc
+                else:
+                    result = await spec.handler(filtered)
             finally:
                 reset_run_context(token)
         except Exception as exc:

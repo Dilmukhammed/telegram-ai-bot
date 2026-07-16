@@ -182,6 +182,25 @@ DEFAULT_TOOL_EMBEDDING_PROVIDER = "api"
 DEFAULT_TOOL_CACHE_MAX_TTL = 86400
 DEFAULT_MAX_TOOL_CALLS_PER_USER_HOUR = 200
 
+DEFAULT_BROWSER_TOOLS_ENABLED = False
+DEFAULT_BROWSER_PROFILE_DB_PATH = "data/browser_profiles.sqlite"
+DEFAULT_BROWSER_MAX_CONCURRENT_SESSIONS = 10
+DEFAULT_BROWSER_SESSION_MAX_SECONDS = 900
+DEFAULT_BROWSER_SESSION_IDLE_CLOSE_SECONDS = 300
+DEFAULT_BROWSER_STEEL_API_RPM = 60
+DEFAULT_BROWSER_VIEWER_TOKEN_TTL_SECONDS = 900
+DEFAULT_BROWSER_VIEWPORT_WIDTH = 1280
+DEFAULT_BROWSER_VIEWPORT_HEIGHT = 800
+DEFAULT_BROWSER_PROFILE_READY_TIMEOUT_SECONDS = 180
+DEFAULT_BROWSER_PROFILE_READY_POLL_INTERVAL_SECONDS = 3
+DEFAULT_BROWSER_HANDLER_TIMEOUT_SESSION = 120.0
+DEFAULT_BROWSER_HANDLER_TIMEOUT_NAVIGATE = 60.0
+DEFAULT_BROWSER_HANDLER_TIMEOUT_SNAPSHOT = 45.0
+DEFAULT_BROWSER_HANDLER_TIMEOUT_SCREENSHOT = 60.0
+DEFAULT_BROWSER_HANDLER_TIMEOUT_DEFAULT = 30.0
+DEFAULT_RATE_LIMIT_BROWSER_SESSION = "6/60"
+DEFAULT_RATE_LIMIT_BROWSER_PAGE = "120/60"
+
 DEFAULT_GOOGLE_REDIRECT_URI = "http://localhost:1"
 DEFAULT_GOOGLE_OAUTH_HOST = "127.0.0.1"
 DEFAULT_GOOGLE_OAUTH_PORT = 8787
@@ -657,6 +676,28 @@ class Settings:
     exa_fetch_cache_ttl: int | None
     rate_limit_exa_search: tuple[int, int] | None
     rate_limit_exa_fetch: tuple[int, int] | None
+
+    # Steel cloud browser
+    steel_api_key: str
+    browser_tools_enabled: bool
+    browser_profile_db_path: str
+    browser_viewer_public_base: str | None
+    browser_max_concurrent_sessions: int
+    browser_session_max_seconds: int
+    browser_session_idle_close_seconds: int
+    browser_steel_api_rpm: int
+    browser_viewer_token_ttl_seconds: int
+    browser_viewport_width: int
+    browser_viewport_height: int
+    browser_profile_ready_timeout_seconds: int
+    browser_profile_ready_poll_interval_seconds: int
+    browser_handler_timeout_session: float
+    browser_handler_timeout_navigate: float
+    browser_handler_timeout_snapshot: float
+    browser_handler_timeout_screenshot: float
+    browser_handler_timeout_default: float
+    rate_limit_browser_session: tuple[int, int] | None
+    rate_limit_browser_page: tuple[int, int] | None
 
     # Tool embeddings
     embedding_base_url: str
@@ -1455,6 +1496,87 @@ def get_settings(*, require_telegram_token: bool = False) -> Settings:
         exa_fetch_cache_ttl=_optional_int_env("EXA_FETCH_CACHE_TTL"),
         rate_limit_exa_search=_parse_rate_limit(_optional_str_env("RATE_LIMIT_EXA_SEARCH")),
         rate_limit_exa_fetch=_parse_rate_limit(_optional_str_env("RATE_LIMIT_EXA_FETCH")),
+        steel_api_key=_str_env("STEEL_API_KEY"),
+        browser_tools_enabled=_bool_env(
+            "BROWSER_TOOLS_ENABLED",
+            DEFAULT_BROWSER_TOOLS_ENABLED,
+        ),
+        browser_profile_db_path=_str_env(
+            "BROWSER_PROFILE_DB_PATH",
+            DEFAULT_BROWSER_PROFILE_DB_PATH,
+        ),
+        browser_viewer_public_base=(
+            _normalize_base_url(raw_browser_viewer_base)
+            if (raw_browser_viewer_base := (
+                _optional_str_env("BROWSER_VIEWER_PUBLIC_BASE")
+                or google_public_base_url
+            ))
+            else None
+        ),
+        browser_max_concurrent_sessions=_int_env(
+            "BROWSER_MAX_CONCURRENT_SESSIONS",
+            DEFAULT_BROWSER_MAX_CONCURRENT_SESSIONS,
+        ),
+        browser_session_max_seconds=_int_env(
+            "BROWSER_SESSION_MAX_SECONDS",
+            DEFAULT_BROWSER_SESSION_MAX_SECONDS,
+        ),
+        browser_session_idle_close_seconds=_int_env(
+            "BROWSER_SESSION_IDLE_CLOSE_SECONDS",
+            DEFAULT_BROWSER_SESSION_IDLE_CLOSE_SECONDS,
+        ),
+        browser_steel_api_rpm=_int_env(
+            "BROWSER_STEEL_API_RPM",
+            DEFAULT_BROWSER_STEEL_API_RPM,
+        ),
+        browser_viewer_token_ttl_seconds=_int_env(
+            "BROWSER_VIEWER_TOKEN_TTL_SECONDS",
+            DEFAULT_BROWSER_VIEWER_TOKEN_TTL_SECONDS,
+        ),
+        browser_viewport_width=_int_env(
+            "BROWSER_VIEWPORT_WIDTH",
+            DEFAULT_BROWSER_VIEWPORT_WIDTH,
+        ),
+        browser_viewport_height=_int_env(
+            "BROWSER_VIEWPORT_HEIGHT",
+            DEFAULT_BROWSER_VIEWPORT_HEIGHT,
+        ),
+        browser_profile_ready_timeout_seconds=_int_env(
+            "BROWSER_PROFILE_READY_TIMEOUT_SECONDS",
+            DEFAULT_BROWSER_PROFILE_READY_TIMEOUT_SECONDS,
+        ),
+        browser_profile_ready_poll_interval_seconds=_int_env(
+            "BROWSER_PROFILE_READY_POLL_INTERVAL_SECONDS",
+            DEFAULT_BROWSER_PROFILE_READY_POLL_INTERVAL_SECONDS,
+        ),
+        browser_handler_timeout_session=_float_env(
+            "BROWSER_HANDLER_TIMEOUT_SESSION",
+            DEFAULT_BROWSER_HANDLER_TIMEOUT_SESSION,
+        ),
+        browser_handler_timeout_navigate=_float_env(
+            "BROWSER_HANDLER_TIMEOUT_NAVIGATE",
+            DEFAULT_BROWSER_HANDLER_TIMEOUT_NAVIGATE,
+        ),
+        browser_handler_timeout_snapshot=_float_env(
+            "BROWSER_HANDLER_TIMEOUT_SNAPSHOT",
+            DEFAULT_BROWSER_HANDLER_TIMEOUT_SNAPSHOT,
+        ),
+        browser_handler_timeout_screenshot=_float_env(
+            "BROWSER_HANDLER_TIMEOUT_SCREENSHOT",
+            DEFAULT_BROWSER_HANDLER_TIMEOUT_SCREENSHOT,
+        ),
+        browser_handler_timeout_default=_float_env(
+            "BROWSER_HANDLER_TIMEOUT_DEFAULT",
+            DEFAULT_BROWSER_HANDLER_TIMEOUT_DEFAULT,
+        ),
+        rate_limit_browser_session=_parse_rate_limit(
+            _optional_str_env("RATE_LIMIT_BROWSER_SESSION")
+            or DEFAULT_RATE_LIMIT_BROWSER_SESSION
+        ),
+        rate_limit_browser_page=_parse_rate_limit(
+            _optional_str_env("RATE_LIMIT_BROWSER_PAGE")
+            or DEFAULT_RATE_LIMIT_BROWSER_PAGE
+        ),
         embedding_base_url=_str_env("EMBEDDING_BASE_URL", openai_base_url),
         embedding_api_key=_str_env("EMBEDDING_API_KEY", openai_api_key),
         openai_embedding_model=_str_env("OPENAI_EMBEDDING_MODEL", DEFAULT_EMBEDDING_MODEL),
@@ -1791,6 +1913,20 @@ def google_oauth_configured() -> bool:
 
 def google_maps_configured() -> bool:
     return bool(get_settings().google_maps_api_key)
+
+
+def steel_configured() -> bool:
+    return bool(get_settings().steel_api_key)
+
+
+def browser_tools_enabled() -> bool:
+    settings = get_settings()
+    return bool(settings.browser_tools_enabled and settings.steel_api_key)
+
+
+def browser_viewer_configured() -> bool:
+    base = get_settings().browser_viewer_public_base
+    return bool(base)
 
 
 def google_oauth_remote_ready() -> bool:

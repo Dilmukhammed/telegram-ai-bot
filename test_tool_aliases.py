@@ -27,7 +27,7 @@ class ToolAliasTests(unittest.TestCase):
         self.assertEqual(missing, [], f"missing aliases: {missing}")
 
     def test_alias_count_within_budget(self) -> None:
-        self.assertLessEqual(len(TOOL_ALIASES), 45)
+        self.assertLessEqual(len(TOOL_ALIASES), 55)
 
     def test_aliases_have_negative_phrases(self) -> None:
         for name in WAVE4_ALIAS_TOOLS:

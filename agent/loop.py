@@ -872,6 +872,21 @@ class Agent:
         outbound_queue = OutboundQueue()
         file_store_token = set_run_file_store(file_store)
         outbound_token = set_outbound_queue(outbound_queue)
+        from tools.builtins.browser.session_manager import (
+            BrowserSessionManager,
+            register_active_manager,
+            reset_browser_session_manager,
+            set_browser_session_manager,
+            unregister_active_manager,
+        )
+
+        browser_mgr = BrowserSessionManager(run_id=run_id, user_id=user_id)
+        browser_token = set_browser_session_manager(browser_mgr)
+        await register_active_manager(browser_mgr)
+        try:
+            await browser_mgr.adopt_held_login_lease()
+        except Exception:
+            logger.debug("adopt held browser login lease failed", exc_info=True)
         checker_tasks: list[asyncio.Task[None]] = []
 
         try:
@@ -1096,6 +1111,12 @@ class Agent:
         finally:
             if checker_tasks:
                 await asyncio.gather(*checker_tasks, return_exceptions=True)
+            try:
+                await browser_mgr.close_all(reason="run_end")
+            except Exception:
+                logger.exception("browser session cleanup failed for run_id=%s", run_id)
+            await unregister_active_manager(browser_mgr)
+            reset_browser_session_manager(browser_token)
             reset_outbound_queue(outbound_token)
             reset_run_file_store(file_store_token)
             file_store.cleanup()

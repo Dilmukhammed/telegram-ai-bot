@@ -41,6 +41,10 @@ SEGMENT_ALIASES: dict[str, tuple[str, ...]] = {
     "sandbox": ("workspace", "files", "server"),
     "workspace": ("sandbox", "files", "server"),
     "telegram": ("send", "user", "chat", "file"),
+    "navigate": ("open", "visit", "browse", "load", "url", "goto"),
+    "snapshot": ("screenshot", "page", "dom", "accessibility", "refs"),
+    "screenshot": ("capture", "image", "png", "page", "photo"),
+    "session": ("browser", "steel", "tab", "open", "close"),
 }
 
 # Hand-tuned phrases for tools that lose to noisy neighbors in hybrid search.
@@ -191,6 +195,47 @@ TOOL_ALIASES: dict[str, tuple[str, ...]] = {
     ),
     "google.drive.list_folder": (
         "list folder files drive google directory",
+    ),
+    "browser.session_open": (
+        "open browser login google website interactive hitl steel session",
+        "not exa web search not google oauth api",
+    ),
+    "browser.session_close": (
+        "close browser session release save profile persist cookies",
+    ),
+    "browser.navigate": (
+        "open url in browser navigate website page goto",
+        "not exa web_search not google maps",
+    ),
+    "browser.snapshot": (
+        "browser accessibility snapshot refs clickable elements page tree",
+    ),
+    "browser.screenshot": (
+        "web page screenshot image capture png browser",
+        "not pdf.render not maps static",
+    ),
+    "browser.profile.status": (
+        "browser profile login status cookies steel saved session",
+    ),
+    "browser.profile.import_cookies": (
+        "import chrome cookies seed google login editthiscookie cookie-editor json",
+        "not google oauth api connect_google not exa search",
+    ),
+    "browser.tabs.list": (
+        "list browser tabs open pages windows",
+        "not session_open not exa",
+    ),
+    "browser.download": (
+        "download file from browser page click save file_ref",
+        "not drive download not gmail attachment",
+    ),
+    "browser.evaluate": (
+        "run javascript evaluate js in browser page",
+        "not snapshot click not python code",
+    ),
+    "agent.wait": (
+        "sleep pause delay wait seconds backoff retry upload processing",
+        "not browser.wait selector not exa search",
     ),
 }
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import StrEnum
+from memory.compat import StrEnum
 from types import MappingProxyType
 from typing import Any, Mapping, TypeAlias
 

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from agent.loop import Agent
+from bot.model_runtime import active_agent_model
 from config import Settings, get_settings
 from skills.collapse import SKILL_LOADED_PREFIX, sanitize_expanded_skills_for_context
 from skills.session import SkillSessionStore
@@ -121,7 +122,7 @@ def build_history_dump_payload(
     return {
         "exported_at": datetime.now(timezone.utc).isoformat(),
         "user_id": user_id,
-        "model": settings.openai_model,
+        "model": active_agent_model(settings.openai_model),
         "reasoning_effort": settings.reasoning_effort,
         "chat_max_history": settings.chat_max_history,
         "llm_context_window_tokens": settings.llm_context_window_tokens,

@@ -78,6 +78,15 @@ def rate_limit_for_tool(tool_name: str, spec_limit: tuple[int, int] | None) -> t
         return settings.ocr_rate_limit
     if tool_name.startswith("pdf."):
         return settings.pdf_rate_limit_read
+    if tool_name in {
+        "browser.session_open",
+        "browser.session_close",
+        "browser.profile.status",
+        "browser.profile.disconnect",
+    }:
+        return settings.rate_limit_browser_session or spec_limit
+    if tool_name.startswith("browser."):
+        return settings.rate_limit_browser_page or spec_limit
     return spec_limit
 
 

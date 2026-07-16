@@ -1,3 +1,4 @@
+from tools.builtins.agent_wait import AGENT_WAIT_TOOL
 from tools.builtins.chat_tools import CHAT_TOOLS
 from tools.builtins.coach_reply import COACH_REPLY_TOOL
 from tools.builtins.echo import ECHO_TOOL
@@ -12,6 +13,7 @@ from tools.schema import ToolSpec
 
 BUILTIN_TOOLS: tuple[ToolSpec, ...] = (
     ECHO_TOOL,
+    AGENT_WAIT_TOOL,
     COACH_REPLY_TOOL,
     EXA_WEB_SEARCH,
     EXA_WEB_FETCH,

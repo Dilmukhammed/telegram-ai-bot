@@ -13,13 +13,19 @@ from bot.chat_store.migrate_v1 import run_v1_migration_if_needed
 from bot.google_connect_flow import start_google_connect, try_handle_google_email
 from bot.instance_lock import BotInstanceLockError, acquire_instance_lock
 from bot.inbound_files import save_telegram_document, save_telegram_photo
+from bot.browser_connect import browser_status_text, disconnect_browser
 from bot.yandex_connect import begin_yandex_connect, yandex_status_text
 from bot.reply import reply_to_user_text, reset_user_queue, send_transcription_to_chat
 from bot.user_location import format_location_user_message
 from bot.workspace_notify import format_document_agent_message, format_photo_agent_message
 from bot.transcription import GroqTranscriber, TranscriptionError, get_transcriber
 from bot.vision import ImageTooLargeError, download_message_photo
-from config import get_settings, google_oauth_configured, google_oauth_manual_mode
+from config import (
+    browser_tools_enabled,
+    get_settings,
+    google_oauth_configured,
+    google_oauth_manual_mode,
+)
 from oauth_server import start_oauth_server
 from rich_demo import build_rich_blocks_demo_markdown
 from streaming import TelegramDraftStreamer
@@ -75,8 +81,20 @@ async def main() -> None:
     memory_attachment_scheduler = None
 
     oauth_runner = None
-    if google_oauth_configured() and not google_oauth_manual_mode():
+    browser_stop = asyncio.Event()
+    browser_maintenance_task = None
+    need_http_server = (
+        (google_oauth_configured() and not google_oauth_manual_mode())
+        or browser_tools_enabled()
+    )
+    if need_http_server:
         oauth_runner = await start_oauth_server()
+    if browser_tools_enabled():
+        from tools.builtins.browser.session_manager import browser_maintenance_loop
+
+        browser_maintenance_task = asyncio.create_task(
+            browser_maintenance_loop(browser_stop)
+        )
 
     transcriber: GroqTranscriber | None
     try:
@@ -111,6 +129,7 @@ async def main() -> None:
             "/demo — пример форматирования\n"
             "/demo_rich — multi-block POC (текст + фото + collage + …)\n"
             "/stats — контекст: модель, токены (admin)\n"
+            "/model — сменить agent model (admin)\n"
             "/trace_last — последний RunTrace (admin)\n"
             "/coach_last — что именно получил trajectory coach (admin)\n"
             "/checker_last — последний tool checker review (admin)\n"
@@ -121,7 +140,9 @@ async def main() -> None:
             "/disconnect_google — отключить Google\n"
             "/connect_yandex — подключить Яндекс.Музыку\n"
             "/yandex_status — статус Яндекс.Музыки\n"
-            "/disconnect_yandex — отключить Яндекс.Музыку"
+            "/disconnect_yandex — отключить Яндекс.Музыку\n"
+            "/browser_status — статус Steel browser profile\n"
+            "/disconnect_browser — удалить browser profile"
         )
 
     @dp.message(Command("reset"))
@@ -284,6 +305,133 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
             await streamer.stream_status("Считаю токены…")
             report = await chat_service.context_stats_report(message.from_user.id)
             await streamer.finalize(report)
+
+    async def _send_model_picker(target: Message, *, notice: str | None = None) -> None:
+        from bot.model_runtime import (
+            active_agent_model,
+            build_model_keyboard,
+            fetch_provider_models,
+            format_model_picker,
+        )
+
+        settings = get_settings()
+        try:
+            models = await fetch_provider_models(
+                base_url=settings.openai_base_url,
+                api_key=settings.openai_api_key,
+            )
+        except Exception as exc:
+            logger.exception("model_list_failed")
+            await target.answer(f"Не удалось получить /v1/models: {exc}")
+            return
+
+        active = active_agent_model(settings.openai_model)
+        text = format_model_picker(
+            default_model=settings.openai_model,
+            base_url=settings.openai_base_url,
+            models=models,
+        )
+        if notice:
+            text = f"{notice}\n\n{text}"
+        await target.answer(
+            text,
+            reply_markup=build_model_keyboard(models, active=active),
+        )
+
+    @dp.message(Command("model"))
+    async def on_model(message: Message) -> None:
+        from bot.model_runtime import resolve_model_arg
+
+        admins = admin_user_ids()
+        if not admins or message.from_user.id not in admins:
+            await message.answer("Нет доступа. Добавь свой Telegram user id в ADMIN_USER_IDS.")
+            return
+
+        settings = get_settings()
+        text = (message.text or "").strip()
+        parts = text.split(maxsplit=1)
+        arg = parts[1].strip() if len(parts) > 1 else ""
+
+        if not arg or arg.lower() == "list":
+            await _send_model_picker(message)
+            return
+
+        try:
+            selected = resolve_model_arg(arg, default=settings.openai_model)
+        except ValueError as exc:
+            await message.answer(f"Не вышло: {exc}")
+            return
+
+        await _send_model_picker(message, notice=f"Agent model → `{selected}`")
+
+    @dp.callback_query(F.data.startswith("mdl:"))
+    async def on_model_callback(callback: CallbackQuery) -> None:
+        from bot.model_runtime import (
+            active_agent_model,
+            build_model_keyboard,
+            clear_agent_model,
+            fetch_provider_models,
+            format_model_picker,
+            last_listed_models,
+            parse_model_callback,
+            set_agent_model,
+        )
+
+        admins = admin_user_ids()
+        if not admins or callback.from_user.id not in admins:
+            await callback.answer("Нет доступа", show_alert=True)
+            return
+
+        parsed = parse_model_callback(callback.data or "")
+        if parsed is None:
+            await callback.answer("Неизвестная команда")
+            return
+
+        action, index = parsed
+        settings = get_settings()
+        notice: str | None = None
+
+        if action == "reset":
+            clear_agent_model()
+            selected = active_agent_model(settings.openai_model)
+            notice = f"Reset → `{selected}`"
+            await callback.answer(f"Reset: {selected}"[:200])
+        elif action == "set":
+            listed = last_listed_models()
+            if index is None or index < 0 or index >= len(listed):
+                await callback.answer("Список устарел — Refresh", show_alert=True)
+                return
+            selected = set_agent_model(listed[index])
+            notice = f"Active → `{selected}`"
+            await callback.answer(f"OK: {selected}"[:200])
+        else:
+            await callback.answer("Refreshing…")
+
+        try:
+            models = await fetch_provider_models(
+                base_url=settings.openai_base_url,
+                api_key=settings.openai_api_key,
+            )
+        except Exception as exc:
+            logger.exception("model_list_failed_callback")
+            await callback.answer(f"list failed: {exc}"[:200], show_alert=True)
+            return
+
+        active = active_agent_model(settings.openai_model)
+        text = format_model_picker(
+            default_model=settings.openai_model,
+            base_url=settings.openai_base_url,
+            models=models,
+        )
+        if notice:
+            text = f"{notice}\n\n{text}"
+        markup = build_model_keyboard(models, active=active)
+        if callback.message is not None:
+            try:
+                await callback.message.edit_text(text, reply_markup=markup)
+            except Exception:
+                logger.debug("model_picker_edit_failed", exc_info=True)
+                await callback.message.answer(text, reply_markup=markup)
 
     @dp.message(Command("dump_context"))
     async def on_dump_context(message: Message) -> None:
@@ -461,6 +609,15 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
             await message.answer("Яндекс.Музыка отключена.")
         else:
             await message.answer("Яндекс.Музыка не была подключена.")
+
+    @dp.message(Command("browser_status"))
+    async def on_browser_status(message: Message) -> None:
+        await message.answer(await browser_status_text(message.from_user.id))
+
+    @dp.message(Command("disconnect_browser"))
+    async def on_disconnect_browser(message: Message) -> None:
+        text = await disconnect_browser(message.from_user.id, delete_remote=True)
+        await message.answer(text)
 
     @dp.message(F.voice | F.audio)
     async def on_audio(message: Message) -> None:
@@ -664,13 +821,7 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
         if not user_text:
             return
 
-        if await try_handle_google_email(
-            message,
-            bot,
-            oauth_start_url=oauth_start_url,
-        ):
-            return
-
+        # Manual OAuth callback before email-collection gate (stale pending flags).
         if google_oauth_configured() and google_oauth_manual_mode():
             if looks_like_manual_oauth_callback(user_text):
                 try:
@@ -681,6 +832,13 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
                 if code:
                     await finish_google_connect(message, code, source_text=user_text)
                     return
+
+        if await try_handle_google_email(
+            message,
+            bot,
+            oauth_start_url=oauth_start_url,
+        ):
+            return
 
         await reply_to_user_text(
             message=message,
@@ -988,6 +1146,15 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
     try:
         await dp.start_polling(bot)
     finally:
+        browser_stop.set()
+        if browser_maintenance_task is not None:
+            browser_maintenance_task.cancel()
+            try:
+                await browser_maintenance_task
+            except asyncio.CancelledError:
+                pass
+        if oauth_runner is not None:
+            await oauth_runner.cleanup()
         if memory_attachment_scheduler is not None:
             await memory_attachment_scheduler.stop()
         if memory_summary_scheduler is not None:

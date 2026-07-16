@@ -5,7 +5,14 @@ import logging
 from aiohttp import web
 
 from bot.telegram_notify import send_telegram_message
-from config import get_settings, google_oauth_configured, google_oauth_remote_ready
+from config import (
+    browser_tools_enabled,
+    get_settings,
+    google_oauth_configured,
+    google_oauth_remote_ready,
+)
+from tools.builtins.browser.errors import BrowserViewerTokenError
+from tools.builtins.browser.viewer_tokens import resolve_viewer_redirect
 from tools.builtins.google.auth import build_authorization_url, complete_oauth
 
 logger = logging.getLogger(__name__)
@@ -59,10 +66,31 @@ async def callback_oauth_handler(request: web.Request) -> web.Response:
     )
 
 
+async def browser_viewer_handler(request: web.Request) -> web.Response:
+    token = request.match_info.get("token") or ""
+    if not token:
+        raise web.HTTPBadRequest(text="Missing viewer token")
+    try:
+        debug_url = resolve_viewer_redirect(token)
+    except BrowserViewerTokenError as exc:
+        message = str(exc) or "Invalid viewer token"
+        if "already used" in message.lower():
+            raise web.HTTPGone(text=message) from exc
+        if "expired" in message.lower() or "revoked" in message.lower():
+            raise web.HTTPGone(text=message) from exc
+        if "not found" in message.lower():
+            raise web.HTTPNotFound(text=message) from exc
+        raise web.HTTPForbidden(text=message) from exc
+    # Never log the raw debug URL (unauthenticated session control).
+    logger.info("Browser viewer token accepted (redirecting)")
+    raise web.HTTPFound(debug_url)
+
+
 def create_oauth_app() -> web.Application:
     app = web.Application()
     app.router.add_get("/oauth/google/start", start_oauth_handler)
     app.router.add_get("/oauth/google/callback", callback_oauth_handler)
+    app.router.add_get("/browser/viewer/{token}", browser_viewer_handler)
     return app
 
 
@@ -74,14 +102,23 @@ async def start_oauth_server() -> web.AppRunner:
     site = web.TCPSite(runner, settings.google_oauth_host, settings.google_oauth_port)
     await site.start()
     logger.info(
-        "Google OAuth server listening on http://%s:%s",
+        "HTTP server listening on http://%s:%s (OAuth + browser viewer)",
         settings.google_oauth_host,
         settings.google_oauth_port,
     )
-    logger.info("Google OAuth callback URL: %s", settings.google_redirect_uri)
-    if not google_oauth_remote_ready():
-        logger.warning(
-            "GOOGLE_PUBLIC_BASE_URL is not set to a public HTTPS URL. "
-            "Remote users cannot complete OAuth from phone/other devices."
-        )
+    if google_oauth_configured():
+        logger.info("Google OAuth callback URL: %s", settings.google_redirect_uri)
+        if not google_oauth_remote_ready():
+            logger.warning(
+                "GOOGLE_PUBLIC_BASE_URL is not set to a public HTTPS URL. "
+                "Remote users cannot complete OAuth from phone/other devices."
+            )
+    if browser_tools_enabled():
+        base = settings.browser_viewer_public_base
+        if base:
+            logger.info("Browser viewer base: %s/browser/viewer/<token>", base.rstrip("/"))
+        else:
+            logger.warning(
+                "BROWSER_VIEWER_PUBLIC_BASE is not set; browser.session_open purpose=login will fail"
+            )
     return runner

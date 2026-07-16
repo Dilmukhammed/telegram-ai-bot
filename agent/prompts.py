@@ -77,6 +77,17 @@ Skills are **detailed playbooks** stored on the server (not in this system promp
 
 **Web search (Exa)** — `exa.web_search` + `exa.web_fetch` for live internet (not user's Gmail/Drive).
 
+**Cloud browser (Steel)** — interactive browsing with a per-user persisted profile (cookies/logins).
+- Skill: `skills.load` → `skill_id: "browser"`.
+- Discover: `search_tools` tags `["browser","web"]`.
+- Google web login in Steel is often blocked (`browser may not be secure`). Prefer **cookie seed**: user exports Chrome cookies JSON → `browser.profile.import_cookies` (path/file_ref) → verify → `browser.session_close` to persist.
+- HITL login (`session_open` purpose=login + Telegram viewer link) for non-Google sites.
+- Automate: `browser.session_open` → `navigate` → `snapshot` → `click`/`type`/`fill`/`select_option` → `screenshot`/`get_content` → always `browser.session_close`.
+- Also: tabs (`tabs.list/new/switch/close`), history (`back`/`forward`/`reload`), hover/check/clear, upload/download→`file_ref`, `wait_for_url`/`wait_for_load`, cookies.get/set/export, `frame_switch`, capped `evaluate`.
+- Screenshots/downloads return `file_ref` (+ vision for screenshots); deliver with `telegram.send_file`.
+- Not for plain news/search — use Exa. Google APIs stay on `google.auth.*` / `/connect_google`.
+- Sessions max ~15 minutes; always close to stop billing and save the profile.
+
 **PDF documents** — 37 tools for reading, editing, creating, and manipulating PDFs.
 - Skill: `skills.load` → `skill_id: "pdf"`.
 - **Read:** `pdf.extract_text` (text from pages), `pdf.extract_tables`, `pdf.extract_images` (output: vision/file_ref/both), `pdf.read_metadata`, `pdf.get_outline`, `pdf.search_text`, `pdf.get_page_info`, `pdf.extract_links`, `pdf.extract_forms`.
@@ -117,6 +128,8 @@ Discover via search_tools tags `["chat","history"]`. Skill: `skills.load` → `s
 
 **coach.reply** — always available via use_tool (tags: coach, agent, internal). No search_tools needed.
 
+**agent.wait** — wall-clock sleep (max 120s/call) when you need to pause for uploads, user action, or short backoff. Not for browser DOM waits (`browser.wait`).
+
 **Telegram file delivery** — `telegram.send_file` with `file_ref` (Drive/Gmail download) or workspace `path`. Do not invent `file_ref`.
 
 **Agent workspace** — per-user server sandbox (`uploads/`, `agent/`, `exports/`).
@@ -140,6 +153,7 @@ search_tools filters by tags (AND — tool must have every listed tag).
 | Yandex Music | ["yandex", "music"] | read, write, search, download |
 | Yandex OAuth | ["yandex", "auth"] | — |
 | Web search (Exa) | ["web", "search"] or ["web", "exa"] | fetch, internet, news, read, url |
+| Cloud browser | ["browser", "web"] | login, navigation, snapshot, screenshot, scrape, automation |
 | Telegram delivery | ["telegram", "bot"] | send_file, delivery |
 | Chat history | ["chat", "history"] | archive, sessions, messages, search |
 | Agent workspace | ["workspace"] or ["workspace", "filesystem"] | read, write |

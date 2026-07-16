@@ -9,6 +9,7 @@ from tools.builtins.google.tasks_checker import TASKS_CHECKER_QUESTIONS_BY_TOOL
 from tools.builtins.pdf.pdf_checker import PDF_CHECKER_QUESTIONS_BY_TOOL
 from tools.builtins.workspace.workspace_checker import WORKSPACE_CHECKER_QUESTIONS_BY_TOOL
 from tools.builtins.yandex.music_checker import MUSIC_CHECKER_QUESTIONS_BY_TOOL
+from tools.builtins.browser.browser_checker import BROWSER_CHECKER_QUESTIONS_BY_TOOL
 from tools.builtins.chat_checker import CHAT_CHECKER_QUESTIONS_BY_TOOL
 from tools.builtins.exa_checker import EXA_CHECKER_QUESTIONS_BY_TOOL
 from tools.builtins.telegram_checker import TELEGRAM_CHECKER_QUESTIONS_BY_TOOL
@@ -27,4 +28,5 @@ EXPLICIT_CHECKER_QUESTIONS: dict[str, tuple[VerificationQuestion, ...]] = {
     **EXA_CHECKER_QUESTIONS_BY_TOOL,
     **TELEGRAM_CHECKER_QUESTIONS_BY_TOOL,
     **CHAT_CHECKER_QUESTIONS_BY_TOOL,
+    **BROWSER_CHECKER_QUESTIONS_BY_TOOL,
 }

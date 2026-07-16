@@ -18,6 +18,7 @@ data/chat.sqlite
 data/chat_history.sqlite
 data/chat_history.sqlite.bak
 data/memory.sqlite
+data/runtime_model.json
 data/bot.instance.lock
 data/_analyze_out.txt
 _api_test_results.json

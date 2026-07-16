@@ -22,13 +22,16 @@ def format_context_stats(
     user_id: int | None = None,
     history: list[dict] | None = None,
 ) -> str:
+    from bot.model_runtime import active_agent_model
+
     window = settings.llm_context_window_tokens
+    model = active_agent_model(settings.openai_model)
     reasoning = settings.reasoning_effort or "none"
     fill = format_context_fill_percent(prompt_tokens, window)
     parts = [
         "**Context stats**",
         "",
-        f"- Model: `{settings.openai_model}`",
+        f"- Model: `{model}`",
         f"- Reasoning: `{reasoning}`",
         f"- Tokenizer: local `{DEFAULT_LOCAL_TOKENIZER_MODEL}` (google-genai)",
         f"- Context: **{prompt_tokens:,}** / {window:,} tokens (**{fill}**)",
