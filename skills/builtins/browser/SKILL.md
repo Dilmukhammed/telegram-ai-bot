@@ -67,11 +67,12 @@ Works for many non-Google sites. Google sign-in page often fails.
 7. Files: upload (path/file_ref) | download (click ref → file_ref)
 8. Emulation: set_viewport / set_geolocation / set_locale / set_timezone / grant_permissions
 9. Storage: storage.get / storage.set (local|session)
-10. Diagnostics: network.last, console, page_errors
-11. Frames: frame_switch; JS: evaluate / evaluate_on_ref (capped)
-12. Cookies: cookies.get/set/clear/export; profile.import_cookies (persist seed)
-13. browser.screenshot / get_content / pdf → telegram.send_file({file_ref})
-14. browser.session_close()  # ALWAYS
+10. Diagnostics: network.last, console, page_errors, perf
+11. Intercept: route (abort|fulfill only) / unroute; clipboard_read/write; emulate_media
+12. Frames: frame_switch; JS: evaluate / evaluate_on_ref (capped)
+13. Cookies: cookies.get/set/clear/export; profile.import_cookies (persist seed)
+14. browser.screenshot / get_content / pdf → telegram.send_file({file_ref})
+15. browser.session_close()  # ALWAYS
 ```
 
 ## Rules
@@ -81,4 +82,5 @@ Works for many non-Google sites. Google sign-in page often fails.
 - Re-snapshot after navigation (refs go stale).
 - Prefer refs over raw CSS/JS when possible.
 - Network log is metadata only (no response bodies).
+- `browser.route` is abort/fulfill only (no continue/header rewrite); fulfill body capped.
 - Launch sessions max ~15 minutes.

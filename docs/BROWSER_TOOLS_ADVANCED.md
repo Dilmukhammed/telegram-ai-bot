@@ -1,6 +1,6 @@
 # Browser tools — advanced expansion
 
-Status: P2 live on DO (`16556b8`, 63 `browser.*` tools).  
+Status: P3 live pending deploy (69 `browser.*` tools).  
 Backend: Steel Cloud + Playwright CDP. Prefix: `browser.*`.  
 Existing core stays: session/profile/cookies import, navigate/snapshot/click/type/fill/press/scroll/wait, get_content/screenshot/pdf, `agent.wait`.
 
@@ -98,14 +98,14 @@ Shared rules for all new tools:
 
 ---
 
-## P3 — optional / careful
+## P3 — optional / careful (done)
 
 | Tool | Notes |
 |------|--------|
-| `browser.route` / `browser.unroute` | abort/fulfill only, allowlisted |
-| `browser.clipboard_read` / `clipboard_write` | |
-| `browser.emulate_media` | print/dark |
-| `browser.perf` | optional timings |
+| `browser.route` / `browser.unroute` | abort/fulfill only; max 20 routes; fulfill body ≤64k |
+| `browser.clipboard_read` / `clipboard_write` | permission grant best-effort; text capped |
+| `browser.emulate_media` | media screen/print; color_scheme; reduced_motion |
+| `browser.perf` | compact navigation timings |
 
 ---
 
@@ -128,7 +128,7 @@ Shared rules for all new tools:
 ## Wiring
 
 - Code: `tools/builtins/browser/` — `playwright_bridge.py` + `tab_tools.py`, `interaction_tools.py`, `file_tools.py`, `inspect_tools.py`, `cookie_tools.py`, `frame_eval_tools.py`
-- Register in `BROWSER_TOOLS` (63 = P1 44 + P2 19)
-- Modules: `+ power_tools.py`, `state_tools.py`, `diagnostics_tools.py`
-- Discovery: tags `browser`/`web` (+ `tabs`, `files`, `cookies`/`auth`, `network`, `storage`)
+- Register in `BROWSER_TOOLS` (69 = P1 44 + P2 19 + P3 6)
+- Modules: `+ power_tools.py`, `state_tools.py`, `diagnostics_tools.py`, `advanced_tools.py`
+- Discovery: tags `browser`/`web` (+ `tabs`, `files`, `cookies`/`auth`, `network`, `storage`, `clipboard`)
 - Skill: `skills/builtins/browser/SKILL.md`

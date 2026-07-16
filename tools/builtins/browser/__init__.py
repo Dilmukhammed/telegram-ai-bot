@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from tools.builtins.browser.advanced_tools import BROWSER_ADVANCED_TOOLS
 from tools.builtins.browser.content_tools import BROWSER_CONTENT_TOOLS
 from tools.builtins.browser.cookie_tools import BROWSER_COOKIE_TOOLS
 from tools.builtins.browser.diagnostics_tools import BROWSER_DIAGNOSTICS_TOOLS
@@ -28,6 +29,7 @@ BROWSER_TOOLS: tuple[ToolSpec, ...] = (
     + BROWSER_FRAME_EVAL_TOOLS
     + BROWSER_STATE_TOOLS
     + BROWSER_DIAGNOSTICS_TOOLS
+    + BROWSER_ADVANCED_TOOLS
     + BROWSER_CONTENT_TOOLS
 )
 

@@ -241,6 +241,10 @@ TOOL_ALIASES: dict[str, tuple[str, ...]] = {
         "localStorage sessionStorage get browser storage key",
         "not cookies not workspace files",
     ),
+    "browser.route": (
+        "intercept abort fulfill mock network request browser route",
+        "not exa search not continue modify headers",
+    ),
     "agent.wait": (
         "sleep pause delay wait seconds backoff retry upload processing",
         "not browser.wait selector not exa search",

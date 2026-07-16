@@ -83,7 +83,7 @@ Skills are **detailed playbooks** stored on the server (not in this system promp
 - Google web login in Steel is often blocked (`browser may not be secure`). Prefer **cookie seed**: user exports Chrome cookies JSON → `browser.profile.import_cookies` (path/file_ref) → verify → `browser.session_close` to persist.
 - HITL login (`session_open` purpose=login + Telegram viewer link) for non-Google sites.
 - Automate: `browser.session_open` → `navigate` → `snapshot` → `click`/`type`/`fill`/`select_option` → `screenshot`/`get_content` → always `browser.session_close`.
-- Also: tabs/history, hover/check/clear/drag/focus/mouse/keys, upload/download→`file_ref`, waits, cookies, `frame_switch`, capped `evaluate`, storage/viewport/geo/locale/timezone/permissions, `network.last`/`network.wait`, `console`/`page_errors`.
+- Also: tabs/history, hover/check/clear/drag/focus/mouse/keys, upload/download→`file_ref`, waits, cookies, `frame_switch`, capped `evaluate`, storage/viewport/geo/locale/timezone/permissions, network/console, `route`/`unroute` (abort|fulfill only), clipboard, `emulate_media`, `perf`.
 - Screenshots/downloads return `file_ref` (+ vision for screenshots); deliver with `telegram.send_file`.
 - Not for plain news/search — use Exa. Google APIs stay on `google.auth.*` / `/connect_google`.
 - Sessions max ~15 minutes; always close to stop billing and save the profile.

@@ -11,6 +11,7 @@ from urllib.parse import urlencode
 
 from config import get_settings
 from tools.builtins.browser.errors import (
+    BrowserError,
     BrowserNavigationError,
     BrowserNotConfiguredError,
     BrowserRefNotFoundError,
@@ -24,6 +25,10 @@ _EVAL_MAX_CHARS = 8_000
 _NETWORK_MAX = 80
 _CONSOLE_MAX = 80
 _PAGE_ERROR_MAX = 40
+_ROUTE_MAX = 20
+_ROUTE_BODY_MAX = 64_000
+_CLIPBOARD_MAX = 16_000
+_ALLOWED_ROUTE_ACTIONS = frozenset({"abort", "fulfill"})
 
 
 @dataclass
@@ -38,6 +43,7 @@ class PlaywrightSession:
     network_events: list[dict[str, Any]] = field(default_factory=list)
     console_messages: list[dict[str, Any]] = field(default_factory=list)
     page_error_messages: list[dict[str, Any]] = field(default_factory=list)
+    active_routes: dict[str, dict[str, Any]] = field(default_factory=dict)
     _diag_attached: set[int] = field(default_factory=set)
 
     @property
@@ -1154,3 +1160,218 @@ async def page_errors(
     if clear:
         session.page_error_messages.clear()
     return {"count": len(errs), "errors": errs}
+
+
+def _route_pattern_key(
+    *,
+    url: str | None,
+    glob: str | None,
+    regex: str | None,
+) -> tuple[str, Any]:
+    if url:
+        return f"url:{url}", url
+    if glob:
+        return f"glob:{glob}", glob
+    if regex:
+        return f"regex:{regex}", re.compile(regex)
+    raise ValueError("url, glob, or regex is required")
+
+
+async def route_install(
+    session: PlaywrightSession,
+    *,
+    action: str,
+    url: str | None = None,
+    glob: str | None = None,
+    regex: str | None = None,
+    status: int = 200,
+    body: str | None = None,
+    content_type: str = "text/plain",
+) -> dict[str, Any]:
+    action = str(action).strip().lower()
+    if action not in _ALLOWED_ROUTE_ACTIONS:
+        raise BrowserError(
+            f"route action must be one of: {', '.join(sorted(_ALLOWED_ROUTE_ACTIONS))}"
+        )
+    key, pattern = _route_pattern_key(url=url, glob=glob, regex=regex)
+    if key not in session.active_routes and len(session.active_routes) >= _ROUTE_MAX:
+        raise BrowserError(f"Too many active routes (max {_ROUTE_MAX}); unroute first")
+
+    fulfill_body = body or ""
+    if action == "fulfill":
+        if len(fulfill_body) > _ROUTE_BODY_MAX:
+            raise BrowserError(f"fulfill body exceeds {_ROUTE_BODY_MAX} chars")
+        status = max(100, min(int(status), 599))
+
+    # Replace existing handler for same pattern.
+    if key in session.active_routes:
+        try:
+            await session.page.unroute(session.active_routes[key]["pattern"])
+        except Exception:
+            logger.debug("unroute before replace failed", exc_info=True)
+
+    async def _handler(route: Any) -> None:
+        try:
+            if action == "abort":
+                await route.abort()
+                return
+            await route.fulfill(
+                status=status,
+                body=fulfill_body,
+                content_type=content_type,
+            )
+        except Exception:
+            logger.debug("route handler failed", exc_info=True)
+            try:
+                await route.abort()
+            except Exception:
+                pass
+
+    await session.page.route(pattern, _handler)
+    session.active_routes[key] = {
+        "pattern": pattern,
+        "action": action,
+        "status": status if action == "fulfill" else None,
+        "content_type": content_type if action == "fulfill" else None,
+        "body_chars": len(fulfill_body) if action == "fulfill" else 0,
+    }
+    return {
+        "ok": True,
+        "route_key": key,
+        "action": action,
+        "active_routes": len(session.active_routes),
+    }
+
+
+async def route_remove(
+    session: PlaywrightSession,
+    *,
+    url: str | None = None,
+    glob: str | None = None,
+    regex: str | None = None,
+    all_routes: bool = False,
+) -> dict[str, Any]:
+    if all_routes:
+        removed = 0
+        for meta in list(session.active_routes.values()):
+            try:
+                await session.page.unroute(meta["pattern"])
+                removed += 1
+            except Exception:
+                logger.debug("unroute all item failed", exc_info=True)
+        session.active_routes.clear()
+        try:
+            await session.page.unroute_all()
+        except Exception:
+            logger.debug("unroute_all failed", exc_info=True)
+        return {"ok": True, "removed": removed, "active_routes": 0}
+
+    key, pattern = _route_pattern_key(url=url, glob=glob, regex=regex)
+    meta = session.active_routes.pop(key, None)
+    try:
+        await session.page.unroute(meta["pattern"] if meta else pattern)
+    except Exception:
+        logger.debug("unroute failed", exc_info=True)
+    return {
+        "ok": True,
+        "removed": 1 if meta is not None else 0,
+        "route_key": key,
+        "active_routes": len(session.active_routes),
+    }
+
+
+async def clipboard_read(session: PlaywrightSession) -> dict[str, Any]:
+    try:
+        await session.context.grant_permissions(["clipboard-read"])
+    except Exception:
+        logger.debug("clipboard-read permission grant failed", exc_info=True)
+    text = await session.page.evaluate("() => navigator.clipboard.readText()")
+    text = "" if text is None else str(text)
+    clipped, truncated = truncate_text(text, _CLIPBOARD_MAX)
+    return {"text": clipped, "truncated": truncated, "length": len(text)}
+
+
+async def clipboard_write(session: PlaywrightSession, text: str) -> dict[str, Any]:
+    text = str(text)
+    if len(text) > _CLIPBOARD_MAX:
+        raise BrowserError(f"clipboard text exceeds {_CLIPBOARD_MAX} chars")
+    try:
+        await session.context.grant_permissions(["clipboard-read", "clipboard-write"])
+    except Exception:
+        logger.debug("clipboard-write permission grant failed", exc_info=True)
+    await session.page.evaluate("(t) => navigator.clipboard.writeText(t)", text)
+    return {"ok": True, "length": len(text)}
+
+
+async def emulate_media(
+    session: PlaywrightSession,
+    *,
+    media: str | None = None,
+    color_scheme: str | None = None,
+    reduced_motion: str | None = None,
+) -> dict[str, Any]:
+    kwargs: dict[str, Any] = {}
+    if media is not None:
+        media = str(media)
+        if media not in {"screen", "print"}:
+            raise ValueError("media must be screen|print")
+        kwargs["media"] = media
+    if color_scheme is not None:
+        color_scheme = str(color_scheme)
+        if color_scheme not in {"light", "dark", "no-preference", "null"}:
+            raise ValueError("color_scheme must be light|dark|no-preference|null")
+        kwargs["color_scheme"] = None if color_scheme == "null" else color_scheme
+    if reduced_motion is not None:
+        reduced_motion = str(reduced_motion)
+        if reduced_motion not in {"reduce", "no-preference", "null"}:
+            raise ValueError("reduced_motion must be reduce|no-preference|null")
+        kwargs["reduced_motion"] = None if reduced_motion == "null" else reduced_motion
+    if not kwargs:
+        raise ValueError("Provide media, color_scheme, and/or reduced_motion")
+    await session.page.emulate_media(**kwargs)
+    return {"ok": True, **{k: v for k, v in kwargs.items()}}
+
+
+async def perf_metrics(session: PlaywrightSession) -> dict[str, Any]:
+    raw = await session.page.evaluate(
+        """() => {
+            const nav = performance.getEntriesByType('navigation')[0];
+            if (nav && typeof nav.toJSON === 'function') {
+                return nav.toJSON();
+            }
+            const t = performance.timing;
+            if (!t) return null;
+            return {
+                navigationStart: t.navigationStart,
+                domContentLoadedEventEnd: t.domContentLoadedEventEnd,
+                loadEventEnd: t.loadEventEnd,
+                responseStart: t.responseStart,
+                responseEnd: t.responseEnd,
+                transferSize: null,
+            };
+        }"""
+    )
+    if not isinstance(raw, dict):
+        return {"ok": False, "metrics": None}
+    # Keep a compact subset — no huge dumps.
+    keep = {
+        "name",
+        "entryType",
+        "startTime",
+        "duration",
+        "domContentLoadedEventEnd",
+        "loadEventEnd",
+        "responseStart",
+        "responseEnd",
+        "transferSize",
+        "encodedBodySize",
+        "decodedBodySize",
+        "type",
+        "redirectCount",
+    }
+    metrics = {k: raw[k] for k in keep if k in raw}
+    # Absolute timing fields from legacy timing API
+    for k in ("navigationStart", "domContentLoadedEventEnd", "loadEventEnd", "responseStart", "responseEnd"):
+        if k in raw and k not in metrics:
+            metrics[k] = raw[k]
+    return {"ok": True, "url": session.page.url, "metrics": metrics}
