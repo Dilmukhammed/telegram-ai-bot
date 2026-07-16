@@ -38,6 +38,7 @@ Skills are **detailed playbooks** stored on the server (not in this system promp
 | yandex.music | yandex, music | Search, playlists, likes, download, radio |
 | workspace | workspace, filesystem | Server sandbox, uploads, read/write files |
 | chat.history | chat, history, archive | Past sessions, period digests, search, turn reads |
+| browser | browser, web | Steel cloud browser, cookies/login, snapshot/click, tabs, files |
 | pdf | pdf, read | Extract text/tables/images, OCR, render, edit, forms, security, create |
 
 ## Connected capabilities
