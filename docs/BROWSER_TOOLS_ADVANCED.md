@@ -1,6 +1,6 @@
 # Browser tools — advanced expansion
 
-Status: P3 live on DO (`10479c8`, 69 `browser.*` tools). Advanced plan complete.  
+Status: P3 live on DO (`10479c8`, 69 `browser.*` tools) + captcha detect/solve (71). Advanced plan complete.  
 Backend: Steel Cloud + Playwright CDP. Prefix: `browser.*`.  
 Existing core stays: session/profile/cookies import, navigate/snapshot/click/type/fill/press/scroll/wait, get_content/screenshot/pdf, `agent.wait`.
 
@@ -107,6 +107,15 @@ Shared rules for all new tools:
 | `browser.emulate_media` | media screen/print; color_scheme; reduced_motion |
 | `browser.perf` | compact navigation timings |
 
+### Captcha (post-P3)
+
+| Tool | Notes |
+|------|--------|
+| `browser.captcha.detect` | Turnstile / reCAPTCHA / hCaptcha / image / slider heuristics |
+| `browser.captcha.solve` | `auto\|ocr\|token\|hitl` — ddddocr + CapSolver + existing viewer HITL |
+
+Env: `CAPSOLVER_API_KEY`, `CAPTCHA_OCR_ENABLED`, `CAPTCHA_SOLVER_TIMEOUT_SECONDS`.
+
 ---
 
 ## Explicit non-goals
@@ -128,7 +137,7 @@ Shared rules for all new tools:
 ## Wiring
 
 - Code: `tools/builtins/browser/` — `playwright_bridge.py` + `tab_tools.py`, `interaction_tools.py`, `file_tools.py`, `inspect_tools.py`, `cookie_tools.py`, `frame_eval_tools.py`
-- Register in `BROWSER_TOOLS` (69 = P1 44 + P2 19 + P3 6)
-- Modules: `+ power_tools.py`, `state_tools.py`, `diagnostics_tools.py`, `advanced_tools.py`
-- Discovery: tags `browser`/`web` (+ `tabs`, `files`, `cookies`/`auth`, `network`, `storage`, `clipboard`)
+- Register in `BROWSER_TOOLS` (71 = P1–P3 + captcha detect/solve)
+- Modules: `+ power_tools.py`, `state_tools.py`, `diagnostics_tools.py`, `advanced_tools.py`, `captcha_tools.py`
+- Discovery: tags `browser`/`web` (+ `tabs`, `files`, `cookies`/`auth`, `network`, `storage`, `clipboard`, `captcha`)
 - Skill: `skills/builtins/browser/SKILL.md`

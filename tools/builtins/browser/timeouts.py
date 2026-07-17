@@ -17,6 +17,7 @@ def handler_timeout_for_browser_tool(tool_name: str) -> float:
         "browser.wait_for_load",
         "browser.network.wait",
         "browser.drag",
+        "browser.captcha.solve",
     }:
         return settings.browser_handler_timeout_navigate
     if tool_name == "browser.snapshot":
@@ -27,6 +28,7 @@ def handler_timeout_for_browser_tool(tool_name: str) -> float:
         "browser.download",
         "browser.wait_for_download",
         "browser.upload",
+        "browser.captcha.detect",
     }:
         return settings.browser_handler_timeout_screenshot
     return settings.browser_handler_timeout_default

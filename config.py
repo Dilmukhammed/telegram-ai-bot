@@ -202,6 +202,8 @@ DEFAULT_BROWSER_HANDLER_TIMEOUT_SCREENSHOT = 60.0
 DEFAULT_BROWSER_HANDLER_TIMEOUT_DEFAULT = 30.0
 DEFAULT_RATE_LIMIT_BROWSER_SESSION = "6/60"
 DEFAULT_RATE_LIMIT_BROWSER_PAGE = "120/60"
+DEFAULT_CAPTCHA_OCR_ENABLED = True
+DEFAULT_CAPTCHA_SOLVER_TIMEOUT_SECONDS = 120
 
 DEFAULT_GOOGLE_REDIRECT_URI = "http://localhost:1"
 DEFAULT_GOOGLE_OAUTH_HOST = "127.0.0.1"
@@ -704,6 +706,9 @@ class Settings:
     browser_handler_timeout_default: float
     rate_limit_browser_session: tuple[int, int] | None
     rate_limit_browser_page: tuple[int, int] | None
+    capsolver_api_key: str
+    captcha_ocr_enabled: bool
+    captcha_solver_timeout_seconds: int
 
     # Tool embeddings
     embedding_base_url: str
@@ -1590,6 +1595,15 @@ def get_settings(*, require_telegram_token: bool = False) -> Settings:
         rate_limit_browser_page=_parse_rate_limit(
             _optional_str_env("RATE_LIMIT_BROWSER_PAGE")
             or DEFAULT_RATE_LIMIT_BROWSER_PAGE
+        ),
+        capsolver_api_key=_str_env("CAPSOLVER_API_KEY"),
+        captcha_ocr_enabled=_bool_env(
+            "CAPTCHA_OCR_ENABLED",
+            DEFAULT_CAPTCHA_OCR_ENABLED,
+        ),
+        captcha_solver_timeout_seconds=_int_env(
+            "CAPTCHA_SOLVER_TIMEOUT_SECONDS",
+            DEFAULT_CAPTCHA_SOLVER_TIMEOUT_SECONDS,
         ),
         embedding_base_url=_str_env("EMBEDDING_BASE_URL", openai_base_url),
         embedding_api_key=_str_env("EMBEDDING_API_KEY", openai_api_key),

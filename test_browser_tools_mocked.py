@@ -90,7 +90,7 @@ class BrowserToolsMockedTests(unittest.IsolatedAsyncioTestCase):
         reset_browser_profile_store_for_tests()
 
     async def test_tool_count_and_discovery(self) -> None:
-        self.assertEqual(len(BROWSER_TOOLS), 69)
+        self.assertEqual(len(BROWSER_TOOLS), 71)
         names = {t.name for t in BROWSER_TOOLS}
         self.assertIn("browser.session_open", names)
         self.assertIn("browser.screenshot", names)
@@ -106,10 +106,14 @@ class BrowserToolsMockedTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("browser.clipboard_read", names)
         self.assertIn("browser.emulate_media", names)
         self.assertIn("browser.perf", names)
+        self.assertIn("browser.captcha.detect", names)
+        self.assertIn("browser.captcha.solve", names)
         self.assertEqual(tags_for_tool_name("browser.navigate"), ("browser", "web"))
         self.assertEqual(skill_id_for_tool_name("browser.navigate"), "browser")
         self.assertEqual(tags_for_tool_name("browser.tabs.list"), ("browser", "web"))
         self.assertEqual(skill_id_for_tool_name("browser.evaluate"), "browser")
+        self.assertEqual(tags_for_tool_name("browser.captcha.detect"), ("browser", "auth"))
+        self.assertEqual(skill_id_for_tool_name("browser.captcha.solve"), "browser")
 
         by_name = {t.name: t for t in BROWSER_TOOLS}
         self.assertTrue(is_checker_excluded(by_name["browser.session_open"]))

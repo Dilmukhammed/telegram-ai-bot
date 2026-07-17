@@ -72,8 +72,26 @@ Works for many non-Google sites. Google sign-in page often fails.
 12. Frames: frame_switch; JS: evaluate / evaluate_on_ref (capped)
 13. Cookies: cookies.get/set/clear/export; profile.import_cookies (persist seed)
 14. browser.screenshot / get_content / pdf → telegram.send_file({file_ref})
-15. browser.session_close()  # ALWAYS
+15. Captcha: captcha.detect → captcha.solve (auto/ocr/token/hitl)
+16. browser.session_close()  # ALWAYS
 ```
+
+## Captcha
+
+When a page shows a challenge widget:
+
+```
+1. browser.captcha.detect
+2. browser.captcha.solve({mode:"auto"})   # ocr | token | hitl
+```
+
+| Kind | Backend |
+|------|---------|
+| image / slider | local ddddocr (`CAPTCHA_OCR_ENABLED`, optional `pip install ddddocr`) |
+| turnstile / reCAPTCHA / hCaptcha | CapSolver (`CAPSOLVER_API_KEY`) |
+| unknown / missing backend | HITL — one-time Telegram viewer link |
+
+Do **not** rely on captcha tools for Google account blocks — use **cookie seed**.
 
 ## Rules
 
