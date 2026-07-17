@@ -67,6 +67,14 @@ def list_action_bonus(query_tokens: set[str], tool_name: str, method: str) -> fl
                 bonus += 3.0
             elif method in {"list_starred", "list_recent", "list_shared_with_me"}:
                 bonus -= 2.0
+        if query_tokens & {"tasks", "task"} and not query_tokens & {
+            "tasklist",
+            "tasklists",
+        }:
+            if method in {"list_tasks", "list_default_tasks"}:
+                bonus += 4.0
+            elif method == "list_tasklists":
+                bonus -= 4.0
 
     if query_tokens & CALENDAR_TOKENS:
         if method == "list_today" and "today" in query_tokens:

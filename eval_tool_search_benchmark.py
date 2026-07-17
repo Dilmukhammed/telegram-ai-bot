@@ -122,4 +122,68 @@ TOOL_SEARCH_BENCHMARK: tuple[ToolSearchCase, ...] = (
         "покажи события календаря на сегодня",
         ("google.calendar.list_today",),
     ),
+    # Terse/noisy agent discovery phrasing. The agent sometimes omits the
+    # provider and relies on tags, or emits only a domain noun plus an action.
+    ToolSearchCase(
+        "music like track",
+        ("yandex.music.users_likes_tracks_add",),
+    ),
+    ToolSearchCase(
+        "like track",
+        ("yandex.music.users_likes_tracks_add",),
+        tags=("yandex", "music"),
+    ),
+    ToolSearchCase(
+        "music add like to track",
+        ("yandex.music.users_likes_tracks_add",),
+    ),
+    ToolSearchCase(
+        "music unlike track",
+        ("yandex.music.users_likes_tracks_remove",),
+    ),
+    ToolSearchCase(
+        "music remove like from track",
+        ("yandex.music.users_likes_tracks_remove",),
+    ),
+    ToolSearchCase(
+        "music liked tracks",
+        ("yandex.music.users_likes_tracks",),
+    ),
+    ToolSearchCase(
+        "music favorites",
+        ("yandex.music.users_likes_tracks",),
+    ),
+    ToolSearchCase(
+        "music playlist",
+        ("yandex.music.users_playlists_list",),
+    ),
+    ToolSearchCase(
+        "playlist",
+        ("yandex.music.users_playlists_list",),
+        tags=("yandex", "music"),
+    ),
+    ToolSearchCase(
+        "create music playlist",
+        ("yandex.music.users_playlists_create",),
+    ),
+    ToolSearchCase(
+        "delete music playlist",
+        ("yandex.music.users_playlists_delete",),
+    ),
+    ToolSearchCase(
+        "add track to music playlist",
+        ("yandex.music.users_playlists_insert_track",),
+    ),
+    ToolSearchCase(
+        "remove track from music playlist",
+        ("yandex.music.users_playlists_delete_track",),
+    ),
+    ToolSearchCase(
+        "search music track",
+        ("yandex.music.search",),
+    ),
+    ToolSearchCase(
+        "download music track",
+        ("yandex.music.track_download",),
+    ),
 )

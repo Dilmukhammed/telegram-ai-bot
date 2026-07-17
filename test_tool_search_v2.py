@@ -47,6 +47,14 @@ class QueryNormalizationTests(unittest.TestCase):
         self.assertIn("glob", normalized)
         self.assertEqual(infer_query_tags(normalized), ("workspace", "filesystem"))
 
+    def test_terse_music_query_infers_yandex_tags(self) -> None:
+        self.assertEqual(infer_query_tags("music playlist"), ("yandex", "music"))
+
+    def test_unlike_expands_to_remove_like(self) -> None:
+        normalized = normalize_tool_query("music unlike track")
+        self.assertIn("remove", normalized)
+        self.assertIn("like", normalized)
+
 
 class SearchFeedbackTests(unittest.TestCase):
     def test_successful_selection_is_promoted_and_persisted(self) -> None:

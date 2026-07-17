@@ -80,10 +80,28 @@ def normalized_query_tokens(text: str) -> list[str]:
                 result.append(value)
     token_set = set(result)
     implied: list[str] = []
+    if "unlike" in token_set:
+        implied.extend(value for value in ("remove", "like") if value not in token_set)
     if {"user", "playlists"}.issubset(token_set) and "list" not in token_set:
         implied.append("list")
     if {"find", "files", "pattern"}.issubset(token_set) and "glob" not in token_set:
         implied.append("glob")
+    playlist_tokens = {"playlist", "playlists"}
+    playlist_actions = {
+        "add",
+        "create",
+        "delete",
+        "insert",
+        "remove",
+        "rename",
+        "search",
+        "update",
+    }
+    if token_set & playlist_tokens and not token_set & playlist_actions:
+        if "list" not in token_set:
+            implied.append("list")
+        if "user" not in token_set:
+            implied.append("user")
     result.extend(implied)
     return result
 
@@ -96,6 +114,9 @@ def infer_query_tags(text: str) -> tuple[str, ...]:
     tokens = set(normalized_query_tokens(text))
     profiles: tuple[tuple[frozenset[str], tuple[str, ...]], ...] = (
         (frozenset({"yandex", "music"}), ("yandex", "music")),
+        # Yandex Music is the bot's only registered music provider, so terse
+        # agent queries such as "music playlist" can be routed safely.
+        (frozenset({"music"}), ("yandex", "music")),
         (frozenset({"gmail"}), ("google", "gmail")),
         (frozenset({"calendar"}), ("google", "calendar")),
         (frozenset({"tasks"}), ("google", "tasks")),

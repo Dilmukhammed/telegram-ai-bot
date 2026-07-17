@@ -93,6 +93,7 @@ class KeywordToolIndex:
         for tokens in documents:
             document_freq.update(set(tokens))
         average_length = sum(len(tokens) for tokens in documents) / len(candidates)
+        intent_tokens = tokenize(queries[0]) if queries else set()
 
         scored: list[tuple[float, ToolSpec]] = []
         for tool, document in zip(candidates, documents):
@@ -116,11 +117,15 @@ class KeywordToolIndex:
                         + self.BM25_B * len(document) / max(average_length, 1.0)
                     )
                     bm25 += inverse_df * frequency * (self.BM25_K1 + 1) / denominator
-                term_scores.append(
-                    bm25 + keyword_action_bonus(query_tokens, tool.name)
-                )
+                term_scores.append(bm25)
             if term_scores:
-                scored.append((max(term_scores), tool))
+                scored.append(
+                    (
+                        max(term_scores)
+                        + keyword_action_bonus(intent_tokens, tool.name),
+                        tool,
+                    )
+                )
 
         scored.sort(key=lambda item: (-item[0], item[1].name))
         return scored
