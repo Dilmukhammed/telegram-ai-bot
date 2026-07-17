@@ -8,6 +8,31 @@ from tools.query_normalization import (
     normalize_tool_query,
 )
 from tools.search_feedback import SearchFeedbackStore
+from tools.embeddings import EmbeddingProvider
+from tools.index import HybridToolIndex
+from tools.registry import ToolRegistry
+from tools.schema import ToolSpec
+
+
+async def _noop_handler(_: dict) -> dict:
+    return {}
+
+
+class _AdversarialEmbeddingProvider(EmbeddingProvider):
+    async def embed(self, text: str) -> list[float]:
+        return (await self.embed_many([text]))[0]
+
+    async def embed_many(self, texts: list[str]) -> list[list[float]]:
+        vectors: list[list[float]] = []
+        for text in texts:
+            if "exact.read" in text:
+                vectors.append([0.0, 1.0])
+            elif "semantic.noise" in text:
+                vectors.append([1.0, 0.0])
+            else:
+                # Query vector intentionally favors the wrong semantic tool.
+                vectors.append([1.0, 0.0])
+        return vectors
 
 
 class QueryNormalizationTests(unittest.TestCase):
@@ -48,6 +73,32 @@ class SearchFeedbackTests(unittest.TestCase):
             self.assertEqual(ranked[0]["name"], "right")
             self.assertTrue((root / "feedback.json").exists())
             self.assertTrue((root / "eval.jsonl").exists())
+
+
+class HybridFusionTests(unittest.IsolatedAsyncioTestCase):
+    async def test_precise_keyword_match_survives_noisy_embedding_rank(self) -> None:
+        registry = ToolRegistry()
+        registry.register(
+            ToolSpec(
+                name="exact.read",
+                description="read spreadsheet cell values",
+                parameters={"type": "object", "properties": {}},
+                handler=_noop_handler,
+                tags=("google", "sheets"),
+            )
+        )
+        registry.register(
+            ToolSpec(
+                name="semantic.noise",
+                description="unrelated operation",
+                parameters={"type": "object", "properties": {}},
+                handler=_noop_handler,
+                tags=("google", "sheets"),
+            )
+        )
+        index = HybridToolIndex(registry, _AdversarialEmbeddingProvider())
+        results = await index.search("read spreadsheet cell values", top_k=2)
+        self.assertEqual(results[0].name, "exact.read")
 
 
 if __name__ == "__main__":

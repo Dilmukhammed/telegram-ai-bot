@@ -16,9 +16,12 @@ logger = logging.getLogger(__name__)
 
 
 class HybridToolIndex:
-    RRF_K = 60
-    EMBEDDING_RRF_WEIGHT = 0.55
-    KEYWORD_RRF_WEIGHT = 0.45
+    # Reciprocal-rank fusion is deliberately lexical-first. Tool names,
+    # aliases and action rules are high-precision signals; embeddings provide
+    # recall and reorder the tail, but must not displace a strong exact match.
+    RRF_K = 0
+    EMBEDDING_RRF_WEIGHT = 0.20
+    KEYWORD_RRF_WEIGHT = 0.80
     CANDIDATE_POOL_MIN = 20
 
     def __init__(
@@ -106,7 +109,8 @@ class HybridToolIndex:
         }
         keyword_rank = {
             tool.name: rank
-            for rank, (_, tool) in enumerate(keyword_scored[:pool_size], start=1)
+            for rank, (score, tool) in enumerate(keyword_scored[:pool_size], start=1)
+            if score > 0
         }
         by_name = {tool.name: tool for tool in candidates}
         fused: list[tuple[float, ToolSpec]] = []
