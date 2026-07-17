@@ -7,6 +7,7 @@ from tools.embeddings import (
     get_embedding_settings,
 )
 from tools.keyword_index import KeywordToolIndex, cosine_similarity, expand_query_terms
+from tools.query_normalization import infer_query_tags, normalize_tool_query
 from tools.registry import ToolRegistry
 from tools.schema import ToolSpec
 from tools.tags import filter_tools_by_tags
@@ -15,8 +16,10 @@ logger = logging.getLogger(__name__)
 
 
 class HybridToolIndex:
-    EMBEDDING_WEIGHT = 0.75
-    KEYWORD_WEIGHT = 0.25
+    RRF_K = 60
+    EMBEDDING_RRF_WEIGHT = 0.55
+    KEYWORD_RRF_WEIGHT = 0.45
+    CANDIDATE_POOL_MIN = 20
 
     def __init__(
         self,
@@ -57,19 +60,26 @@ class HybridToolIndex:
     ) -> list[ToolSpec]:
         await self._ensure_ready()
 
-        candidates = filter_tools_by_tags(self._registry.all(), tags)
+        effective_tags = tags
+        if not effective_tags:
+            inferred = infer_query_tags(query)
+            if inferred:
+                effective_tags = list(inferred)
+
+        candidates = filter_tools_by_tags(self._registry.all(), effective_tags)
         if not candidates:
             return []
 
         if not query.strip():
             return candidates[:top_k]
 
-        queries = expand_query_terms(query)
+        normalized_query = normalize_tool_query(query)
+        queries = expand_query_terms(normalized_query)
         if not self._vectors or self._embeddings is None:
             return self._keyword.search_multi(queries, candidates, top_k=top_k)
 
         query_vectors = await self._embeddings.embed_many(queries)
-        scored: list[tuple[float, ToolSpec]] = []
+        embedding_scored: list[tuple[float, ToolSpec]] = []
 
         for tool in candidates:
             vector = self._vectors.get(tool.name)
@@ -77,19 +87,40 @@ class HybridToolIndex:
                 continue
 
             term_scores: list[float] = []
-            for term, query_vector in zip(queries, query_vectors):
+            for query_vector in query_vectors:
                 embedding_score = cosine_similarity(query_vector, vector)
-                keyword_score = self._keyword.score(term, tool)
-                term_scores.append(
-                    self.EMBEDDING_WEIGHT * embedding_score
-                    + self.KEYWORD_WEIGHT * keyword_score
-                )
+                term_scores.append(embedding_score)
 
-            scored.append((max(term_scores), tool))
+            embedding_scored.append((max(term_scores), tool))
 
-        scored.sort(key=lambda item: item[0], reverse=True)
-        if scored:
-            return [tool for _, tool in scored[:top_k]]
+        embedding_scored.sort(key=lambda item: (-item[0], item[1].name))
+        keyword_scored = self._keyword.rank_multi(queries, candidates)
+
+        pool_size = min(
+            len(candidates),
+            max(self.CANDIDATE_POOL_MIN, top_k * 4),
+        )
+        embedding_rank = {
+            tool.name: rank
+            for rank, (_, tool) in enumerate(embedding_scored[:pool_size], start=1)
+        }
+        keyword_rank = {
+            tool.name: rank
+            for rank, (_, tool) in enumerate(keyword_scored[:pool_size], start=1)
+        }
+        by_name = {tool.name: tool for tool in candidates}
+        fused: list[tuple[float, ToolSpec]] = []
+        for name in embedding_rank.keys() | keyword_rank.keys():
+            score = 0.0
+            if name in embedding_rank:
+                score += self.EMBEDDING_RRF_WEIGHT / (self.RRF_K + embedding_rank[name])
+            if name in keyword_rank:
+                score += self.KEYWORD_RRF_WEIGHT / (self.RRF_K + keyword_rank[name])
+            fused.append((score, by_name[name]))
+
+        fused.sort(key=lambda item: (-item[0], item[1].name))
+        if fused:
+            return [tool for _, tool in fused[:top_k]]
 
         return self._keyword.search_multi(queries, candidates, top_k=top_k)
 

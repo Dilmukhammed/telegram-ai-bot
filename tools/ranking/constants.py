@@ -169,6 +169,15 @@ ANTONYM_RULES: tuple[AntonymRuleSpec, ...] = (
         penalty_amount=3.0,
     ),
     AntonymRuleSpec(
+        id="workspace_find_paths_vs_grep_content",
+        query_tokens=frozenset({"glob", "pattern"}),
+        all_query_tokens=frozenset({"find", "files", "glob"}),
+        boost_tool_names=("workspace.find",),
+        penalty_tool_names=("workspace.grep",),
+        boost_amount=6.0,
+        penalty_amount=5.0,
+    ),
+    AntonymRuleSpec(
         id="telegram_send_vs_gmail",
         query_tokens=frozenset({"telegram", "file", "send"}),
         all_query_tokens=frozenset({"telegram"}),

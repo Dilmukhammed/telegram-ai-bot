@@ -4,6 +4,7 @@ from typing import Any, Literal
 
 from tools.index import HybridToolIndex
 from tools.keyword_index import ordered_query_tokens
+from tools.query_normalization import infer_query_tags, normalize_tool_query
 from tools.schema import ToolSpec
 from tools.tags import filter_tools_by_tags
 
@@ -155,6 +156,7 @@ async def build_search_payload(
         return {
             "mode": "rank",
             "query": query,
+            "normalized_query": normalize_tool_query(query),
             "tags": tags,
             "count": len(tools),
             "tools": [tool.to_search_result() for tool in tools],
@@ -170,10 +172,14 @@ async def build_search_payload(
     payload: dict[str, Any] = {
         "mode": "rank",
         "query": query,
+        "normalized_query": normalize_tool_query(query),
         "tags": [],
         "count": len(tools),
         "tools": [tool.to_search_result() for tool in tools],
     }
+    inferred_tags = infer_query_tags(query)
+    if inferred_tags:
+        payload["inferred_tags"] = list(inferred_tags)
 
     tag_hints = await build_tag_hints(
         index=index,

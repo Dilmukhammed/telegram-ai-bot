@@ -1,25 +1,24 @@
 import math
-import re
+from collections import Counter
 
+from tools.query_normalization import normalize_tool_query, normalized_query_tokens
 from tools.schema import ToolSpec
 from tools.ranking import keyword_action_bonus
-
-_TOKEN_RE = re.compile(r"[a-z0-9]+")
 
 # Bare tokens skipped in multi-word queries so "search gmail" does not also score as "search" → exa.
 _GENERIC_MULTIWORD_SKIP = frozenset({"search", "find", "lookup", "query", "list", "get"})
 
 
 def tokenize(text: str) -> set[str]:
-    return set(_TOKEN_RE.findall(text.lower()))
+    return set(normalized_query_tokens(text))
 
 
 def ordered_query_tokens(text: str) -> list[str]:
-    return _TOKEN_RE.findall(text.lower())
+    return normalized_query_tokens(text)
 
 
 def expand_query_terms(query: str) -> list[str]:
-    stripped = query.strip()
+    stripped = normalize_tool_query(query)
     if not stripped:
         return []
 
@@ -46,6 +45,9 @@ def cosine_similarity(left: list[float], right: list[float]) -> float:
 
 
 class KeywordToolIndex:
+    BM25_K1 = 1.5
+    BM25_B = 0.75
+
     def score(self, query: str, tool: ToolSpec) -> float:
         query_tokens = tokenize(query)
         if not query_tokens:
@@ -71,15 +73,54 @@ class KeywordToolIndex:
         if not candidates:
             return []
 
-        scored: list[tuple[float, ToolSpec]] = []
-        for tool in candidates:
-            term_scores = [self.score(term, tool) for term in queries if term.strip()]
-            if not term_scores:
-                continue
-            scored.append((max(term_scores), tool))
-
-        scored.sort(key=lambda item: item[0], reverse=True)
+        scored = self.rank_multi(queries, candidates)
         positive = [tool for score, tool in scored if score > 0]
         if positive:
             return positive[:top_k]
         return candidates[:top_k]
+
+    def rank_multi(
+        self,
+        queries: list[str],
+        candidates: list[ToolSpec],
+    ) -> list[tuple[float, ToolSpec]]:
+        """Rank candidates with BM25 plus deterministic action/intent rules."""
+        if not candidates:
+            return []
+
+        documents = [ordered_query_tokens(tool.index_text()) for tool in candidates]
+        document_freq: Counter[str] = Counter()
+        for tokens in documents:
+            document_freq.update(set(tokens))
+        average_length = sum(len(tokens) for tokens in documents) / len(candidates)
+
+        scored: list[tuple[float, ToolSpec]] = []
+        for tool, document in zip(candidates, documents):
+            frequencies = Counter(document)
+            term_scores: list[float] = []
+            for term in queries:
+                query_tokens = tokenize(term)
+                if not query_tokens:
+                    continue
+                bm25 = 0.0
+                for token in query_tokens:
+                    frequency = frequencies.get(token, 0)
+                    if not frequency:
+                        continue
+                    df = document_freq.get(token, 0)
+                    inverse_df = math.log(
+                        1 + (len(candidates) - df + 0.5) / (df + 0.5)
+                    )
+                    denominator = frequency + self.BM25_K1 * (
+                        1 - self.BM25_B
+                        + self.BM25_B * len(document) / max(average_length, 1.0)
+                    )
+                    bm25 += inverse_df * frequency * (self.BM25_K1 + 1) / denominator
+                term_scores.append(
+                    bm25 + keyword_action_bonus(query_tokens, tool.name)
+                )
+            if term_scores:
+                scored.append((max(term_scores), tool))
+
+        scored.sort(key=lambda item: (-item[0], item[1].name))
+        return scored

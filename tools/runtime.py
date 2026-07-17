@@ -15,6 +15,7 @@ from tools.phase4_config import (
 )
 from tools.ratelimit import SlidingWindowRateLimiter
 from tools.registry import ToolRegistry
+from tools.search_feedback import SearchFeedbackStore
 from tools.schema import ToolSpec
 from tools.search_enrichment import (
     SearchToolsValidationError,
@@ -65,12 +66,15 @@ class ToolRuntime:
         cache: ToolResultCache | None = None,
         rate_limiter: SlidingWindowRateLimiter | None = None,
         telemetry: ToolTelemetry | None = None,
+        search_feedback: SearchFeedbackStore | None = None,
     ) -> None:
         self._registry = registry
         self._index = index
         self._cache = cache or ToolResultCache(cache_max_ttl_seconds())
         self._rate_limiter = rate_limiter or SlidingWindowRateLimiter()
         self._telemetry = telemetry or ToolTelemetry()
+        self._search_feedback = search_feedback or SearchFeedbackStore()
+        self._pending_searches: dict[tuple[int | None, int], dict[str, Any]] = {}
 
     @property
     def telemetry(self) -> ToolTelemetry:
@@ -93,14 +97,28 @@ class ToolRuntime:
         tags: list[str] | None = None,
         mode: str = "rank",
     ) -> dict[str, Any]:
-        return await build_search_payload(
+        normalized_mode = normalize_search_mode(mode)
+        requested_top_k = max(1, min(int(top_k), 50))
+        retrieval_top_k = (
+            max(requested_top_k, 20)
+            if normalized_mode == "rank"
+            else requested_top_k
+        )
+        payload = await build_search_payload(
             index=self._index,
             all_tools=self._registry.all(),
             query=query,
-            top_k=top_k,
+            top_k=retrieval_top_k,
             tags=tags,
-            mode=normalize_search_mode(mode),
+            mode=normalized_mode,
         )
+        if payload.get("mode") == "rank":
+            tools = self._search_feedback.rerank(query, tags, payload.get("tools", []))
+            payload["tools"] = tools[:requested_top_k]
+            payload["count"] = len(payload["tools"])
+            if isinstance(payload.get("tag_scope"), dict):
+                payload["tag_scope"]["returned"] = len(payload["tools"])
+        return payload
 
     def is_meta_tool_parallel_safe(self, name: str, arguments: dict[str, Any]) -> bool:
         if name == "search_tools":
@@ -247,6 +265,15 @@ class ToolRuntime:
                         tags=tags,
                         mode=str(arguments.get("mode", "rank")),
                     )
+                    if payload.get("mode") == "rank":
+                        self._pending_searches[(ctx.user_id, ctx.turn)] = {
+                            "query": str(arguments.get("query", "")),
+                            "tags": tags,
+                            "candidates": [
+                                str(tool.get("name", ""))
+                                for tool in payload.get("tools", [])
+                            ],
+                        }
                 except SearchToolsValidationError as exc:
                     payload = {"ok": False, "error": str(exc)}
             elif name == "use_tool":
@@ -260,6 +287,15 @@ class ToolRuntime:
                         meta_tool=name,
                     ),
                 )
+                pending = self._pending_searches.pop((ctx.user_id, ctx.turn), None)
+                if pending is not None:
+                    self._search_feedback.record(
+                        query=pending["query"],
+                        tags=pending["tags"],
+                        selected_tool=tool_name,
+                        ok=bool(payload.get("ok")),
+                        candidates=pending["candidates"],
+                    )
             else:
                 payload = {"ok": False, "error": f"Unknown meta-tool: {name}"}
         except ToolValidationError as exc:

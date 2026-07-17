@@ -78,6 +78,8 @@ def _yandex_likes_bonus(query_tokens: set[str], tool_name: str, method: str) -> 
                 bonus -= YANDEX_LIKES_WRITE_PENALTY
         if method == "tracks" and tool_name.startswith("yandex.music."):
             bonus -= YANDEX_GENERIC_TRACKS_PENALTY
+        if method in {"search", "search_suggest"} and tool_name.startswith("yandex.music."):
+            bonus -= 9.0
 
     if query_tokens & NEGATIVE_LIKE_TOKENS:
         entity = _detect_yandex_likes_entity(query_tokens)

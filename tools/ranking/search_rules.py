@@ -48,6 +48,12 @@ def search_action_bonus(query_tokens: set[str], tool_name: str, method: str) -> 
     has_search_intent = bool(query_tokens & SEARCH_INTENT_TOKENS)
     bonus = 0.0
 
+    if "glob" in query_tokens and query_tokens & {"workspace", "files"}:
+        if tool_name == "workspace.find":
+            bonus += 8.0
+        if tool_name == "workspace.grep":
+            bonus -= 8.0
+
     if "search" in query_tokens:
         if method == "search" or method.endswith("_search") or tool_name.endswith(".search"):
             bonus += 3.0

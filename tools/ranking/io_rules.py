@@ -16,7 +16,9 @@ def io_action_bonus(query_tokens: set[str], tool_name: str, method: str) -> floa
         if method.startswith("read_") or method in {"get_values", "read_sheet", "get_attachment"}:
             bonus += 2.0
         if method == "read_file":
-            bonus += 1.0
+            bonus += 3.0
+        if method == "read_lines" and "lines" not in query_tokens:
+            bonus -= 2.0
         if tool_name == "workspace.read_file" and query_tokens & {"spreadsheet", "sheets", "values", "cell", "cells"}:
             bonus -= 4.0
 
@@ -30,7 +32,9 @@ def io_action_bonus(query_tokens: set[str], tool_name: str, method: str) -> floa
         bonus += 3.0
 
     if "load" in query_tokens and tool_name == "skills.load":
-        bonus += 3.0
+        bonus += 5.0
+    if "load" in query_tokens and tool_name == "skills.unload":
+        bonus -= 5.0
 
     if query_tokens & {"routes", "directions", "driving", "travel"}:
         if method in {"compute_routes", "travel_time"}:

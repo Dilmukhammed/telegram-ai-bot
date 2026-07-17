@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import re
 
+# Backward-compatible re-export used by older tests and callers.
+from tools.ranking import keyword_action_bonus
+
 _NAME_PART_RE = re.compile(r"[a-z0-9]+")
 
 # Extra discovery phrases for embedding + keyword index (English agent queries).

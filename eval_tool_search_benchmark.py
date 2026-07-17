@@ -104,4 +104,22 @@ TOOL_SEARCH_BENCHMARK: tuple[ToolSearchCase, ...] = (
     ),
     # Wave 4 — targeted aliases
     ToolSearchCase("find workspace files by pattern", ("workspace.find",)),
+    # Multilingual discovery: direct user phrasing should still work if the
+    # agent passes Russian text through unchanged.
+    ToolSearchCase(
+        "покажи мои плейлисты в Яндекс Музыке",
+        ("yandex.music.users_playlists_list",),
+    ),
+    ToolSearchCase(
+        "найди мои любимые треки в Яндекс Музыке",
+        ("yandex.music.users_likes_tracks",),
+    ),
+    ToolSearchCase(
+        "найди файлы по маске в рабочей папке",
+        ("workspace.find",),
+    ),
+    ToolSearchCase(
+        "покажи события календаря на сегодня",
+        ("google.calendar.list_today",),
+    ),
 )

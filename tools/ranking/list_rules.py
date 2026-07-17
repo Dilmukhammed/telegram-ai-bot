@@ -58,6 +58,15 @@ def list_action_bonus(query_tokens: set[str], tool_name: str, method: str) -> fl
         for rule in LIST_INTENT_RULES:
             bonus += _apply_list_rule(query_tokens, tool_name, method, rule)
         bonus += _bare_list_bonus(query_tokens, tool_name, method)
+        if query_tokens & {"files", "file"} and not query_tokens & {
+            "starred",
+            "recent",
+            "shared",
+        }:
+            if method in {"list_files", "list_folder"}:
+                bonus += 3.0
+            elif method in {"list_starred", "list_recent", "list_shared_with_me"}:
+                bonus -= 2.0
 
     if query_tokens & CALENDAR_TOKENS:
         if method == "list_today" and "today" in query_tokens:
