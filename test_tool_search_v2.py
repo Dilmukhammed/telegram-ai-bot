@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,6 +9,8 @@ from tools.query_normalization import (
     normalize_tool_query,
 )
 from tools.search_feedback import SearchFeedbackStore
+from tools.bootstrap import create_tool_runtime
+from tools.context import RunContext
 from tools.embeddings import EmbeddingProvider
 from tools.index import HybridToolIndex
 from tools.registry import ToolRegistry
@@ -107,6 +110,50 @@ class HybridFusionTests(unittest.IsolatedAsyncioTestCase):
         index = HybridToolIndex(registry, _AdversarialEmbeddingProvider())
         results = await index.search("read spreadsheet cell values", top_k=2)
         self.assertEqual(results[0].name, "exact.read")
+
+
+class BotToolSearchIntegrationTests(unittest.IsolatedAsyncioTestCase):
+    async def test_production_meta_tool_routes_terse_music_query(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {
+                "DOTENV_OVERRIDE": "0",
+                "TOOL_EMBEDDING_PROVIDER": "keyword",
+                "TOOL_SEARCH_FEEDBACK_ENABLED": "0",
+            },
+        ):
+            runtime = await create_tool_runtime()
+        raw = await runtime.dispatch_meta_tool(
+            "search_tools",
+            {"mode": "rank", "query": "music playlist", "top_k": 5},
+            ctx=RunContext(user_id=991, turn=1, meta_tool="search_tools"),
+        )
+        payload = json.loads(raw)
+        self.assertEqual(payload["tools"][0]["name"], "yandex.music.users_playlists_list")
+        self.assertEqual(payload["inferred_tags"], ["yandex", "music"])
+
+    async def test_production_meta_tool_respects_explicit_music_tags(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {
+                "DOTENV_OVERRIDE": "0",
+                "TOOL_EMBEDDING_PROVIDER": "keyword",
+                "TOOL_SEARCH_FEEDBACK_ENABLED": "0",
+            },
+        ):
+            runtime = await create_tool_runtime()
+        raw = await runtime.dispatch_meta_tool(
+            "search_tools",
+            {
+                "mode": "rank",
+                "query": "like track",
+                "tags": ["yandex", "music"],
+                "top_k": 5,
+            },
+            ctx=RunContext(user_id=992, turn=1, meta_tool="search_tools"),
+        )
+        payload = json.loads(raw)
+        self.assertEqual(payload["tools"][0]["name"], "yandex.music.users_likes_tracks_add")
 
 
 if __name__ == "__main__":
